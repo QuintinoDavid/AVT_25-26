@@ -1,9 +1,8 @@
-#version 330 core
+#version 430
 
 uniform mat4 m_pvm;
 uniform mat4 m_viewModel;
 uniform mat3 m_normal;
-
 
 uniform vec4 l_pos;
 
