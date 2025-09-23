@@ -18,14 +18,12 @@
 #include "stb_rect_pack.h"
 #include "stb_truetype.h"
 
-using namespace std;
-
 Renderer::Renderer() {}
 
-bool Renderer::truetypeInit(const std::string& fontFile) {
-
+bool Renderer::truetypeInit(const std::string& fontFile)
+{
     // Read the font file
-    ifstream inputStream(fontFile.c_str(), std::ios::binary);
+    std::ifstream inputStream(fontFile.c_str(), std::ios::binary);
 
     if (inputStream.fail()) {
         printf("\nError opening font file.\n");
@@ -41,12 +39,12 @@ bool Renderer::truetypeInit(const std::string& fontFile) {
     inputStream.read((char*)fontDataBuf, fontFileSize);
 
     if (!fontDataBuf) {
-        cerr << "Failed to load buffer with font data\n";
+        std::cerr << "Failed to load buffer with font data\n";
         return false;
     }
 
     if (!stbtt_InitFont(&font.info, fontDataBuf, 0)) {
-        cerr << "stbtt_InitFont() Failed!\n";
+        std::cerr << "stbtt_InitFont() Failed!\n";
         return false;
     }
 
@@ -58,7 +56,7 @@ bool Renderer::truetypeInit(const std::string& fontFile) {
 
     stbtt_pack_context pack_context;
     if (!stbtt_PackBegin(&pack_context, fontAtlasTextureData, TEX_SIZE, TEX_SIZE, 0, 1, nullptr)) {
-        cerr << "Failed to start font packing\n";
+        std::cerr << "Failed to start font packing\n";
         return false;
     }
 
@@ -72,7 +70,7 @@ bool Renderer::truetypeInit(const std::string& fontFile) {
     };
 
     if (!stbtt_PackFontRanges(&pack_context, fontDataBuf, 0, &range, 1)) {
-        cerr << "Failed to pack font ranges\n";
+        std::cerr << "Failed to pack font ranges\n";
         return false;
     }
 
@@ -122,8 +120,8 @@ bool Renderer::truetypeInit(const std::string& fontFile) {
     return true;
 }
 
-bool Renderer::setRenderMeshesShaderProg(const std::string& vertShaderPath, const std::string& fragShaderPath) {
-
+bool Renderer::setRenderMeshesShaderProg(const std::string& vertShaderPath, const std::string& fragShaderPath)
+{
     // Shader for models
     Shader shader;
     shader.init();
@@ -155,16 +153,16 @@ bool Renderer::setRenderMeshesShaderProg(const std::string& vertShaderPath, cons
     return(shader.isProgramLinked() && shader.isProgramValid());
 }
 
-Renderer::~Renderer() {
+Renderer::~Renderer()
+{
     glDeleteProgram(program);
     glDeleteProgram(textProgram);
     for (auto& mesh : myMeshes) glDeleteVertexArrays(1, &(mesh.vao));
     myMeshes.clear(); myMeshes.shrink_to_fit();
- 
 }
 
-bool Renderer::setRenderTextShaderProg(const std::string& vertShaderPath, const std::string& fragShaderPath) {
-   
+bool Renderer::setRenderTextShaderProg(const std::string& vertShaderPath, const std::string& fragShaderPath)
+{  
     Shader shader;    // Shader for rendering True Type Font (ttf) bitmap text
     shader.init();
     textProgram = shader.getProgramIndex();
@@ -191,11 +189,13 @@ bool Renderer::setRenderTextShaderProg(const std::string& vertShaderPath, const 
     return(shader.isProgramLinked() && shader.isProgramValid());
 }
 
-void Renderer::activateRenderMeshesShaderProg() {   //GLSL program to draw the meshes
+void Renderer::activateRenderMeshesShaderProg()
+{   //GLSL program to draw the meshes
     glUseProgram(program);
 }
 
-void Renderer::setSpotParam(float* coneDir, const float cutOff) {
+void Renderer::setSpotParam(float* coneDir, const float cutOff)
+{
     GLint loc;
     loc = glGetUniformLocation(program, "coneDir");
     glUniform4fv(loc, 1, coneDir);
@@ -203,7 +203,8 @@ void Renderer::setSpotParam(float* coneDir, const float cutOff) {
     glUniform1f(loc, cutOff);
 }
 
-void Renderer::setSpotLightMode(bool spotLightMode) {
+void Renderer::setSpotLightMode(bool spotLightMode)
+{
     GLint loc;
     loc = glGetUniformLocation(program, "spotlight_mode");
     if (spotLightMode)
@@ -212,11 +213,13 @@ void Renderer::setSpotLightMode(bool spotLightMode) {
         glUniform1i(loc, 0);
 }
 
-void Renderer::setLightPos(float* lightPos) {
+void Renderer::setLightPos(float* lightPos)
+{
     glUniform4fv(lpos_loc, 1, lightPos);
 }
 
-void Renderer::setTexUnit(int tuId, int texObjId) {
+void Renderer::setTexUnit(int tuId, int texObjId)
+{
     glActiveTexture(GL_TEXTURE0 + tuId);
     glBindTexture(GL_TEXTURE_2D, TexObjArray.getTextureId(texObjId));
     glUniform1i(tex_loc[tuId], tuId);

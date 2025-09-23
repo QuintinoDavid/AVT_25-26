@@ -37,8 +37,6 @@
 #include "sceneObject.h"
 #include "drone.h"
 
-using namespace std;
-
 #define CAPTION "AVT 2025 Welcome Demo"
 int WindowHandle = 0;
 int WinX = 1024, WinY = 768;
@@ -426,9 +424,9 @@ void buildScene()
 	// The truetypeInit creates a texture object in TexObjArray for storing the fontAtlasTexture
 	fontLoaded = renderer.truetypeInit(fontPathFile);
 	if (!fontLoaded)
-		cerr << "Fonts not loaded\n";
+		std::cerr << "Fonts not loaded\n";
 	else
-		cerr << "Fonts loaded\n";
+		std::cerr << "Fonts loaded\n";
 
 	printf("\nNumber of Texture Objects is %d\n\n", renderer.TexObjArray.getNumTextureObjects());
 
