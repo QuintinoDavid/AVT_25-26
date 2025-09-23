@@ -2,7 +2,7 @@
 // The code comes with no warranties, use it at your own risk.
 // You may use it, or parts of it, wherever you want.
 // 
-// Author: João Madeiras Pereira
+// Author: Joï¿½o Madeiras Pereira
 //
 #include <iostream>
 #include <fstream>
@@ -122,7 +122,6 @@ bool Renderer::truetypeInit(const std::string& fontFile) {
     return true;
 }
 
-
 bool Renderer::setRenderMeshesShaderProg(const std::string& vertShaderPath, const std::string& fragShaderPath) {
 
     // Shader for models
@@ -155,6 +154,7 @@ bool Renderer::setRenderMeshesShaderProg(const std::string& vertShaderPath, cons
 
     return(shader.isProgramLinked() && shader.isProgramValid());
 }
+
 Renderer::~Renderer() {
     glDeleteProgram(program);
     glDeleteProgram(textProgram);
@@ -191,7 +191,6 @@ bool Renderer::setRenderTextShaderProg(const std::string& vertShaderPath, const 
     return(shader.isProgramLinked() && shader.isProgramValid());
 }
 
-
 void Renderer::activateRenderMeshesShaderProg() {   //GLSL program to draw the meshes
     glUseProgram(program);
 }
@@ -223,7 +222,8 @@ void Renderer::setTexUnit(int tuId, int texObjId) {
     glUniform1i(tex_loc[tuId], tuId);
 }
 
-void Renderer::renderMesh(const dataMesh& data) {
+void Renderer::renderMesh(const dataMesh& data)
+{
     GLint loc;
 
     // be aware to activate previously the Model shader program
@@ -249,8 +249,8 @@ void Renderer::renderMesh(const dataMesh& data) {
     glBindVertexArray(0);
 }
 
-void Renderer::renderText(const TextCommand& text) {
-
+void Renderer::renderText(const TextCommand& text)
+{
     glUseProgram(textProgram);   //use GLSL program for text rendering
     glUniformMatrix4fv(fontPvm_loc, 1, GL_FALSE, text.pvm);
     glUniform4fv(textColor_loc, 1, text.color);
@@ -299,5 +299,3 @@ void Renderer::renderText(const TextCommand& text) {
         }
     }
 }
-
-

@@ -1,4 +1,4 @@
-#version 430
+#version 330 core
 
 in Data {
 	vec4 color;

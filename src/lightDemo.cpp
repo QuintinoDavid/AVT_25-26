@@ -9,7 +9,7 @@
 // The code comes with no warranties, use it at your own risk.
 // You may use it, or parts of it, wherever you want.
 //
-// Author: Jo�o Madeiras Pereira
+// Author: João Madeiras Pereira
 //
 
 #include <math.h>
@@ -142,7 +142,8 @@ void renderSim(void)
 	FrameCount++;
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-	renderer.activateRenderMeshesShaderProg(); // use the required GLSL program to draw the meshes with illumination
+	// use the required GLSL program to draw the meshes with illumination
+	renderer.activateRenderMeshesShaderProg();
 
 	// Associar os Texture Units aos Objects Texture
 	// stone.tga loaded in TU0; checker.tga loaded in TU1;  lightwood.tga loaded in TU2
@@ -153,6 +154,7 @@ void renderSim(void)
 	// load identity matrices
 	mu.loadIdentity(gmu::VIEW);
 	mu.loadIdentity(gmu::MODEL);
+
 	// set the camera using a function similar to gluLookAt
 	mu.lookAt(cams[activeCam]->getX(), cams[activeCam]->getY(), cams[activeCam]->getZ(),
 			  cams[activeCam]->getTargetX(), cams[activeCam]->getTargetY(), cams[activeCam]->getTargetZ(),
@@ -231,6 +233,7 @@ void processKeys(unsigned char key, int xx, int yy)
 	{
 		sceneObjects[i]->handleInput(key);
 	}
+
 	switch (key)
 	{
 
@@ -239,10 +242,9 @@ void processKeys(unsigned char key, int xx, int yy)
 		break;
 
 	case 'c':
-	{
 		printf("Camera info:\n%s\n", cams[activeCam]->toString().c_str());
 		break;
-	}
+
 	case 'l': // toggle spotlight mode
 		if (!spotlight_mode)
 		{
@@ -256,14 +258,16 @@ void processKeys(unsigned char key, int xx, int yy)
 		}
 		break;
 
+	/*
 	case 'r': // reset
-		// alpha = 57.0f;
-		// betaAngle = 18.0f; // Camera Spherical Coordinates
-		// r = 45.0f;
-		// camX = r * sin(alpha * 3.14f / 180.0f) * cos(betaAngle * 3.14f / 180.0f);
-		// camZ = r * cos(alpha * 3.14f / 180.0f) * cos(betaAngle * 3.14f / 180.0f);
-		// camY = r * sin(betaAngle * 3.14f / 180.0f);
+		alpha = 57.0f;
+		betaAngle = 18.0f; // Camera Spherical Coordinates
+		r = 45.0f;
+		camX = r * sin(alpha * 3.14f / 180.0f) * cos(betaAngle * 3.14f / 180.0f);
+		camZ = r * cos(alpha * 3.14f / 180.0f) * cos(betaAngle * 3.14f / 180.0f);
+		camY = r * sin(betaAngle * 3.14f / 180.0f);
 		break;
+	*/
 
 	case 'm':
 		glEnable(GL_MULTISAMPLE);
@@ -271,6 +275,7 @@ void processKeys(unsigned char key, int xx, int yy)
 	case 'n':
 		glDisable(GL_MULTISAMPLE);
 		break;
+
 	case '1':
 		activeCam = 0;
 		printf("Camera 1 activated\n");
@@ -442,6 +447,7 @@ void buildScene()
 	// Setup cameras
 	for (int i = 0; i < 3; i++)
 		cams[i] = new Camera();
+
 	// Top Orthogonal Camera
 	cams[0]->setPosition(0.0f, 30.0f, 0.0f);
 	cams[0]->setTarget(0.0f, 0.0f, 0.0f);

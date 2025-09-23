@@ -18,7 +18,7 @@
 
 class Shader
 {
-	public:
+public:
 	
 	/// Types of Vertex Attributes
 	enum AttribType {
@@ -59,7 +59,7 @@ class Shader
 	*/
 	void compileShader(Shader::ShaderType st, std::string fileName);
 
-/// returns the program index
+	/// returns the program index
 	GLuint getProgramIndex();
 	/// returns a shader index
 	GLuint getShaderIndex(Shader::ShaderType);

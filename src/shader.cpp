@@ -33,14 +33,15 @@ Shader::spStringShaderTypes[COUNT_SHADER_TYPE] = {
 								"Tesselation Evaluation Shader",
 								"Fragment Shader" };
 
-Shader::Shader() : pProgram(0), pInited(false) {
-
+Shader::Shader() : pProgram(0), pInited(false)
+{
 	for (int i = 0; i < COUNT_SHADER_TYPE; ++i) {
 		pShader[i] = 0;
 	}
 }
 
-Shader::~Shader() {
+Shader::~Shader()
+{
 	for (int i = 0; i < COUNT_SHADER_TYPE; ++i) {
 		if (pShader[i])
 			glDeleteShader(pShader[i]);
@@ -48,15 +49,16 @@ Shader::~Shader() {
 }
 
 void 
-Shader::init() {
+Shader::init()
+{
 	pInited = true;
 	pProgram = glCreateProgram();
 }
 
 
 void 
-Shader::compileShader(Shader::ShaderType st, std::string fileName) {
-
+Shader::compileShader(Shader::ShaderType st, std::string fileName)
+{
 	// init should always be called first
 	assert(pInited == true);
 
@@ -91,17 +93,17 @@ Shader::getProgramIndex() { return pProgram; }
 
 
 GLuint
-Shader::getShaderIndex(Shader::ShaderType aType) {
-
+Shader::getShaderIndex(Shader::ShaderType aType)
+{
 	return pShader[aType];
 }
 
 std::string
-Shader::getShaderInfoLog(Shader::ShaderType st) {
-
-    int infologLength = 0;
-    int charsWritten  = 0;
-    char *infoLog;
+Shader::getShaderInfoLog(Shader::ShaderType st)
+{
+	int infologLength = 0;
+	int charsWritten  = 0;
+	char *infoLog;
 
 	if (pShader[st]) {
 		glGetShaderiv(pShader[st], GL_INFO_LOG_LENGTH,&infologLength);
@@ -124,8 +126,8 @@ Shader::getShaderInfoLog(Shader::ShaderType st) {
 
 
 std::string
-Shader::getProgramInfoLog() {
-
+Shader::getProgramInfoLog()
+{
     int infologLength = 0;
     int charsWritten  = 0;
     char *infoLog;
@@ -151,8 +153,8 @@ Shader::getProgramInfoLog() {
 
 
 bool
-Shader::isProgramValid() {
-
+Shader::isProgramValid()
+{
 	GLint b = GL_FALSE;
 	if (pProgram) {
 		glValidateProgram(pProgram);
@@ -162,8 +164,8 @@ Shader::isProgramValid() {
 }
 
 bool
-Shader::isProgramLinked() {
-
+Shader::isProgramLinked()
+{
 	GLint b = GL_FALSE;
 	if (pProgram) 
 		glGetProgramiv(pProgram, GL_LINK_STATUS, &b);
@@ -173,8 +175,8 @@ Shader::isProgramLinked() {
 
 
 std::string 
-Shader::getAllInfoLogs() {
-
+Shader::getAllInfoLogs()
+{
 	std::string s;
 
 	for (int i = 0; i < COUNT_SHADER_TYPE; ++i) {
@@ -202,8 +204,8 @@ Shader::getAllInfoLogs() {
 
 // PRIVATE METHODS
 char *
-Shader::textFileRead(std::string fileName) {
-
+Shader::textFileRead(std::string fileName)
+{
 	FILE *fp;
 	char *content = NULL;
 
@@ -231,6 +233,3 @@ Shader::textFileRead(std::string fileName) {
 	}
 	return content;
 }
-
-
-

@@ -9,7 +9,7 @@
  // The code comes with no warranties, use it at your own risk.
  // You may use it, or parts of it, wherever you want.
  //
- // Author: João Madeiras Pereira
+ // Author: JoÃ£o Madeiras Pereira
  //
  *
  ---------------------------------------------------------------*/
@@ -32,16 +32,16 @@ DegToRad(float degrees)
 
 
 // glPushMatrix implementation
-void gmu::pushMatrix(MatrixTypes aType) {
-
+void gmu::pushMatrix(MatrixTypes aType)
+{
 	float *aux = (float *)malloc(sizeof(float) * 16);
 	memcpy(aux, mMatrix[aType], sizeof(float) * 16);
 	mMatrixStack[aType].push_back(aux);
 }
 
 // glPopMatrix implementation
-void gmu::popMatrix(MatrixTypes aType) {
-
+void gmu::popMatrix(MatrixTypes aType)
+{
 	if (mMatrixStack[aType].size()-1 >= 0) {
 		float *m = mMatrixStack[aType][mMatrixStack[aType].size()-1];
 		memcpy(mMatrix[aType], m, sizeof(float) * 16);
@@ -59,7 +59,6 @@ void gmu::loadIdentity(MatrixTypes aType)
 // glMultMatrix implementation
 void gmu::multMatrix(MatrixTypes aType, float *aMatrix)
 {
-	
 	float *a, *b, res[16];
 	a = mMatrix[aType];
 	b = aMatrix;
@@ -72,13 +71,13 @@ void gmu::multMatrix(MatrixTypes aType, float *aMatrix)
 			}
 		}
 	}
+
 	memcpy(mMatrix[aType], res, 16 * sizeof(float));
 }
 
 // aux function resMat = resMat * aMatrix
 void gmu::multMatrix(float *resMat, float *aMatrix)
 {
-	
 	float *a, *b, res[16];
 	a = resMat;
 	b = aMatrix;
@@ -91,6 +90,7 @@ void gmu::multMatrix(float *resMat, float *aMatrix)
 			}
 		}
 	}
+
 	memcpy(a, res, 16 * sizeof(float));
 }
 
@@ -288,8 +288,8 @@ void gmu::frustum(float left, float right,
 
 // sets the square matrix mat to the identity matrix,
 // size refers to the number of rows (or columns)
-void gmu::setIdentityMatrix( float *mat, int size) {
-
+void gmu::setIdentityMatrix(float *mat, int size)
+{
 	// fill matrix with 0s
 	for (int i = 0; i < size * size; ++i)
 			mat[i] = 0.0f;
@@ -300,8 +300,8 @@ void gmu::setIdentityMatrix( float *mat, int size) {
 }
 
 // Compute res = M * point
-void gmu::multMatrixPoint(MatrixTypes aType, float *point, float *res) {
-
+void gmu::multMatrixPoint(MatrixTypes aType, float *point, float *res)
+{
 	for (int i = 0; i < 4; ++i) {
 
 		res[i] = 0.0f;
@@ -313,8 +313,8 @@ void gmu::multMatrixPoint(MatrixTypes aType, float *point, float *res) {
 	}
 }
 
-void gmu::multMatrixPoint(ComputedMatrixTypes aType, float* point, float* res) {
-
+void gmu::multMatrixPoint(ComputedMatrixTypes aType, float* point, float* res)
+{
 	for (int i = 0; i < 4; ++i) {
 
 		res[i] = 0.0f;
@@ -327,24 +327,24 @@ void gmu::multMatrixPoint(ComputedMatrixTypes aType, float* point, float* res) {
 }
 
 // res = a cross b;
-void  gmu::crossProduct( float *a, float *b, float *res) {
-
+void  gmu::crossProduct( float *a, float *b, float *res)
+{
 	res[0] = a[1] * b[2]  -  b[1] * a[2];
 	res[1] = a[2] * b[0]  -  b[2] * a[0];
 	res[2] = a[0] * b[1]  -  b[0] * a[1];
 }
 
 // returns a . b
-float gmu::dotProduct(float *a, float *b) {
-
+float gmu::dotProduct(float *a, float *b)
+{
 	float res = a[0] * b[0]  +  a[1] * b[1]  +  a[2] * b[2];
 
 	return res;
 }
 
 // returns k * a
-void gmu::constProduct(float k, float *a, float *res) {
-
+void gmu::constProduct(float k, float *a, float *res)
+{
 	res[0] = k * a[0];
 	res[1] = k * a[1];;
 	res[2] = k * a[2];
@@ -352,8 +352,8 @@ void gmu::constProduct(float k, float *a, float *res) {
 }
 
 // Normalize a vec3
-void gmu::normalize(float *a) {
-
+void gmu::normalize(float *a)
+{
 	float mag = sqrt(a[0] * a[0]  +  a[1] * a[1]  +  a[2] * a[2]);
 
 	a[0] /= mag;
@@ -362,16 +362,16 @@ void gmu::normalize(float *a) {
 }
 
 // res = b - a
-void gmu::subtract(float *a, float *b, float *res) {
-
+void gmu::subtract(float *a, float *b, float *res)
+{
 	res[0] = b[0] - a[0];
 	res[1] = b[1] - a[1];
 	res[2] = b[2] - a[2];
 }
 
 // res = a + b
-void gmu::add(float *a, float *b, float *res) {
-
+void gmu::add(float *a, float *b, float *res)
+{
 	res[0] = b[0] + a[0];
 	res[1] = b[1] + a[1];
 	res[2] = b[2] + a[2];
@@ -379,14 +379,14 @@ void gmu::add(float *a, float *b, float *res) {
 
 
 // returns |a|
-float gmu::length(float *a) {
-
+float gmu::length(float *a)
+{
 	return(sqrt(a[0] * a[0]  +  a[1] * a[1]  +  a[2] * a[2]));
-
 }
+
 // Computes derived matrices
-void gmu::computeDerivedMatrix(ComputedMatrixTypes aType) {
-	
+void gmu::computeDerivedMatrix(ComputedMatrixTypes aType)
+{
 	memcpy(mCompMatrix[ComputedMatrixTypes::VIEW_MODEL], mMatrix[MatrixTypes::VIEW], 16 * sizeof(float));
 	multMatrix(mCompMatrix[ComputedMatrixTypes::VIEW_MODEL], mMatrix[MatrixTypes::MODEL]);
 
@@ -397,8 +397,8 @@ void gmu::computeDerivedMatrix(ComputedMatrixTypes aType) {
 }
 
 // computes the derived normal matrix - should be used after computeDerivedMatrix
-void gmu::computeNormalMatrix3x3() {
-
+void gmu::computeNormalMatrix3x3()
+{
 	float mMat3x3[9];
 
 	mMat3x3[0] = mCompMatrix[ComputedMatrixTypes::VIEW_MODEL][0];
@@ -454,15 +454,16 @@ float* gmu::getNormalMatrix()
 }
 
 // It calculates only the PVM matrix. Just an auxiliary function to be used in billboad demo: it implies that VIEW_MODEL was already calculated
-void gmu::computeDerivedMatrix_PVM(){
-	
+void gmu::computeDerivedMatrix_PVM()
+{
 	memcpy(mCompMatrix[ComputedMatrixTypes::PROJ_VIEW_MODEL], mMatrix[MatrixTypes::PROJECTION], 16 * sizeof(float));
 	multMatrix(mCompMatrix[ComputedMatrixTypes::PROJ_VIEW_MODEL], mCompMatrix[ComputedMatrixTypes::VIEW_MODEL]);
 }
 
 
 //Maps object coordinates to window coordinates: - should be used after computeDerivedMatrix
-bool gmu::project(float* objCoord, float* windowCoord, int* m_viewport) {
+bool gmu::project(float* objCoord, float* windowCoord, int* m_viewport)
+{
 	float point_tmp[4];
 
 	//gets point in clipping coordinates

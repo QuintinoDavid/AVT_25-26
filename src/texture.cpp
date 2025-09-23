@@ -45,7 +45,7 @@ void Texture::textureCubeMap_Loader(const char **strFileName)
 	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 
-	//Usou-se no init a função glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS) de modo que a escolha abaixo é irrelevante
+	//Usou-se no init a funï¿½ï¿½o glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS) de modo que a escolha abaixo ï¿½ irrelevante
 	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);

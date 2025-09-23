@@ -1,4 +1,4 @@
-#version 430
+#version 330 core
 
 struct Materials {
 	vec4 diffuse;
