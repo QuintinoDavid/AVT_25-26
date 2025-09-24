@@ -102,6 +102,7 @@ private:
 		GLuint attLinear;
 		GLuint attExp;
 	} pointLight_loc[MAX_POINT_LIGHTS];
+	GLuint pointLightNum_loc;
 	int pointLightCount = 0;
 
 	struct {
@@ -115,6 +116,7 @@ private:
 		GLuint attLinear;
 		GLuint attExp;
 	} spotLight_loc[MAX_SPOT_LIGHTS];
+	GLuint spotLightNum_loc;
 	int spotLightCount = 0;
 
 	// render font GLSL program variable locations and VAO

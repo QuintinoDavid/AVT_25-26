@@ -1,6 +1,5 @@
 #include "renderer.h"
 #include "mathUtility.h"
-#include "sceneObject.h"
 
 enum lightType {
     DIRECTIONAL,
@@ -8,7 +7,7 @@ enum lightType {
     SPOTLIGHT
 };
 
-class Light : public SceneObject
+class Light
 {
 
 private:
@@ -17,9 +16,10 @@ private:
     float diffuse; // Intensity
     lightType type;
 
-    float position[4];
-    float direction[4];
+    float position[3];
+    float direction[3];
     float cutoff;
+    bool active = true;
 
     float attConstant;
     float attLinear;
@@ -27,30 +27,42 @@ private:
 
 public:
 
-    Light(float color[4], float ambient, float diffuse, float direction[4], int meshID_ = -1, int texMode_ = 1)
-    : type(DIRECTIONAL), ambient(ambient), diffuse(diffuse), SceneObject(meshID_, texMode_)
+    Light(float color[4], float ambient, float diffuse, float direction[4])
+    : type(DIRECTIONAL), ambient(ambient), diffuse(diffuse)
     {
         for (int i = 0; i < 4; i++) {
+            this->color[i] = color[i];
+        }
+
+        for (int i = 0; i < 3; i++) {
             this->direction[i] = direction[i];
         }
     }
 
     Light(float color[4], float ambient, float diffuse, float position[4],
-          float attConstant, float attLinear, float attExponential, int meshID_ = -1, int texMode_ = 1)
-    : type(POINTLIGHT), ambient(ambient), diffuse(diffuse), SceneObject(meshID_, texMode_),
+          float attConstant, float attLinear, float attExponential)
+    : type(POINTLIGHT), ambient(ambient), diffuse(diffuse),
       attConstant(attConstant), attLinear(attLinear), attExponential(attExponential)
     {
         for (int i = 0; i < 4; i++) {
+            this->color[i] = color[i];
+        }
+
+        for (int i = 0; i < 3; i++) {
             this->position[i] = position[i];
         }
     }
 
-    Light(float color[4], float ambient, float diffuse, float position[4], float direction[4], float cutoff,
-          float attConstant, float attLinear, float attExponential, int meshID_ = -1, int texMode_ = 1)
-    : type(SPOTLIGHT), ambient(ambient), diffuse(diffuse), cutoff(cutoff), SceneObject(meshID_, texMode_),
+    Light(float color[4], float ambient, float diffuse, float position[4], float direction[4],
+          float cutoff, float attConstant, float attLinear, float attExponential)
+    : type(SPOTLIGHT), ambient(ambient), diffuse(diffuse), cutoff(cutoff),
       attConstant(attConstant), attLinear(attLinear), attExponential(attExponential)
     {
         for (int i = 0; i < 4; i++) {
+            this->color[i] = color[i];
+        }
+
+        for (int i = 0; i < 3; i++) {
             this->direction[i] = direction[i];
             this->position[i] = position[i];
         }
@@ -58,30 +70,29 @@ public:
 
     void render(Renderer &renderer, gmu &mu)
     {
+        if (!active) return;
+
         if (type == lightType::DIRECTIONAL)
         {
             renderer.setDirectionalLight(color, ambient, diffuse, direction);
+            return;
         }
-
-        /*
-        // send the light position in eye coordinates
-        // renderer.setLightPos(lightPos); //efeito capacete do mineiro, ou seja lighPos foi definido em eye coord
-        float lposAux[4];
-        mu.multMatrixPoint(gmu::VIEW, lightPos, lposAux); // lightPos definido em World Coord so is converted to eye space
-        renderer.setLightPos(lposAux);
-
-        // Spotlight settings
-        renderer.setSpotLightMode(spotlight_mode);
-        renderer.setSpotParam(coneDir, 0.93);
-        */
-    }
-
-    void handleInput(int key) override
-    {
-        switch (key)
+        
+        float localPosition[4];
+        mu.multMatrixPoint(gmu::VIEW, position, localPosition);
+        
+        if (type == lightType::POINTLIGHT)
         {
-        case 'l': // toggle spotlights
-            break;
+            renderer.setPointLight(color, ambient, diffuse, localPosition,
+                                   attConstant, attLinear, attExponential);
+        }
+        else if (type == lightType::SPOTLIGHT)
+        {
+            renderer.setSpotLight(color, ambient, diffuse, direction, cutoff, localPosition,
+                                  attConstant, attLinear, attExponential);
         }
     }
+
+    bool isSpotlight() { return type == lightType::SPOTLIGHT; }
+    void toggle() { active = !active; }
 };

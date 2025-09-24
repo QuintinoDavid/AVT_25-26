@@ -36,6 +36,7 @@
 #include "camera.h"
 #include "sceneObject.h"
 #include "drone.h"
+#include "light.h"
 
 #define CAPTION "AVT 2025 Welcome Demo"
 int WindowHandle = 0;
@@ -54,6 +55,7 @@ Renderer renderer;
 
 // Scene objects
 std::vector<SceneObject *> sceneObjects;
+std::vector<Light *> sceneLights;
 
 // Cameras
 Camera *cams[3];
@@ -171,26 +173,16 @@ void renderSim(void)
 		mu.perspective(53.13f, ratio, 0.1f, 1000.0f);
 	}
 
-	/*
-	// send the light position in eye coordinates
-	// renderer.setLightPos(lightPos); //efeito capacete do mineiro, ou seja lighPos foi definido em eye coord
-	float lposAux[4];
-	mu.multMatrixPoint(gmu::VIEW, lightPos, lposAux); // lightPos definido em World Coord so is converted to eye space
-	renderer.setLightPos(lposAux);
-
-	// Spotlight settings
-	renderer.setSpotLightMode(spotlight_mode);
-	renderer.setSpotParam(coneDir, 0.93);
-	*/
+	// setup the lights
+	for (size_t i = 0; i < sceneLights.size(); i++)
+	{
+		sceneLights[i]->render(renderer, mu);
+	}
 
 	// Update and then render scene objects
 	for (size_t i = 0; i < sceneObjects.size(); i++)
 	{
 		sceneObjects[i]->update();
-	}
-
-	for (size_t i = 0; i < sceneObjects.size(); i++)
-	{
 		sceneObjects[i]->render(renderer, mu);
 	}
 
@@ -435,6 +427,13 @@ void buildScene()
 		std::cerr << "Fonts loaded\n";
 
 	printf("\nNumber of Texture Objects is %d\n\n", renderer.TexObjArray.getNumTextureObjects());
+
+
+	// scene lights
+	float whiteLight[4] = { 1.f, 1.f, 1.f, 1.f };
+	float fortyfive[4] = { 1.f, 1.f, 1.f };
+	Light *sun = new Light(whiteLight, 0.1f, 0.1f, fortyfive);
+	sceneLights.push_back(sun);
 
 	// Scene objects
 	// Floor, meshID=0 (quad), texMode=1 (modulate diffuse color with texel color)
