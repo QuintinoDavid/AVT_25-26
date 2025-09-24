@@ -142,6 +142,7 @@ void renderSim(void)
 
 	// use the required GLSL program to draw the meshes with illumination
 	renderer.activateRenderMeshesShaderProg();
+	renderer.resetLights();
 
 	// Associar os Texture Units aos Objects Texture
 	// stone.tga loaded in TU0; checker.tga loaded in TU1;  lightwood.tga loaded in TU2
@@ -170,9 +171,9 @@ void renderSim(void)
 		mu.perspective(53.13f, ratio, 0.1f, 1000.0f);
 	}
 
+	/*
 	// send the light position in eye coordinates
 	// renderer.setLightPos(lightPos); //efeito capacete do mineiro, ou seja lighPos foi definido em eye coord
-
 	float lposAux[4];
 	mu.multMatrixPoint(gmu::VIEW, lightPos, lposAux); // lightPos definido em World Coord so is converted to eye space
 	renderer.setLightPos(lposAux);
@@ -180,11 +181,16 @@ void renderSim(void)
 	// Spotlight settings
 	renderer.setSpotLightMode(spotlight_mode);
 	renderer.setSpotParam(coneDir, 0.93);
+	*/
 
-	// Render scene objects
+	// Update and then render scene objects
 	for (size_t i = 0; i < sceneObjects.size(); i++)
 	{
 		sceneObjects[i]->update();
+	}
+
+	for (size_t i = 0; i < sceneObjects.size(); i++)
+	{
 		sceneObjects[i]->render(renderer, mu);
 	}
 
@@ -431,14 +437,14 @@ void buildScene()
 	printf("\nNumber of Texture Objects is %d\n\n", renderer.TexObjArray.getNumTextureObjects());
 
 	// Scene objects
-	// Floor
-	SceneObject *floor = new SceneObject(0, 2); // meshID=0 (quad), texMode=2 (modulate diffuse color with texel color)
+	// Floor, meshID=0 (quad), texMode=1 (modulate diffuse color with texel color)
+	SceneObject *floor = new SceneObject(0, 1);
 	floor->setRotation(0.0f, -90.0f, 0.0f);
 	floor->setScale(30.0f, 30.0f, 1.0f);
 	sceneObjects.push_back(floor);
 
-	// Drone
-	Drone *drone = new Drone(cams[2], 1, 2);
+	// Drone, meshID=2 (cube), texMode=2 (texel color only)
+	Drone *drone = new Drone(cams[2], 2, 2);
 	drone->setPosition(5.0f, 5.0f, 1.0f);
 	sceneObjects.push_back(drone);
 
@@ -451,11 +457,13 @@ void buildScene()
 	cams[0]->setTarget(0.0f, 0.0f, 0.0f);
 	cams[0]->setUp(0.0f, 0.0f, -1.0f);
 	cams[0]->setProjectionType(ProjectionType::Orthographic);
+
 	// Top Perspective Camera
 	cams[1]->setPosition(0.0f, 30.0f, 0.0f);
 	cams[1]->setTarget(0.0f, 0.0f, 0.0f);
 	cams[1]->setUp(0.0f, 0.0f, -1.0f);
 	cams[1]->setProjectionType(ProjectionType::Perspective);
+
 	// Drone camera
 	cams[2]->setPosition(15.0f, 15.0f, 0.0f);
 	cams[2]->setTarget(5.0f, 5.0f, 0.0f);

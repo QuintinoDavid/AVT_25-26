@@ -1,8 +1,8 @@
 ﻿/* --------------------------------------------------
-*Cube and Basic Revolution Geometry
+ * Cube and Basic Revolution Geometry
  *
  * based on vsResourceLib.cpp from Lighthouse3D
- *It includes ComputeTangentArray routine
+ * It includes ComputeTangentArray routine
  *
  João Madeiras Pereira
 ----------------------------------------------------*/
@@ -25,7 +25,6 @@ GLuint VboId[2];
 
 MyMesh createQuad(float size_x, float size_y)
 {
-
 	int i;
 	float vert[16];
 	MyMesh amesh;
@@ -70,7 +69,6 @@ MyMesh createQuad(float size_x, float size_y)
 
 MyMesh createCube()
 {
-
 	MyMesh amesh;
 	amesh.numIndexes = faceCount * 3;
 
@@ -80,12 +78,11 @@ MyMesh createCube()
 	glGenBuffers(2, VboId);
 	glBindBuffer(GL_ARRAY_BUFFER, VboId[0]);
 
-	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices) + sizeof(normals) + sizeof(texCoords) + sizeof(tangents), vertices, GL_STATIC_DRAW);
-
-	// glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertices), vertices);
-	// glBufferSubData(GL_ARRAY_BUFFER, sizeof(vertices), sizeof(normals), normals);
-	// glBufferSubData(GL_ARRAY_BUFFER, sizeof(vertices) + sizeof(normals) + sizeof(texCoords), sizeof(tangents), tangents);
-	// glBufferSubData(GL_ARRAY_BUFFER, sizeof(vertices) + sizeof(normals), sizeof(texCoords), texCoords);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices) + sizeof(normals) + sizeof(texCoords) + sizeof(tangents), NULL, GL_STATIC_DRAW);
+	glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertices), vertices);
+	glBufferSubData(GL_ARRAY_BUFFER, sizeof(vertices), sizeof(normals), normals);
+	glBufferSubData(GL_ARRAY_BUFFER, sizeof(vertices) + sizeof(normals) + sizeof(texCoords), sizeof(tangents), tangents);
+	glBufferSubData(GL_ARRAY_BUFFER, sizeof(vertices) + sizeof(normals), sizeof(texCoords), texCoords);
 
 	glEnableVertexAttribArray(Shader::VERTEX_COORD_ATTRIB);
 	glVertexAttribPointer(Shader::VERTEX_COORD_ATTRIB, 4, GL_FLOAT, 0, 0, 0);
@@ -115,7 +112,6 @@ MyMesh createSphere(float radius, int divisions)
 
 MyMesh createTorus(float innerRadius, float outerRadius, int rings, int sides)
 {
-
 	float tubeRadius = (outerRadius - innerRadius) * 0.5f;
 	float *p = circularProfile(-3.14159f, 3.14159f, tubeRadius, sides, innerRadius + tubeRadius);
 	return (computeVAO(sides + 1, p + 2, p, rings, 0.0f));
@@ -123,7 +119,6 @@ MyMesh createTorus(float innerRadius, float outerRadius, int rings, int sides)
 
 MyMesh createCylinder(float height, float radius, int sides)
 {
-
 	float p[] = {
 		-radius, -height * 0.5f,
 		0.0f, -height * 0.5f,
@@ -137,7 +132,6 @@ MyMesh createCylinder(float height, float radius, int sides)
 
 MyMesh createCone(float height, float baseRadius, int sides)
 {
-
 	float v[2];
 	v[0] = -baseRadius;
 	v[1] = height;
@@ -183,7 +177,6 @@ MyMesh createCone(float height, float baseRadius, int sides)
 
 MyMesh createPawn()
 {
-
 	float p[] = {0.0f, 0.0f,
 				 0.98f, 0.0f,
 				 0.98f, 0.01f,
@@ -485,7 +478,6 @@ float *circularProfile(float minAngle, float maxAngle, float radius, int divisio
 
 void ComputeTangentArray(int vertexCount, float *vertex, float *normal, float *texcoord, GLuint indexesCount, GLuint *faceIndex, float *tangent)
 {
-
 	GLuint iV0, iV1, iV2;
 	GLuint tV0, tV1, tV2;
 	float aux_vec[] = {0.0f, 0.0f, 0.0f};

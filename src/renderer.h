@@ -13,84 +13,120 @@
 
 struct dataMesh
 {
-  int meshID = 0;           // mesh ID in the myMeshes array
-  float *pvm, *vm, *normal; // matrices pointers
-  int texMode = 0;          // type of shading-> 0:no texturing; 1:modulate diffuse color with texel color; 2:diffuse color is replaced by texel color; 3: multitexturing
+	int meshID = 0;			  // mesh ID in the myMeshes array
+	float *pvm, *vm, *normal; // matrices pointers
+	int texMode = 0;		  // type of shading-> 0:no texturing; 1:modulate diffuse color with texel color; 2:diffuse color is replaced by texel color; 3: multitexturing
 };
 
 enum class Align
 {
-  Left,
-  Center,
-  Right,
-  Top = Right,
-  Bottom = Left,
+	Left,
+	Center,
+	Right,
+	Top = Right,
+	Bottom = Left,
 };
 
 struct TextCommand
 {
-  std::string str{};
-  float position[2]; // screen coordinates
-  float size = 1.f;
-  float color[4] = {1.f, 1.f, 1.f, 1.f};
-  float *pvm;
-  Align align_x = Align::Center, align_y = Align::Center;
+	std::string str{};
+	float position[2]; // screen coordinates
+	float size = 1.f;
+	float color[4] = {1.f, 1.f, 1.f, 1.f};
+	float *pvm;
+	Align align_x = Align::Center, align_y = Align::Center;
 };
 
 class Renderer
 {
 public:
-  Renderer();
-  ~Renderer();
+	Renderer();
+	~Renderer();
 
-  bool truetypeInit(const std::string &ttf_filepath); // Initialization of TRUETYPE  for text rendering
+	bool truetypeInit(const std::string &ttf_filepath); // Initialization of TRUETYPE  for text rendering
 
-  // Setup render meshes GLSL program
-  bool setRenderMeshesShaderProg(const std::string &vertShaderPath, const std::string &fragShaderPath);
+	// Setup render meshes GLSL program
+	bool setRenderMeshesShaderProg(const std::string &vertShaderPath, const std::string &fragShaderPath);
 
-  // setup text font rasterizer GLSL program
-  bool setRenderTextShaderProg(const std::string &vertShaderPath, const std::string &fragShaderPath);
+	// setup text font rasterizer GLSL program
+	bool setRenderTextShaderProg(const std::string &vertShaderPath, const std::string &fragShaderPath);
 
-  void activateRenderMeshesShaderProg();
+	void activateRenderMeshesShaderProg();
 
-  void renderMesh(const dataMesh &data);
+	void renderMesh(const dataMesh &data);
 
-  void renderText(const TextCommand &text);
+	void renderText(const TextCommand &text);
 
-  void setLightPos(float *lightPos);
+	void resetLights();
 
-  void setSpotParam(float *coneDir, float cutOff);
+	void setDirectionalLight(float* color, float ambient, float diffuse, float* direction);
 
-  void setSpotLightMode(bool spotLightMode);
+	void setPointLight(float* color, float ambient, float diffuse, float* position, float constant, float linear, float exponential);
 
-  void setTexUnit(int tuId, int texObjId);
+	void setSpotLight(float* color, float ambient, float diffuse, float* direction, float cutoff, float* position, float constant, float linear, float exponential);
 
-  // Vector with meshes
-  std::vector<struct MyMesh> myMeshes;
+	void setTexUnit(int tuId, int texObjId);
 
-  /// Object of class Texture that manage an array of Texture Objects
-  Texture TexObjArray;
+	// Vector with meshes
+	std::vector<struct MyMesh> myMeshes;
+
+	/// Object of class Texture that manage an array of Texture Objects
+	Texture TexObjArray;
 
 private:
-  // Render meshes GLSL program
-  GLuint program;
+	// Render meshes GLSL program
+	GLuint program;
 
-  // Text font rasterizer GLSL program
-  GLuint textProgram;
+	// Text font rasterizer GLSL program
+	GLuint textProgram;
 
-  GLint pvm_loc, vm_loc, normal_loc, lpos_loc, texMode_loc;
-  GLint tex_loc[MAX_TEXTURES];
+	GLint pvm_loc, vm_loc, normal_loc, texMode_loc;
+	GLint tex_loc[MAX_TEXTURES];
 
-  // render font GLSL program variable locations and VAO
-  GLint fontPvm_loc, textColor_loc;
-  GLuint textVAO, textVBO[2];
+	#define MAX_POINT_LIGHTS 6
+	#define MAX_SPOT_LIGHTS 2
 
-  struct Font
-  {
-    float size;
-    GLuint textureId; // font atlas texture object ID stored in TexObjArray
-    stbtt_fontinfo info;
-    stbtt_packedchar packedChars[96];
-    stbtt_aligned_quad alignedQuads[96];
-  } font{};
+	struct {
+		GLuint color;
+		GLuint ambient;
+		GLuint diffuse;
+		GLuint direction;
+	} directionalLight_loc;
+
+	struct {
+		GLuint color;
+		GLuint ambient;
+		GLuint diffuse;
+		GLuint position;
+		GLuint attConstant;
+		GLuint attLinear;
+		GLuint attExp;
+	} pointLight_loc[MAX_POINT_LIGHTS];
+	int pointLightCount = 0;
+
+	struct {
+		GLuint color;
+		GLuint ambient;
+		GLuint diffuse;
+		GLuint position;
+		GLuint direction;
+		GLuint cutoff;
+		GLuint attConstant;
+		GLuint attLinear;
+		GLuint attExp;
+	} spotLight_loc[MAX_SPOT_LIGHTS];
+	int spotLightCount = 0;
+
+	// render font GLSL program variable locations and VAO
+	GLint fontPvm_loc, textColor_loc;
+	GLuint textVAO, textVBO[2];
+
+	struct Font
+	{
+		float size;
+		GLuint textureId; // font atlas texture object ID stored in TexObjArray
+		stbtt_fontinfo info;
+		stbtt_packedchar packedChars[96];
+		stbtt_aligned_quad alignedQuads[96];
+	} font{};
 };

@@ -145,10 +145,73 @@ bool Renderer::setRenderMeshesShaderProg(const std::string& vertShaderPath, cons
     vm_loc = glGetUniformLocation(program, "m_viewModel");
     normal_loc = glGetUniformLocation(program, "m_normal");
     texMode_loc = glGetUniformLocation(program, "texMode"); // different modes of texturing
-    lpos_loc = glGetUniformLocation(program, "l_pos");
+
     tex_loc[0] = glGetUniformLocation(program, "texmap");
     tex_loc[1] = glGetUniformLocation(program, "texmap1");
     tex_loc[2] = glGetUniformLocation(program, "texmap2");
+
+    directionalLight_loc.color = glGetUniformLocation(program, "directionalLight.base.color");
+    directionalLight_loc.ambient = glGetUniformLocation(program, "directionalLight.base.ambientIntensity");
+    directionalLight_loc.diffuse = glGetUniformLocation(program, "directionalLight.base.diffuseIntensity");
+    directionalLight_loc.direction = glGetUniformLocation(program, "directionalLight.direction");
+
+    for (int i = 0; i < MAX_POINT_LIGHTS; i++)
+    {
+        char name[64];
+        memset(name, 0, sizeof(name));
+        snprintf(name, sizeof(name), "pointLightArray[%d].base.color", i);
+        pointLight_loc[i].color = glGetUniformLocation(program, name);
+
+        snprintf(name, sizeof(name), "pointLightArray[%d].base.ambientIntensity", i);
+        pointLight_loc[i].ambient = glGetUniformLocation(program, name);
+
+        snprintf(name, sizeof(name), "pointLightArray[%d].base.diffuseIntensity", i);
+        pointLight_loc[i].diffuse = glGetUniformLocation(program, name);
+
+        snprintf(name, sizeof(name), "pointLightArray[%d].position", i);
+        pointLight_loc[i].position = glGetUniformLocation(program, name);
+
+        snprintf(name, sizeof(name), "pointLightArray[%d].constant", i);
+        pointLight_loc[i].attConstant = glGetUniformLocation(program, name);
+
+        snprintf(name, sizeof(name), "pointLightArray[%d].linear", i);
+        pointLight_loc[i].attLinear = glGetUniformLocation(program, name);
+
+        snprintf(name, sizeof(name), "pointLightArray[%d].exponential", i);
+        pointLight_loc[i].attExp = glGetUniformLocation(program, name);
+    }
+
+    for (int i = 0; i < MAX_SPOT_LIGHTS; i++)
+    {
+        char name[64];
+        memset(name, 0, sizeof(name));
+        snprintf(name, sizeof(name), "spotLightArray[%d].base.color", i);
+        spotLight_loc[i].color = glGetUniformLocation(program, name);
+
+        snprintf(name, sizeof(name), "spotLightArray[%d].base.ambientIntensity", i);
+        spotLight_loc[i].ambient = glGetUniformLocation(program, name);
+
+        snprintf(name, sizeof(name), "spotLightArray[%d].base.diffuseIntensity", i);
+        spotLight_loc[i].diffuse = glGetUniformLocation(program, name);
+
+        snprintf(name, sizeof(name), "spotLightArray[%d].base.position", i);
+        spotLight_loc[i].position = glGetUniformLocation(program, name);
+
+        snprintf(name, sizeof(name), "spotLightArray[%d].base.constant", i);
+        spotLight_loc[i].attConstant = glGetUniformLocation(program, name);
+
+        snprintf(name, sizeof(name), "spotLightArray[%d].base.linear", i);
+        spotLight_loc[i].attLinear = glGetUniformLocation(program, name);
+
+        snprintf(name, sizeof(name), "spotLightArray[%d].base.exponential", i);
+        spotLight_loc[i].attExp = glGetUniformLocation(program, name);
+
+        snprintf(name, sizeof(name), "spotLightArray[%d].direction", i);
+        spotLight_loc[i].direction = glGetUniformLocation(program, name);
+
+        snprintf(name, sizeof(name), "spotLightArray[%d].cutoff", i);
+        spotLight_loc[i].cutoff = glGetUniformLocation(program, name);
+    }
 
     return(shader.isProgramLinked() && shader.isProgramValid());
 }
@@ -194,28 +257,46 @@ void Renderer::activateRenderMeshesShaderProg()
     glUseProgram(program);
 }
 
-void Renderer::setSpotParam(float* coneDir, const float cutOff)
+void Renderer::resetLights()
 {
-    GLint loc;
-    loc = glGetUniformLocation(program, "coneDir");
-    glUniform4fv(loc, 1, coneDir);
-    loc = glGetUniformLocation(program, "spotCosCutOff");
-    glUniform1f(loc, cutOff);
+    pointLightCount = 0;
+    spotLightCount = 0;
 }
 
-void Renderer::setSpotLightMode(bool spotLightMode)
+void Renderer::setDirectionalLight(float* color, float ambient, float diffuse, float* direction)
 {
-    GLint loc;
-    loc = glGetUniformLocation(program, "spotlight_mode");
-    if (spotLightMode)
-        glUniform1i(loc, 1);
-    else
-        glUniform1i(loc, 0);
+    glUniform4fv(directionalLight_loc.color, 1, color);
+    glUniform1f(directionalLight_loc.ambient, ambient);
+    glUniform1f(directionalLight_loc.diffuse, diffuse);
+    glUniform4fv(directionalLight_loc.direction, 1, direction);
 }
 
-void Renderer::setLightPos(float* lightPos)
+void Renderer::setPointLight(float* color, float ambient, float diffuse, float* position,
+                             float constant, float linear, float exponential)
 {
-    glUniform4fv(lpos_loc, 1, lightPos);
+    pointLightCount += 1;
+    glUniform4fv(pointLight_loc[pointLightCount].color, 1, color);
+    glUniform1f(pointLight_loc[pointLightCount].ambient, ambient);
+    glUniform1f(pointLight_loc[pointLightCount].diffuse, diffuse);
+    glUniform4fv(pointLight_loc[pointLightCount].position, 1, position);
+    glUniform1f(pointLight_loc[pointLightCount].attConstant, constant);
+    glUniform1f(pointLight_loc[pointLightCount].attLinear, linear);
+    glUniform1f(pointLight_loc[pointLightCount].attExp, exponential);
+}
+
+void Renderer::setSpotLight(float* color, float ambient, float diffuse, float* direction, float cutoff,
+                            float* position, float constant, float linear, float exponential)
+{
+    spotLightCount += 1;
+    glUniform4fv(spotLight_loc[spotLightCount].color, 1, color);
+    glUniform1f(spotLight_loc[spotLightCount].ambient, ambient);
+    glUniform1f(spotLight_loc[spotLightCount].diffuse, diffuse);
+    glUniform4fv(spotLight_loc[spotLightCount].position, 1, position);
+    glUniform4fv(spotLight_loc[spotLightCount].direction, 1, direction);
+    glUniform1f(spotLight_loc[spotLightCount].cutoff, cutoff);
+    glUniform1f(spotLight_loc[spotLightCount].attConstant, constant);
+    glUniform1f(spotLight_loc[spotLightCount].attLinear, linear);
+    glUniform1f(spotLight_loc[spotLightCount].attExp, exponential);
 }
 
 void Renderer::setTexUnit(int tuId, int texObjId)
@@ -241,6 +322,8 @@ void Renderer::renderMesh(const dataMesh& data)
     glUniform4fv(loc, 1, myMeshes[data.meshID].mat.diffuse);
     loc = glGetUniformLocation(program, "mat.specular");
     glUniform4fv(loc, 1, myMeshes[data.meshID].mat.specular);
+    loc = glGetUniformLocation(program, "mat.emissive");
+    glUniform4fv(loc, 1, myMeshes[data.meshID].mat.emissive);
     loc = glGetUniformLocation(program, "mat.shininess");
     glUniform1f(loc, myMeshes[data.meshID].mat.shininess);
 
