@@ -66,6 +66,7 @@
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>freeglut.lib;glew32.lib;DevIL.lib;assimp.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(ProjectDir)Dependencies\lib\Win64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
     <PreBuildEvent>
       <Command>
@@ -110,6 +111,10 @@
   <ItemGroup>
     <None Include="resources\shaders\mesh.frag" />
     <None Include="resources\shaders\mesh.vert" />
+    <None Include="resources\shaders\mesh_gouraud.frag" />
+    <None Include="resources\shaders\mesh_gouraud.vert" />
+    <None Include="resources\shaders\mesh_phong.frag" />
+    <None Include="resources\shaders\mesh_phong.vert" />
     <None Include="resources\shaders\ttf.frag" />
     <None Include="resources\shaders\ttf.vert" />
   </ItemGroup>

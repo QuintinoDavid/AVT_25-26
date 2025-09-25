@@ -440,31 +440,35 @@ void buildScene()
 	drone->setPosition(2.0f, 2.0f, 1.0f);
 	sceneObjects.push_back(drone);
 
+	float black[4] = { 0.f, 0.f, 0.f, 1.f };
 	amesh = createSphere(0.1f, 20);
-	memset(amesh.mat.ambient, 0, 4 * sizeof(float));
-	memset(amesh.mat.diffuse, 0, 4 * sizeof(float));
-	memset(amesh.mat.specular, 0, 4 * sizeof(float));
+	memcpy(amesh.mat.ambient, black, 4 * sizeof(float));
+	memcpy(amesh.mat.diffuse, black, 4 * sizeof(float));
+	memcpy(amesh.mat.specular, black, 4 * sizeof(float));
 	memcpy(amesh.mat.emissive, blueLight, 4 * sizeof(float));
+	amesh.mat.shininess = 0.f;
 	renderer.myMeshes.push_back(amesh);
 	SceneObject *bluePointLight = new SceneObject(2, 0);
 	bluePointLight->setPosition(4.f, 2.f, 2.f);
 	sceneObjects.push_back(bluePointLight);
 
 	amesh = createSphere(0.1f, 20);
-	memset(amesh.mat.ambient, 0, 4 * sizeof(float));
-	memset(amesh.mat.diffuse, 0, 4 * sizeof(float));
-	memset(amesh.mat.specular, 0, 4 * sizeof(float));
+	memcpy(amesh.mat.ambient, black, 4 * sizeof(float));
+	memcpy(amesh.mat.diffuse, black, 4 * sizeof(float));
+	memcpy(amesh.mat.specular, black, 4 * sizeof(float));
 	memcpy(amesh.mat.emissive, redLight, 4 * sizeof(float));
+	amesh.mat.shininess = 0.f;
 	renderer.myMeshes.push_back(amesh);
 	SceneObject *redPointLight = new SceneObject(3, 0);
 	redPointLight->setPosition(0.f, 2.f, 0.f);
 	sceneObjects.push_back(redPointLight);
 
 	amesh = createCone(0.2f, 0.1f, 10);
-	memset(amesh.mat.ambient, 0, 4 * sizeof(float));
-	memset(amesh.mat.diffuse, 0, 4 * sizeof(float));
-	memset(amesh.mat.specular, 0, 4 * sizeof(float));
+	memcpy(amesh.mat.ambient, black, 4 * sizeof(float));
+	memcpy(amesh.mat.diffuse, black, 4 * sizeof(float));
+	memcpy(amesh.mat.specular, black, 4 * sizeof(float));
 	memcpy(amesh.mat.emissive, yellowLight, 4 * sizeof(float));
+	amesh.mat.shininess = 0.f;
 	renderer.myMeshes.push_back(amesh);
 	SceneObject *yellowSpotLight = new SceneObject(4, 0);
 	yellowSpotLight->setPosition(2.5f, 4.f, 1.5f);
@@ -472,20 +476,22 @@ void buildScene()
 
 	// === ORIGIN MARKER ===
 	amesh = createSphere(0.1f, 20);
-	memset(amesh.mat.ambient, 0, 4 * sizeof(float));
-	memset(amesh.mat.diffuse, 0, 4 * sizeof(float));
-	memset(amesh.mat.specular, 0, 4 * sizeof(float));
+	memcpy(amesh.mat.ambient, black, 4 * sizeof(float));
+	memcpy(amesh.mat.diffuse, black, 4 * sizeof(float));
+	memcpy(amesh.mat.specular, black, 4 * sizeof(float));
 	memcpy(amesh.mat.emissive, whiteLight, 4 * sizeof(float));
+	amesh.mat.shininess = 0.f;
 	renderer.myMeshes.push_back(amesh);
 	SceneObject *whiteSpot = new SceneObject(renderer.myMeshes.size()-1, 0);
 	whiteSpot->setPosition(0.f, 0.f, 0.f);
 	sceneObjects.push_back(whiteSpot);
 
 	amesh = createCone(1.f, 0.05f, 4);
-	memset(amesh.mat.ambient, 0, 4 * sizeof(float));
-	memset(amesh.mat.diffuse, 0, 4 * sizeof(float));
-	memset(amesh.mat.specular, 0, 4 * sizeof(float));
+	memcpy(amesh.mat.ambient, black, 4 * sizeof(float));
+	memcpy(amesh.mat.diffuse, black, 4 * sizeof(float));
+	memcpy(amesh.mat.specular, black, 4 * sizeof(float));
 	memcpy(amesh.mat.emissive, redLight, 4 * sizeof(float));
+	amesh.mat.shininess = 0.f;
 	renderer.myMeshes.push_back(amesh);
 	SceneObject *redXunit = new SceneObject(renderer.myMeshes.size()-1, 0);
 	redXunit->setPosition(0.f, 0.f, 0.f);
@@ -493,10 +499,11 @@ void buildScene()
 	sceneObjects.push_back(redXunit);
 	
 	amesh = createCone(1.f, 0.05f, 4);
-	memset(amesh.mat.ambient, 0, 4 * sizeof(float));
-	memset(amesh.mat.diffuse, 0, 4 * sizeof(float));
-	memset(amesh.mat.specular, 0, 4 * sizeof(float));
+	memcpy(amesh.mat.ambient, black, 4 * sizeof(float));
+	memcpy(amesh.mat.diffuse, black, 4 * sizeof(float));
+	memcpy(amesh.mat.specular, black, 4 * sizeof(float));
 	memcpy(amesh.mat.emissive, greenLight, 4 * sizeof(float));
+	amesh.mat.shininess = 0.f;
 	renderer.myMeshes.push_back(amesh);
 	SceneObject *greenYunit = new SceneObject(renderer.myMeshes.size()-1, 0);
 	greenYunit->setPosition(0.f, 0.f, 0.f);
@@ -504,10 +511,11 @@ void buildScene()
 	sceneObjects.push_back(greenYunit);
 
 	amesh = createCone(1.f, 0.05f, 4);
-	memset(amesh.mat.ambient, 0, 4 * sizeof(float));
-	memset(amesh.mat.diffuse, 0, 4 * sizeof(float));
-	memset(amesh.mat.specular, 0, 4 * sizeof(float));
+	memcpy(amesh.mat.ambient, black, 4 * sizeof(float));
+	memcpy(amesh.mat.diffuse, black, 4 * sizeof(float));
+	memcpy(amesh.mat.specular, black, 4 * sizeof(float));
 	memcpy(amesh.mat.emissive, blueLight, 4 * sizeof(float));
+	amesh.mat.shininess = 0.f;
 	renderer.myMeshes.push_back(amesh);
 	SceneObject *blueZunit = new SceneObject(renderer.myMeshes.size()-1, 0);
 	blueZunit->setPosition(0.f, 0.f, 0.f);
