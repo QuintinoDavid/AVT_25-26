@@ -73,16 +73,14 @@ vec4 CalcLight(Light light, vec3 lightDirection, vec3 normal)
     if (intensityDiffuse > 0.f) {
         diffuse = light.color * light.diffuseIntensity * mat.diffuse * intensityDiffuse;
 
-        /*
-        vec3 reflection = normalize(lightDirection - DataIn.position);
-        float intensitySpecular = max(dot(reflection, normal), 0.f);
+        vec3 reflection = normalize(reflect(lightDirection, normal));
+        float intensitySpecular = dot(normalize(-DataIn.position), reflection);
         if (intensitySpecular > 0.f) {
             specular = light.color * light.diffuseIntensity * mat.specular * pow(intensitySpecular, mat.shininess);
         }
-        */
     }
 
-    return ambient + diffuse + mat.emissive;//diffuse + specular + mat.emissive;
+    return ambient + diffuse + specular + mat.emissive;
 }
 
 vec4 CalcDirectionalLight(vec3 normal)

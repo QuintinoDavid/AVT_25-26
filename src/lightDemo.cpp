@@ -402,7 +402,7 @@ void buildScene()
 
 	printf("\nNumber of Texture Objects is %d\n\n", renderer.TexObjArray.getNumTextureObjects());
 
-	float ambient = 0.1f;
+	float ambient = 0.05f;
 	float diffuse = 0.5f;
 
 	// scene lights
@@ -460,7 +460,7 @@ void buildScene()
 	redPointLight->setPosition(0.f, 2.f, 0.f);
 	sceneObjects.push_back(redPointLight);
 
-	amesh = createSphere(0.1f, 20);
+	amesh = createCone(0.2f, 0.1f, 10);
 	memset(amesh.mat.ambient, 0, 4 * sizeof(float));
 	memset(amesh.mat.diffuse, 0, 4 * sizeof(float));
 	memset(amesh.mat.specular, 0, 4 * sizeof(float));
