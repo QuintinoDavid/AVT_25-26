@@ -188,13 +188,13 @@ bool Renderer::setRenderMeshesShaderProg(const std::string& vertShaderPath, cons
     {
         char name[64];
         memset(name, 0, sizeof(name));
-        snprintf(name, sizeof(name), "spotLightArray[%d].base.color", i);
+        snprintf(name, sizeof(name), "spotLightArray[%d].base.base.color", i);
         spotLight_loc[i].color = glGetUniformLocation(program, name);
 
-        snprintf(name, sizeof(name), "spotLightArray[%d].base.ambientIntensity", i);
+        snprintf(name, sizeof(name), "spotLightArray[%d].base.base.ambientIntensity", i);
         spotLight_loc[i].ambient = glGetUniformLocation(program, name);
 
-        snprintf(name, sizeof(name), "spotLightArray[%d].base.diffuseIntensity", i);
+        snprintf(name, sizeof(name), "spotLightArray[%d].base.base.diffuseIntensity", i);
         spotLight_loc[i].diffuse = glGetUniformLocation(program, name);
 
         snprintf(name, sizeof(name), "spotLightArray[%d].base.position", i);
@@ -271,39 +271,39 @@ void Renderer::setDirectionalLight(float* color, float ambient, float diffuse, f
     glUniform4fv(directionalLight_loc.color, 1, color);
     glUniform1f(directionalLight_loc.ambient, ambient);
     glUniform1f(directionalLight_loc.diffuse, diffuse);
-    glUniform3fv(directionalLight_loc.direction, 1, direction);
+    glUniform4fv(directionalLight_loc.direction, 1, direction);
 }
 
 void Renderer::setPointLight(float* color, float ambient, float diffuse, float* position,
                              float constant, float linear, float exponential)
 {
-    pointLightCount += 1;
     assert(pointLightCount < MAX_POINT_LIGHTS);
     glUniform4fv(pointLight_loc[pointLightCount].color, 1, color);
     glUniform1f(pointLight_loc[pointLightCount].ambient, ambient);
     glUniform1f(pointLight_loc[pointLightCount].diffuse, diffuse);
-    glUniform3fv(pointLight_loc[pointLightCount].position, 1, position);
+    glUniform4fv(pointLight_loc[pointLightCount].position, 1, position);
     glUniform1f(pointLight_loc[pointLightCount].attConstant, constant);
     glUniform1f(pointLight_loc[pointLightCount].attLinear, linear);
     glUniform1f(pointLight_loc[pointLightCount].attExp, exponential);
-    glUniform1f(pointLightNum_loc, pointLightCount);
+    pointLightCount += 1;
+    glUniform1i(pointLightNum_loc, pointLightCount);
 }
 
 void Renderer::setSpotLight(float* color, float ambient, float diffuse, float* direction, float cutoff,
                             float* position, float constant, float linear, float exponential)
 {
-    spotLightCount += 1;
     assert(spotLightCount < MAX_SPOT_LIGHTS);
     glUniform4fv(spotLight_loc[spotLightCount].color, 1, color);
     glUniform1f(spotLight_loc[spotLightCount].ambient, ambient);
     glUniform1f(spotLight_loc[spotLightCount].diffuse, diffuse);
-    glUniform3fv(spotLight_loc[spotLightCount].position, 1, position);
-    glUniform3fv(spotLight_loc[spotLightCount].direction, 1, direction);
+    glUniform4fv(spotLight_loc[spotLightCount].position, 1, position);
+    glUniform4fv(spotLight_loc[spotLightCount].direction, 1, direction);
     glUniform1f(spotLight_loc[spotLightCount].cutoff, cutoff);
     glUniform1f(spotLight_loc[spotLightCount].attConstant, constant);
     glUniform1f(spotLight_loc[spotLightCount].attLinear, linear);
     glUniform1f(spotLight_loc[spotLightCount].attExp, exponential);
-    glUniform1f(spotLightNum_loc, spotLightCount);
+    spotLightCount += 1;
+    glUniform1i(spotLightNum_loc, spotLightCount);
 }
 
 void Renderer::setTexUnit(int tuId, int texObjId)

@@ -16,8 +16,8 @@ private:
     float diffuse; // Intensity
     lightType type;
 
-    float position[3];
-    float direction[3];
+    float position[4];
+    float direction[4];
     float cutoff;
     bool active = true;
 
@@ -32,9 +32,6 @@ public:
     {
         for (int i = 0; i < 4; i++) {
             this->color[i] = color[i];
-        }
-
-        for (int i = 0; i < 3; i++) {
             this->direction[i] = direction[i];
         }
     }
@@ -46,9 +43,6 @@ public:
     {
         for (int i = 0; i < 4; i++) {
             this->color[i] = color[i];
-        }
-
-        for (int i = 0; i < 3; i++) {
             this->position[i] = position[i];
         }
     }
@@ -60,9 +54,6 @@ public:
     {
         for (int i = 0; i < 4; i++) {
             this->color[i] = color[i];
-        }
-
-        for (int i = 0; i < 3; i++) {
             this->direction[i] = direction[i];
             this->position[i] = position[i];
         }
@@ -72,25 +63,40 @@ public:
     {
         if (!active) return;
 
+        float localDirection[4];
+        float localPosition[4];
+
+        for (int i = 0; i < 4; i++) {
+            localDirection[i] = direction[i];
+            localPosition[i] = position[i];
+        }
+
         if (type == lightType::DIRECTIONAL)
         {
-            renderer.setDirectionalLight(color, ambient, diffuse, direction);
-            return;
+            mu.multMatrixPoint(gmu::VIEW, direction, localDirection);
+            renderer.setDirectionalLight(color, ambient, diffuse, localDirection);
         }
-        
-        float localPosition[4];
-        mu.multMatrixPoint(gmu::VIEW, position, localPosition);
-        
         if (type == lightType::POINTLIGHT)
         {
+            mu.multMatrixPoint(gmu::VIEW, position, localPosition);
             renderer.setPointLight(color, ambient, diffuse, localPosition,
                                    attConstant, attLinear, attExponential);
         }
         else if (type == lightType::SPOTLIGHT)
         {
-            renderer.setSpotLight(color, ambient, diffuse, direction, cutoff, localPosition,
+            mu.multMatrixPoint(gmu::VIEW, position, localPosition);
+            mu.multMatrixPoint(gmu::VIEW, direction, localDirection);
+            renderer.setSpotLight(color, ambient, diffuse, localDirection, cutoff, localPosition,
                                   attConstant, attLinear, attExponential);
         }
+    }
+
+    std::string typeString()
+    {
+        if (type == lightType::DIRECTIONAL) return "DIRECTIONAL";
+        if (type == lightType::POINTLIGHT) return "POINTLIGHT";
+        if (type == lightType::SPOTLIGHT) return "SPOTLIGHT";
+        return "UNKNOWN";
     }
 
     bool isSpotlight() { return type == lightType::SPOTLIGHT; }

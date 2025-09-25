@@ -69,13 +69,6 @@ float mouseSensitivity = 0.3f;
 long myTime, timebase = 0, frame = 0;
 char s[32];
 
-float lightPos[4] = {4.0f, 5.0f, 2.0f, 1.0f};
-// float lightPos[4] = { 0.0f, 0.0f, 0.0f, 1.0f };
-
-// Spotlight
-bool spotlight_mode = false;
-float coneDir[4] = {0.0f, -0.0f, -1.0f, 0.0f};
-
 bool fontLoaded = false;
 
 /// ::::::::::::::::::::::::::::::::::::::::::::::::CALLBACK FUNCIONS:::::::::::::::::::::::::::::::::::::::::::::::::://///
@@ -176,6 +169,7 @@ void renderSim(void)
 	// setup the lights
 	for (size_t i = 0; i < sceneLights.size(); i++)
 	{
+		// std::cout << "Loading " << sceneLights[i]->typeString() << " light.\n";
 		sceneLights[i]->render(renderer, mu);
 	}
 
@@ -242,16 +236,6 @@ void processKeys(unsigned char key, int xx, int yy)
 		break;
 
 	case 'l': // toggle spotlight mode
-		if (!spotlight_mode)
-		{
-			spotlight_mode = true;
-			printf("Point light disabled. Spot light enabled\n");
-		}
-		else
-		{
-			spotlight_mode = false;
-			printf("Spot light disabled. Point light enabled\n");
-		}
 		break;
 
 	/*
@@ -381,8 +365,8 @@ void buildScene()
 	float diff[] = {0.8f, 0.6f, 0.4f, 1.0f};
 	float spec[] = {0.8f, 0.8f, 0.8f, 1.0f};
 
-	float amb1[] = {0.3f, 0.0f, 0.0f, 1.0f};
-	float diff1[] = {0.8f, 0.1f, 0.1f, 1.0f};
+	float amb1[] = {1.f, 1.f, 1.f, 1.f};
+	float diff1[] = {1.f, 1.f, 1.f, 1.f};
 	float spec1[] = {0.3f, 0.3f, 0.3f, 1.0f};
 
 	float emissive[] = {0.0f, 0.0f, 0.0f, 1.0f};
@@ -391,18 +375,8 @@ void buildScene()
 
 	// create geometry and VAO of the quad
 	amesh = createQuad(1.0f, 1.0f);
-	memcpy(amesh.mat.ambient, amb, 4 * sizeof(float));
-	memcpy(amesh.mat.diffuse, diff, 4 * sizeof(float));
-	memcpy(amesh.mat.specular, spec, 4 * sizeof(float));
-	memcpy(amesh.mat.emissive, emissive, 4 * sizeof(float));
-	amesh.mat.shininess = shininess;
-	amesh.mat.texCount = texcount;
-	renderer.myMeshes.push_back(amesh);
-
-	// create geometry and VAO of the sphere
-	amesh = createSphere(1.0f, 20);
-	memcpy(amesh.mat.ambient, amb, 4 * sizeof(float));
-	memcpy(amesh.mat.diffuse, diff, 4 * sizeof(float));
+	memcpy(amesh.mat.ambient, amb1, 4 * sizeof(float));
+	memcpy(amesh.mat.diffuse, diff1, 4 * sizeof(float));
 	memcpy(amesh.mat.specular, spec, 4 * sizeof(float));
 	memcpy(amesh.mat.emissive, emissive, 4 * sizeof(float));
 	amesh.mat.shininess = shininess;
@@ -428,24 +402,118 @@ void buildScene()
 
 	printf("\nNumber of Texture Objects is %d\n\n", renderer.TexObjArray.getNumTextureObjects());
 
+	float ambient = 0.1f;
+	float diffuse = 0.5f;
 
 	// scene lights
 	float whiteLight[4] = { 1.f, 1.f, 1.f, 1.f };
-	float fortyfive[4] = { 1.f, 1.f, 1.f };
-	Light *sun = new Light(whiteLight, 0.1f, 0.1f, fortyfive);
+	float fortyfive[4] = { -1.f, -1.f, -1.f, 0.f };
+	Light *sun = new Light(whiteLight, ambient, diffuse, fortyfive);
 	sceneLights.push_back(sun);
 
+	float blueLight[4] = { 0.f, 0.f, 1.f, 1.f };
+	float bLightPos[4] = { 4.f, 2.f, 2.f, 1.f };
+	Light *bluePoint = new Light(blueLight, ambient, diffuse, bLightPos, 1.f, 0.1f, 0.f);
+	sceneLights.push_back(bluePoint);
+
+	float redLight[4] = { 1.f, 0.f, 0.f, 1.f };
+	float rLightPos[4] = { 0.f, 2.f, 0.f, 1.f };
+	Light *redPoint = new Light(redLight, ambient, diffuse, rLightPos, 1.f, 0.1f, 0.f);
+	sceneLights.push_back(redPoint);
+
+	float greenLight[4] = { 0.f, 1.f, 0.f, 1.f };
+	float yellowLight[4] = { 1.f, 1.f, 0.f, 1.f };
+	float yLightPos[4] = { 2.5f, 4.f, 1.5f, 1.f };
+	float yLightDir[4] = { 0.f, -1.f, 0.f, 0.f };
+	Light *yellowSpot = new Light(yellowLight, ambient, diffuse, yLightPos, yLightDir, 0.93f, 1.f, 0.1f, 0.f);
+	sceneLights.push_back(yellowSpot);
+
 	// Scene objects
-	// Floor, meshID=0 (quad), texMode=1 (modulate diffuse color with texel color)
+	// Floor, meshID=0 (quad), texMode=1 (lighwood.tga)
 	SceneObject *floor = new SceneObject(0, 1);
 	floor->setRotation(0.0f, -90.0f, 0.0f);
 	floor->setScale(30.0f, 30.0f, 1.0f);
 	sceneObjects.push_back(floor);
 
-	// Drone, meshID=2 (cube), texMode=2 (texel color only)
-	Drone *drone = new Drone(cams[2], 2, 2);
-	drone->setPosition(5.0f, 5.0f, 1.0f);
+	// Drone, meshID=1 (cube), texMode=2 (stone.tga)
+	Drone *drone = new Drone(cams[2], 1, 2);
+	drone->setPosition(2.0f, 2.0f, 1.0f);
 	sceneObjects.push_back(drone);
+
+	amesh = createSphere(0.1f, 20);
+	memset(amesh.mat.ambient, 0, 4 * sizeof(float));
+	memset(amesh.mat.diffuse, 0, 4 * sizeof(float));
+	memset(amesh.mat.specular, 0, 4 * sizeof(float));
+	memcpy(amesh.mat.emissive, blueLight, 4 * sizeof(float));
+	renderer.myMeshes.push_back(amesh);
+	SceneObject *bluePointLight = new SceneObject(2, 0);
+	bluePointLight->setPosition(4.f, 2.f, 2.f);
+	sceneObjects.push_back(bluePointLight);
+
+	amesh = createSphere(0.1f, 20);
+	memset(amesh.mat.ambient, 0, 4 * sizeof(float));
+	memset(amesh.mat.diffuse, 0, 4 * sizeof(float));
+	memset(amesh.mat.specular, 0, 4 * sizeof(float));
+	memcpy(amesh.mat.emissive, redLight, 4 * sizeof(float));
+	renderer.myMeshes.push_back(amesh);
+	SceneObject *redPointLight = new SceneObject(3, 0);
+	redPointLight->setPosition(0.f, 2.f, 0.f);
+	sceneObjects.push_back(redPointLight);
+
+	amesh = createSphere(0.1f, 20);
+	memset(amesh.mat.ambient, 0, 4 * sizeof(float));
+	memset(amesh.mat.diffuse, 0, 4 * sizeof(float));
+	memset(amesh.mat.specular, 0, 4 * sizeof(float));
+	memcpy(amesh.mat.emissive, yellowLight, 4 * sizeof(float));
+	renderer.myMeshes.push_back(amesh);
+	SceneObject *yellowSpotLight = new SceneObject(4, 0);
+	yellowSpotLight->setPosition(2.5f, 4.f, 1.5f);
+	sceneObjects.push_back(yellowSpotLight);
+
+	// === ORIGIN MARKER ===
+	amesh = createSphere(0.1f, 20);
+	memset(amesh.mat.ambient, 0, 4 * sizeof(float));
+	memset(amesh.mat.diffuse, 0, 4 * sizeof(float));
+	memset(amesh.mat.specular, 0, 4 * sizeof(float));
+	memcpy(amesh.mat.emissive, whiteLight, 4 * sizeof(float));
+	renderer.myMeshes.push_back(amesh);
+	SceneObject *whiteSpot = new SceneObject(renderer.myMeshes.size()-1, 0);
+	whiteSpot->setPosition(0.f, 0.f, 0.f);
+	sceneObjects.push_back(whiteSpot);
+
+	amesh = createCone(1.f, 0.05f, 4);
+	memset(amesh.mat.ambient, 0, 4 * sizeof(float));
+	memset(amesh.mat.diffuse, 0, 4 * sizeof(float));
+	memset(amesh.mat.specular, 0, 4 * sizeof(float));
+	memcpy(amesh.mat.emissive, redLight, 4 * sizeof(float));
+	renderer.myMeshes.push_back(amesh);
+	SceneObject *redXunit = new SceneObject(renderer.myMeshes.size()-1, 0);
+	redXunit->setPosition(0.f, 0.f, 0.f);
+	redXunit->setRotation(90.f, 90.f, 0.f);
+	sceneObjects.push_back(redXunit);
+	
+	amesh = createCone(1.f, 0.05f, 4);
+	memset(amesh.mat.ambient, 0, 4 * sizeof(float));
+	memset(amesh.mat.diffuse, 0, 4 * sizeof(float));
+	memset(amesh.mat.specular, 0, 4 * sizeof(float));
+	memcpy(amesh.mat.emissive, greenLight, 4 * sizeof(float));
+	renderer.myMeshes.push_back(amesh);
+	SceneObject *greenYunit = new SceneObject(renderer.myMeshes.size()-1, 0);
+	greenYunit->setPosition(0.f, 0.f, 0.f);
+	greenYunit->setRotation(0.f, 0.f, 0.f);
+	sceneObjects.push_back(greenYunit);
+
+	amesh = createCone(1.f, 0.05f, 4);
+	memset(amesh.mat.ambient, 0, 4 * sizeof(float));
+	memset(amesh.mat.diffuse, 0, 4 * sizeof(float));
+	memset(amesh.mat.specular, 0, 4 * sizeof(float));
+	memcpy(amesh.mat.emissive, blueLight, 4 * sizeof(float));
+	renderer.myMeshes.push_back(amesh);
+	SceneObject *blueZunit = new SceneObject(renderer.myMeshes.size()-1, 0);
+	blueZunit->setPosition(0.f, 0.f, 0.f);
+	blueZunit->setRotation(0.f, 90.f, 0.f);
+	sceneObjects.push_back(blueZunit);
+
 
 	// Setup cameras
 	for (int i = 0; i < 3; i++)
@@ -464,8 +532,8 @@ void buildScene()
 	cams[1]->setProjectionType(ProjectionType::Perspective);
 
 	// Drone camera
-	cams[2]->setPosition(15.0f, 15.0f, 0.0f);
-	cams[2]->setTarget(5.0f, 5.0f, 0.0f);
+	cams[2]->setPosition(5.0f, 5.0f, 0.0f);
+	cams[2]->setTarget(2.0f, 2.0f, 0.0f);
 	cams[2]->setUp(0.0f, 1.0f, 0.0f);
 	cams[2]->setProjectionType(ProjectionType::Perspective);
 }
@@ -533,7 +601,7 @@ int main(int argc, char **argv)
 
 	buildScene();
 
-	if (!renderer.setRenderMeshesShaderProg("resources/shaders/mesh_phong.vert", "resources/shaders/mesh_phong.frag") ||
+	if (!renderer.setRenderMeshesShaderProg("resources/shaders/mesh.vert", "resources/shaders/mesh.frag") ||
 		!renderer.setRenderTextShaderProg("resources/shaders/ttf.vert", "resources/shaders/ttf.frag"))
 		return (1);
 

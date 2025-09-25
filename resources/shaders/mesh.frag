@@ -4,6 +4,7 @@ in Data {
 	vec3 normal;
 	vec3 position;
 	vec2 texCoord;
+    mat4 m_vm;
 } DataIn;
 
 out vec4 colorOut;
@@ -18,13 +19,13 @@ struct Light
 struct DirectionalLight
 {
     Light base;
-    vec3 direction;
+    vec4 direction;
 };
 
 struct PointLight
 {
     Light base;
-    vec3 position;
+    vec4 position;
 
     float constant;
     float linear;
@@ -34,7 +35,7 @@ struct PointLight
 struct SpotLight
 {
     PointLight base;
-    vec3 direction;
+    vec4 direction;
     float cutoff;
 };
 
@@ -67,29 +68,32 @@ vec4 CalcLight(Light light, vec3 lightDirection, vec3 normal)
     vec4 ambient  = light.color * light.ambientIntensity * mat.ambient;
     vec4 diffuse  = vec4(0);
     vec4 specular = vec4(0);
-    
+
     float intensityDiffuse = dot(normal, -lightDirection);
     if (intensityDiffuse > 0.f) {
         diffuse = light.color * light.diffuseIntensity * mat.diffuse * intensityDiffuse;
 
-        vec3 reflection = normalize(lightDirection - normalize(DataIn.position));
+        /*
+        vec3 reflection = normalize(lightDirection - DataIn.position);
         float intensitySpecular = max(dot(reflection, normal), 0.f);
         if (intensitySpecular > 0.f) {
             specular = light.color * light.diffuseIntensity * mat.specular * pow(intensitySpecular, mat.shininess);
         }
+        */
     }
 
-    return ambient + diffuse + specular + mat.emissive;
+    return ambient + diffuse + mat.emissive;//diffuse + specular + mat.emissive;
 }
 
 vec4 CalcDirectionalLight(vec3 normal)
 {
-    return CalcLight(directionalLight.base, directionalLight.direction, normal);
+    vec3 direction = vec3(normalize(directionalLight.direction));
+    return CalcLight(directionalLight.base, direction, normal);
 }
 
 vec4 CalcPointLight(PointLight light, vec3 normal)
 {
-    vec3 lightDirection = light.position - normalize(DataIn.position);
+    vec3 lightDirection = DataIn.position - vec3(light.position);
     float distance = length(lightDirection);
     lightDirection = normalize(lightDirection);
 
@@ -101,7 +105,9 @@ vec4 CalcPointLight(PointLight light, vec3 normal)
 
 vec4 CalcSpotLight(SpotLight light, vec3 normal)
 {
-    float spotlightAngle = dot(normalize(DataIn.position - light.base.position), light.direction);
+    vec3 direction = vec3(normalize(light.direction));
+    vec3 lightDirection = normalize(DataIn.position - vec3(light.base.position));
+    float spotlightAngle = dot(lightDirection, direction);
 
     if (spotlightAngle > light.cutoff) {
         vec4 color = CalcPointLight(light.base, normal);
@@ -115,7 +121,6 @@ vec4 CalcSpotLight(SpotLight light, vec3 normal)
 void main()
 {
     vec3 normal = normalize(DataIn.normal);
-
     vec4 lightTotal = CalcDirectionalLight(normal);
 
     for (int i = 0; i < pointLightNum; i++) {
