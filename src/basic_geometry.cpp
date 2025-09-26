@@ -132,9 +132,9 @@ MyMesh createCylinder(float height, float radius, int sides)
 
 MyMesh createCone(float height, float baseRadius, int sides)
 {
-	float v[2];
-	v[0] = -baseRadius;
-	v[1] = height;
+	//float v[2];
+	//v[0] = -baseRadius;
+	//v[1] = height;
 
 	std::vector<float> p;
 

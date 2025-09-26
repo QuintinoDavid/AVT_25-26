@@ -66,7 +66,8 @@ bool Renderer::truetypeInit(const std::string& fontFile)
             32,
             nullptr,
             96,
-            font.packedChars
+            font.packedChars,
+            0, 0
     };
 
     if (!stbtt_PackFontRanges(&pack_context, fontDataBuf, 0, &range, 1)) {
@@ -78,7 +79,7 @@ bool Renderer::truetypeInit(const std::string& fontFile)
 
     for (int i = 0; i < 96; i++)
     {
-        float unusedX, unusedY;
+        float unusedX = 0, unusedY = 0;
 
         stbtt_GetPackedQuad(
             font.packedChars,               // Array of stbtt_packedchar

@@ -33,7 +33,7 @@ struct TextCommand
 	float position[2]; // screen coordinates
 	float size = 1.f;
 	float color[4] = {1.f, 1.f, 1.f, 1.f};
-	float *pvm;
+	float *pvm = NULL;
 	Align align_x = Align::Center, align_y = Align::Center;
 };
 

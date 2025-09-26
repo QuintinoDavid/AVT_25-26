@@ -19,6 +19,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <assert.h>
 
 #ifdef _WIN32
 #define M_PI       3.14159265358979323846f
@@ -42,12 +43,10 @@ void gmu::pushMatrix(MatrixTypes aType)
 // glPopMatrix implementation
 void gmu::popMatrix(MatrixTypes aType)
 {
-	if (mMatrixStack[aType].size()-1 >= 0) {
-		float *m = mMatrixStack[aType][mMatrixStack[aType].size()-1];
-		memcpy(mMatrix[aType], m, sizeof(float) * 16);
-		mMatrixStack[aType].pop_back();
-		free(m);
-	}
+	float *m = mMatrixStack[aType][mMatrixStack[aType].size()-1];
+	memcpy(mMatrix[aType], m, sizeof(float) * 16);
+	mMatrixStack[aType].pop_back();
+	free(m);
 }
 
 // glLoadIdentity implementation

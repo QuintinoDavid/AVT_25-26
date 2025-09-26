@@ -23,13 +23,15 @@ private:
 
     float attConstant;
     float attLinear;
-    float attExponential;
+    float attExp;
 
 public:
 
     Light(float color[4], float ambient, float diffuse, float direction[4])
-    : type(DIRECTIONAL), ambient(ambient), diffuse(diffuse)
+    : ambient(ambient), diffuse(diffuse)
     {
+        this->type = DIRECTIONAL;
+
         for (int i = 0; i < 4; i++) {
             this->color[i] = color[i];
             this->direction[i] = direction[i];
@@ -37,10 +39,11 @@ public:
     }
 
     Light(float color[4], float ambient, float diffuse, float position[4],
-          float attConstant, float attLinear, float attExponential)
-    : type(POINTLIGHT), ambient(ambient), diffuse(diffuse),
-      attConstant(attConstant), attLinear(attLinear), attExponential(attExponential)
+          float attConstant, float attLinear, float attExp)
+    : ambient(ambient), diffuse(diffuse), attConstant(attConstant), attLinear(attLinear), attExp(attExp)
     {
+        this->type = POINTLIGHT;
+
         for (int i = 0; i < 4; i++) {
             this->color[i] = color[i];
             this->position[i] = position[i];
@@ -48,10 +51,12 @@ public:
     }
 
     Light(float color[4], float ambient, float diffuse, float position[4], float direction[4],
-          float cutoff, float attConstant, float attLinear, float attExponential)
-    : type(SPOTLIGHT), ambient(ambient), diffuse(diffuse), cutoff(cutoff),
-      attConstant(attConstant), attLinear(attLinear), attExponential(attExponential)
+          float cutoff, float attConstant, float attLinear, float attExp)
+    : ambient(ambient), diffuse(diffuse), cutoff(cutoff),
+      attConstant(attConstant), attLinear(attLinear), attExp(attExp)
     {
+        this->type = SPOTLIGHT;
+
         for (int i = 0; i < 4; i++) {
             this->color[i] = color[i];
             this->direction[i] = direction[i];
@@ -80,14 +85,14 @@ public:
         {
             mu.multMatrixPoint(gmu::VIEW, position, localPosition);
             renderer.setPointLight(color, ambient, diffuse, localPosition,
-                                   attConstant, attLinear, attExponential);
+                                   attConstant, attLinear, attExp);
         }
         else if (type == lightType::SPOTLIGHT)
         {
             mu.multMatrixPoint(gmu::VIEW, position, localPosition);
             mu.multMatrixPoint(gmu::VIEW, direction, localDirection);
             renderer.setSpotLight(color, ambient, diffuse, localDirection, cutoff, localPosition,
-                                  attConstant, attLinear, attExponential);
+                                  attConstant, attLinear, attExp);
         }
     }
 

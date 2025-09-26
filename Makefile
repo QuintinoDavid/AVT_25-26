@@ -1,5 +1,5 @@
 CC = g++
-CFLAGS = -march=native -mtune=native -O2 -ggdb3
+CFLAGS = -std=c++20 -march=native -mtune=native -O2 -ggdb3
 CWARNS = -Wall -Wextra -pedantic
 LDFLAGS = -lm -lassimp -lGL -lGLEW -lGLU -lglut -lX11 -lXrandr -lXxf86vm -lXi -lIL -lILU -lILUT
 

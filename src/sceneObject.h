@@ -15,8 +15,8 @@ protected:
 public:
 	SceneObject(int meshID_ = -1, int texMode_ = 1) : meshID(meshID_), texMode(texMode_) {}
 
-	virtual void handleSpecialInput(int key) {} // called when a special key is pressed
-	virtual void handleInput(int key) {}		// called when a key is pressed
+	virtual void handleSpecialInput(int) {} // called when a special key is pressed
+	virtual void handleInput(int) {}		// called when a key is pressed
 	virtual void update() {}					// Optional per-frame logic
 
 	virtual void render(Renderer &renderer, gmu &mu)

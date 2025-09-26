@@ -76,9 +76,6 @@ public:
 
 
 protected:
-	
-	/// stores if init has been called
-	bool pInited;
 
 	/// stores the OpenGL shader types
 	static GLenum spGLShaderTypes[COUNT_SHADER_TYPE];
@@ -91,7 +88,10 @@ protected:
 
 	/// stores the shaders and program indices
 	GLuint pShader[COUNT_SHADER_TYPE];
-	GLuint  pProgram;
+	GLuint pProgram;
+
+	/// stores if init has been called
+	bool pInited;
 
 	/// aux function to read the shader's source code from file
 	char *textFileRead(std::string fileName);

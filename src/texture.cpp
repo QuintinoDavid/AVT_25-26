@@ -45,7 +45,7 @@ void Texture::textureCubeMap_Loader(const char **strFileName)
 	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 
-	//Usou-se no init a fun��o glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS) de modo que a escolha abaixo � irrelevante
+	//Usou-se no init a função glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS) de modo que a escolha abaixo é irrelevante
 	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
@@ -88,6 +88,7 @@ void Texture::texture2D_Loader(int width, int height, const uint8_t* data) {
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, width, height, 0, GL_RED, GL_UNSIGNED_BYTE, data);
 	textureArray.push_back(id);
 }
+
 
 GLuint Texture::getTextureId(unsigned int id)
 {
