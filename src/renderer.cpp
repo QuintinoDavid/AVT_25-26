@@ -155,6 +155,7 @@ bool Renderer::setRenderMeshesShaderProg(const std::string& vertShaderPath, cons
     directionalLight_loc.ambient = glGetUniformLocation(program, "directionalLight.base.ambientIntensity");
     directionalLight_loc.diffuse = glGetUniformLocation(program, "directionalLight.base.diffuseIntensity");
     directionalLight_loc.direction = glGetUniformLocation(program, "directionalLight.direction");
+    directionalLightToggle_loc = glGetUniformLocation(program, "directionalLightToggle");
 
     pointLightNum_loc = glGetUniformLocation(program, "pointLightNum");
     spotLightNum_loc = glGetUniformLocation(program, "spotLightNum");
@@ -265,6 +266,9 @@ void Renderer::resetLights()
 {
     pointLightCount = 0;
     spotLightCount = 0;
+    glUniform1i(directionalLightToggle_loc, 0);
+    glUniform1i(pointLightNum_loc, pointLightCount);
+    glUniform1i(spotLightNum_loc, spotLightCount);
 }
 
 void Renderer::setDirectionalLight(float* color, float ambient, float diffuse, float* direction)
@@ -273,6 +277,7 @@ void Renderer::setDirectionalLight(float* color, float ambient, float diffuse, f
     glUniform1f(directionalLight_loc.ambient, ambient);
     glUniform1f(directionalLight_loc.diffuse, diffuse);
     glUniform4fv(directionalLight_loc.direction, 1, direction);
+    glUniform1i(directionalLightToggle_loc, 1);
 }
 
 void Renderer::setPointLight(float* color, float ambient, float diffuse, float* position,

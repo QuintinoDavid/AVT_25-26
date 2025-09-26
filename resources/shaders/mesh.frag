@@ -58,6 +58,7 @@ const int MAX_POINT_LIGHTS = 6;
 const int MAX_SPOT_LIGHTS = 2;
 
 uniform DirectionalLight directionalLight;
+uniform int directionalLightToggle;
 uniform PointLight pointLightArray[MAX_POINT_LIGHTS];
 uniform int pointLightNum;
 uniform SpotLight spotLightArray[MAX_SPOT_LIGHTS];
@@ -120,7 +121,7 @@ vec4 CalcSpotLight(SpotLight light, vec3 normal)
 void main()
 {
     vec3 normal = normalize(DataIn.normal);
-    vec4 lightTotal = CalcDirectionalLight(normal);
+    vec4 lightTotal = directionalLightToggle * CalcDirectionalLight(normal);
 
     for (int i = 0; i < pointLightNum; i++) {
         lightTotal += CalcPointLight(pointLightArray[i], normal);
@@ -135,7 +136,9 @@ void main()
         colorOut = lightTotal;
     } else if (texMode == 1) {
         // texel + diffuse, use lighwood.tga
-        colorOut = texture(texmap2, DataIn.texCoord) * lightTotal;
+        vec4 texel1 = texture(texmap1, DataIn.texCoord);
+        vec4 texel2 = texture(texmap2, DataIn.texCoord);
+        colorOut = texel1 * texel2 * lightTotal;
     } else {
         // texel only, use stone.tga
         colorOut = texture(texmap, DataIn.texCoord) * lightTotal;

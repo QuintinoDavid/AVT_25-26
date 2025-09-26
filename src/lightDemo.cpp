@@ -187,24 +187,47 @@ void renderSim(void)
 		glDisable(GL_DEPTH_TEST);
 
 		std::vector<TextCommand> texts;
+		float size = 0.5f;
 		texts.push_back({
 			.str = "X",
 			.position = { 0.f, 0.f },
-			.size = 0.5f,
+			.size = size,
 			.color = { 1.f, 0.f, 0.f, 1.f }
 		});
 		
 		texts.push_back({
 			.str = "Y",
 			.position = { 30.f, 0.f },
-			.size = 0.5f,
+			.size = size,
 			.color = { 0.f, 1.f, 0.f, 1.f }
 		});
 		
 		texts.push_back({
 			.str = "Z",
 			.position = { 50.f, 0.f },
-			.size = 0.5f,
+			.size = size,
+			.color = { 0.f, 0.f, 1.f, 1.f }
+		});
+
+		size = 0.4f;
+		texts.push_back({
+			.str = "X",
+			.position = { 0.f, 80.f },
+			.size = size,
+			.color = { 1.f, 0.f, 0.f, 1.f }
+		});
+		
+		texts.push_back({
+			.str = "Y",
+			.position = { 30.f, 80.f },
+			.size = size,
+			.color = { 0.f, 1.f, 0.f, 1.f }
+		});
+		
+		texts.push_back({
+			.str = "Z",
+			.position = { 50.f, 80.f },
+			.size = size,
 			.color = { 0.f, 0.f, 1.f, 1.f }
 		});
 		// the glyph contains transparent background colors and non-transparent for the actual character pixels. So we use the blending
@@ -256,29 +279,28 @@ void processKeys(unsigned char key, int xx, int yy)
 		glutLeaveMainLoop();
 		break;
 
-	case 'c':
-		printf("Camera info:\n%s\n", cams[activeCam]->toString().c_str());
+	case 'n': // toggle directional light
+		for (auto light : sceneLights) {
+			if (light->isType(lightType::DIRECTIONAL)) {
+				light->toggle();
+			}
+		}
 		break;
 
-	case 'l': // toggle spotlight mode
+	case 'c': // toggle point lights
+		for (auto light : sceneLights) {
+			if (light->isType(lightType::POINTLIGHT)) {
+				light->toggle();
+			}
+		}
 		break;
 
-	/*
-	case 'r': // reset
-		alpha = 57.0f;
-		betaAngle = 18.0f; // Camera Spherical Coordinates
-		r = 45.0f;
-		camX = r * sin(alpha * 3.14f / 180.0f) * cos(betaAngle * 3.14f / 180.0f);
-		camZ = r * cos(alpha * 3.14f / 180.0f) * cos(betaAngle * 3.14f / 180.0f);
-		camY = r * sin(betaAngle * 3.14f / 180.0f);
-		break;
-	*/
-
-	case 'm':
-		glEnable(GL_MULTISAMPLE);
-		break;
-	case 'n':
-		glDisable(GL_MULTISAMPLE);
+	case 'h': // toggle spotlights
+		for (auto light : sceneLights) {
+			if (light->isType(lightType::SPOTLIGHT)) {
+				light->toggle();
+			}
+		}
 		break;
 
 	case '1':
@@ -506,7 +528,7 @@ void buildScene()
 	float cyanLight[4] = { 0.f, 1.f, 1.f, 1.f };
 	float cLightPos[4] = { 2.f, 0.2f, -2.f, 1.f };
 	float cLightDir[4] = { 0.f, 0.f, -1.f, 0.f };
-	Light *cyanSpot = new Light(cyanLight, ambient, diffuse, cLightPos, cLightDir, 0.93f, 1.f, 0.05f, 0.01f);
+	Light *cyanSpot = new Light(cyanLight, ambient, diffuse, cLightPos, cLightDir, 0.93f, 1.f, 0.1f, 0.01f);
 	sceneLights.push_back(cyanSpot);
 	amesh = createCone(0.2f, 0.1f, 10);//createSphere(0.1f, 20);
 	memcpy(amesh.mat.ambient, black, 4 * sizeof(float));

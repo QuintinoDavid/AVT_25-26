@@ -92,6 +92,7 @@ private:
 		GLuint diffuse;
 		GLuint direction;
 	} directionalLight_loc;
+	GLuint directionalLightToggle_loc;
 
 	struct {
 		GLuint color;

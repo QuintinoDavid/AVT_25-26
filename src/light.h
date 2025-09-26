@@ -96,14 +96,7 @@ public:
         }
     }
 
-    std::string typeString()
-    {
-        if (type == lightType::DIRECTIONAL) return "DIRECTIONAL";
-        if (type == lightType::POINTLIGHT) return "POINTLIGHT";
-        if (type == lightType::SPOTLIGHT) return "SPOTLIGHT";
-        return "UNKNOWN";
-    }
-
+    bool isType(lightType t) { return type == t; }
     bool isSpotlight() { return type == lightType::SPOTLIGHT; }
     void toggle() { active = !active; }
 };
