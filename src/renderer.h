@@ -7,6 +7,7 @@
 
 #pragma once
 #include <vector>
+#include <unordered_map>
 #include "texture.h"
 #include "model.h"
 #include "stb_truetype.h"
@@ -59,13 +60,29 @@ public:
 
 	void resetLights();
 
-	void setDirectionalLight(float* color, float ambient, float diffuse, float* direction);
+	void setDirectionalLight(float *color, float ambient, float diffuse, float *direction);
 
-	void setPointLight(float* color, float ambient, float diffuse, float* position, float constant, float linear, float exponential);
+	void setPointLight(float *color, float ambient, float diffuse, float *position, float constant, float linear, float exponential);
 
-	void setSpotLight(float* color, float ambient, float diffuse, float* direction, float cutoff, float* position, float constant, float linear, float exponential);
+	void setSpotLight(float *color, float ambient, float diffuse, float *direction, float cutoff, float *position, float constant, float linear, float exponential);
 
 	void setTexUnit(int tuId, int texObjId);
+
+	// Vector with meshes
+	std::unordered_map<int, MyMesh> meshRegistry;
+	int nextMeshID = 0;
+
+	int addMesh(const MyMesh &mesh)
+	{
+		int id = nextMeshID++;
+		meshRegistry[id] = mesh;
+		return id;
+	}
+
+	MyMesh &getMesh(int id)
+	{
+		return meshRegistry.at(id);
+	}
 
 	// Vector with meshes
 	std::vector<struct MyMesh> myMeshes;
@@ -83,10 +100,11 @@ private:
 	GLint pvm_loc, vm_loc, normal_loc, texMode_loc;
 	GLint tex_loc[MAX_TEXTURES];
 
-	#define MAX_POINT_LIGHTS 6
-	#define MAX_SPOT_LIGHTS 2
+#define MAX_POINT_LIGHTS 6
+#define MAX_SPOT_LIGHTS 2
 
-	struct {
+	struct
+	{
 		GLuint color;
 		GLuint ambient;
 		GLuint diffuse;
@@ -94,7 +112,8 @@ private:
 	} directionalLight_loc;
 	GLuint directionalLightToggle_loc;
 
-	struct {
+	struct
+	{
 		GLuint color;
 		GLuint ambient;
 		GLuint diffuse;
@@ -106,7 +125,8 @@ private:
 	GLuint pointLightNum_loc;
 	int pointLightCount = 0;
 
-	struct {
+	struct
+	{
 		GLuint color;
 		GLuint ambient;
 		GLuint diffuse;

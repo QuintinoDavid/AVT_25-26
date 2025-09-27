@@ -5,7 +5,7 @@
  * Definition of the Graphics Math Utility - gmu Class
  *
  * ALL resulting matrices are in COLUMN ORDER
- * 
+ *
  // The code comes with no warranties, use it at your own risk.
  // You may use it, or parts of it, wherever you want.
  //
@@ -21,17 +21,6 @@
 #include <string.h>
 #include <assert.h>
 
-#ifdef _WIN32
-#define M_PI       3.14159265358979323846f
-#endif
-
-static inline float 
-DegToRad(float degrees) 
-{ 
-	return (float)(degrees * (M_PI / 180.0f));
-};
-
-
 // glPushMatrix implementation
 void gmu::pushMatrix(MatrixTypes aType)
 {
@@ -43,10 +32,14 @@ void gmu::pushMatrix(MatrixTypes aType)
 // glPopMatrix implementation
 void gmu::popMatrix(MatrixTypes aType)
 {
-	float *m = mMatrixStack[aType][mMatrixStack[aType].size()-1];
-	memcpy(mMatrix[aType], m, sizeof(float) * 16);
-	mMatrixStack[aType].pop_back();
-	free(m);
+
+	if (mMatrixStack[aType].size() - 1 >= 0)
+	{
+		float *m = mMatrixStack[aType][mMatrixStack[aType].size() - 1];
+		memcpy(mMatrix[aType], m, sizeof(float) * 16);
+		mMatrixStack[aType].pop_back();
+		free(m);
+	}
 }
 
 // glLoadIdentity implementation
@@ -62,11 +55,14 @@ void gmu::multMatrix(MatrixTypes aType, float *aMatrix)
 	a = mMatrix[aType];
 	b = aMatrix;
 
-	for (int i = 0; i < 4; ++i) {
-		for (int j = 0; j < 4; ++j) {
-			res[j*4 + i] = 0.0f;
-			for (int k = 0; k < 4; ++k) {
-				res[j*4 + i] += a[k*4 + i] * b[j*4 + k]; 
+	for (int i = 0; i < 4; ++i)
+	{
+		for (int j = 0; j < 4; ++j)
+		{
+			res[j * 4 + i] = 0.0f;
+			for (int k = 0; k < 4; ++k)
+			{
+				res[j * 4 + i] += a[k * 4 + i] * b[j * 4 + k];
 			}
 		}
 	}
@@ -81,11 +77,14 @@ void gmu::multMatrix(float *resMat, float *aMatrix)
 	a = resMat;
 	b = aMatrix;
 
-	for (int i = 0; i < 4; ++i) {
-		for (int j = 0; j < 4; ++j) {
-			res[j*4 + i] = 0.0f;
-			for (int k = 0; k < 4; ++k) {
-				res[j*4 + i] += a[k*4 + i] * b[j*4 + k]; 
+	for (int i = 0; i < 4; ++i)
+	{
+		for (int j = 0; j < 4; ++j)
+		{
+			res[j * 4 + i] = 0.0f;
+			for (int k = 0; k < 4; ++k)
+			{
+				res[j * 4 + i] += a[k * 4 + i] * b[j * 4 + k];
 			}
 		}
 	}
@@ -93,13 +92,11 @@ void gmu::multMatrix(float *resMat, float *aMatrix)
 	memcpy(a, res, 16 * sizeof(float));
 }
 
-
 // glLoadMatrix implementation
 void gmu::loadMatrix(MatrixTypes aType, float *aMatrix)
 {
 	memcpy(mMatrix[aType], aMatrix, 16 * sizeof(float));
 }
-
 
 // glTranslate implementation with matrix selection
 void gmu::translate(MatrixTypes aType, float x, float y, float z)
@@ -111,7 +108,7 @@ void gmu::translate(MatrixTypes aType, float x, float y, float z)
 	mat[13] = y;
 	mat[14] = z;
 
-	multMatrix(aType,mat);
+	multMatrix(aType, mat);
 }
 
 // glScale implementation with matrix selection
@@ -119,12 +116,12 @@ void gmu::scale(MatrixTypes aType, float x, float y, float z)
 {
 	float mat[16];
 
-	setIdentityMatrix(mat,4);
+	setIdentityMatrix(mat, 4);
 	mat[0] = x;
 	mat[5] = y;
 	mat[10] = z;
 
-	multMatrix(aType,mat);
+	multMatrix(aType, mat);
 }
 
 // glRotate implementation with matrix selection
@@ -141,79 +138,81 @@ void gmu::rotate(MatrixTypes aType, float angle, float x, float y, float z)
 	float co = cos(radAngle);
 	float si = sin(radAngle);
 	normalize(v);
-	float x2 = v[0]*v[0];
-	float y2 = v[1]*v[1];
-	float z2 = v[2]*v[2];
+	float x2 = v[0] * v[0];
+	float y2 = v[1] * v[1];
+	float z2 = v[2] * v[2];
 
-//	mat[0] = x2 + (y2 + z2) * co; 
-	mat[0] = co + x2 * (1 - co);// + (y2 + z2) * co; 
+	//	mat[0] = x2 + (y2 + z2) * co;
+	mat[0] = co + x2 * (1 - co); // + (y2 + z2) * co;
 	mat[4] = v[0] * v[1] * (1 - co) - v[2] * si;
 	mat[8] = v[0] * v[2] * (1 - co) + v[1] * si;
-	mat[12]= 0.0f;
-	   
+	mat[12] = 0.0f;
+
 	mat[1] = v[0] * v[1] * (1 - co) + v[2] * si;
-//	mat[5] = y2 + (x2 + z2) * co;
+	//	mat[5] = y2 + (x2 + z2) * co;
 	mat[5] = co + y2 * (1 - co);
 	mat[9] = v[1] * v[2] * (1 - co) - v[0] * si;
-	mat[13]= 0.0f;
-	   
+	mat[13] = 0.0f;
+
 	mat[2] = v[0] * v[2] * (1 - co) - v[1] * si;
 	mat[6] = v[1] * v[2] * (1 - co) + v[0] * si;
-//	mat[10]= z2 + (x2 + y2) * co;
-	mat[10]= co + z2 * (1 - co);
-	mat[14]= 0.0f;
-	   
+	//	mat[10]= z2 + (x2 + y2) * co;
+	mat[10] = co + z2 * (1 - co);
+	mat[14] = 0.0f;
+
 	mat[3] = 0.0f;
 	mat[7] = 0.0f;
-	mat[11]= 0.0f;
-	mat[15]= 1.0f;
+	mat[11] = 0.0f;
+	mat[15] = 1.0f;
 
-	multMatrix(aType,mat);
+	multMatrix(aType, mat);
 }
 
 // gluLookAt implementation
 void gmu::lookAt(float xPos, float yPos, float zPos,
-					float xLook, float yLook, float zLook,
-					float xUp, float yUp, float zUp)
+				 float xLook, float yLook, float zLook,
+				 float xUp, float yUp, float zUp)
 {
 	float dir[3], right[3], up[3];
 
-	up[0] = xUp;	up[1] = yUp;	up[2] = zUp;
+	up[0] = xUp;
+	up[1] = yUp;
+	up[2] = zUp;
 
-	dir[0] =  (xLook - xPos);
-	dir[1] =  (yLook - yPos);
-	dir[2] =  (zLook - zPos);
+	dir[0] = (xLook - xPos);
+	dir[1] = (yLook - yPos);
+	dir[2] = (zLook - zPos);
 	normalize(dir);
 
-	crossProduct(dir,up,right);
+	crossProduct(dir, up, right);
 	normalize(right);
 
-	crossProduct(right,dir,up);
+	crossProduct(right, dir, up);
 	normalize(up);
 
-	float m1[16],m2[16];
+	float m1[16], m2[16];
 
-	m1[0]  = right[0];
-	m1[4]  = right[1];
-	m1[8]  = right[2];
+	m1[0] = right[0];
+	m1[4] = right[1];
+	m1[8] = right[2];
 	m1[12] = 0.0f;
 
-	m1[1]  = up[0];
-	m1[5]  = up[1];
-	m1[9]  = up[2];
+	m1[1] = up[0];
+	m1[5] = up[1];
+	m1[9] = up[2];
 	m1[13] = 0.0f;
 
-	m1[2]  = -dir[0];
-	m1[6]  = -dir[1];
+	m1[2] = -dir[0];
+	m1[6] = -dir[1];
 	m1[10] = -dir[2];
-	m1[14] =  0.0f;
+	m1[14] = 0.0f;
 
-	m1[3]  = 0.0f;
-	m1[7]  = 0.0f;
+	m1[3] = 0.0f;
+	m1[7] = 0.0f;
 	m1[11] = 0.0f;
 	m1[15] = 1.0f;
 
-	setIdentityMatrix(m2,4);
+	setIdentityMatrix(m2, 4);
 	m2[12] = -xPos;
 	m2[13] = -yPos;
 	m2[14] = -zPos;
@@ -227,9 +226,9 @@ void gmu::perspective(float fov, float ratio, float nearp, float farp)
 {
 	float projMatrix[16];
 
-	float f = 1.0f / tan (fov * (M_PI / 360.0f));
+	float f = 1.0f / tan(fov * (M_PI / 360.0f));
 
-	setIdentityMatrix(projMatrix,4);
+	setIdentityMatrix(projMatrix, 4);
 
 	projMatrix[0] = f / ratio;
 	projMatrix[1 * 4 + 1] = f;
@@ -241,18 +240,17 @@ void gmu::perspective(float fov, float ratio, float nearp, float farp)
 	multMatrix(MatrixTypes::PROJECTION, projMatrix);
 }
 
-
 // glOrtho implementation
 void gmu::ortho(float left, float right,
-			float bottom, float top, 
-			float nearp, float farp)
+				float bottom, float top,
+				float nearp, float farp)
 {
 	float m[16];
 
-	setIdentityMatrix(m,4);
+	setIdentityMatrix(m, 4);
 
 	m[0 * 4 + 0] = 2 / (right - left);
-	m[1 * 4 + 1] = 2 / (top - bottom);	
+	m[1 * 4 + 1] = 2 / (top - bottom);
 	m[2 * 4 + 2] = -2 / (farp - nearp);
 	m[3 * 4 + 0] = -(right + left) / (right - left);
 	m[3 * 4 + 1] = -(top + bottom) / (top - bottom);
@@ -261,29 +259,26 @@ void gmu::ortho(float left, float right,
 	multMatrix(MatrixTypes::PROJECTION, m);
 }
 
-
 // glFrustum implementation
 void gmu::frustum(float left, float right,
-			float bottom, float top, 
-			float nearp, float farp)
+				  float bottom, float top,
+				  float nearp, float farp)
 {
 	float m[16];
 
-	setIdentityMatrix(m,4);
+	setIdentityMatrix(m, 4);
 
-	m[0 * 4 + 0] = 2 * nearp / (right-left);
+	m[0 * 4 + 0] = 2 * nearp / (right - left);
 	m[1 * 4 + 1] = 2 * nearp / (top - bottom);
 	m[2 * 4 + 0] = (right + left) / (right - left);
 	m[2 * 4 + 1] = (top + bottom) / (top - bottom);
-	m[2 * 4 + 2] = - (farp + nearp) / (farp - nearp);
+	m[2 * 4 + 2] = -(farp + nearp) / (farp - nearp);
 	m[2 * 4 + 3] = -1.0f;
-	m[3 * 4 + 2] = - 2 * farp * nearp / (farp-nearp);
+	m[3 * 4 + 2] = -2 * farp * nearp / (farp - nearp);
 	m[3 * 4 + 3] = 0.0f;
 
 	multMatrix(MatrixTypes::PROJECTION, m);
 }
-
-
 
 // sets the square matrix mat to the identity matrix,
 // size refers to the number of rows (or columns)
@@ -291,7 +286,7 @@ void gmu::setIdentityMatrix(float *mat, int size)
 {
 	// fill matrix with 0s
 	for (int i = 0; i < size * size; ++i)
-			mat[i] = 0.0f;
+		mat[i] = 0.0f;
 
 	// fill diagonal with 1s
 	for (int i = 0; i < size; ++i)
@@ -301,24 +296,30 @@ void gmu::setIdentityMatrix(float *mat, int size)
 // Compute res = M * point
 void gmu::multMatrixPoint(MatrixTypes aType, float *point, float *res)
 {
-	for (int i = 0; i < 4; ++i) {
+
+	for (int i = 0; i < 4; ++i)
+	{
 
 		res[i] = 0.0f;
-	
-		for (int j = 0; j < 4; j++) {
-		
-			res[i] += point[j] * mMatrix[aType][j*4 + i];
-		} 
+
+		for (int j = 0; j < 4; j++)
+		{
+
+			res[i] += point[j] * mMatrix[aType][j * 4 + i];
+		}
 	}
 }
 
-void gmu::multMatrixPoint(ComputedMatrixTypes aType, float* point, float* res)
+void gmu::multMatrixPoint(ComputedMatrixTypes aType, float *point, float *res)
 {
-	for (int i = 0; i < 4; ++i) {
+
+	for (int i = 0; i < 4; ++i)
+	{
 
 		res[i] = 0.0f;
 
-		for (int j = 0; j < 4; j++) {
+		for (int j = 0; j < 4; j++)
+		{
 
 			res[i] += point[j] * mCompMatrix[aType][j * 4 + i];
 		}
@@ -326,17 +327,19 @@ void gmu::multMatrixPoint(ComputedMatrixTypes aType, float* point, float* res)
 }
 
 // res = a cross b;
-void  gmu::crossProduct( float *a, float *b, float *res)
+void gmu::crossProduct(float *a, float *b, float *res)
 {
-	res[0] = a[1] * b[2]  -  b[1] * a[2];
-	res[1] = a[2] * b[0]  -  b[2] * a[0];
-	res[2] = a[0] * b[1]  -  b[0] * a[1];
+
+	res[0] = a[1] * b[2] - b[1] * a[2];
+	res[1] = a[2] * b[0] - b[2] * a[0];
+	res[2] = a[0] * b[1] - b[0] * a[1];
 }
 
 // returns a . b
 float gmu::dotProduct(float *a, float *b)
 {
-	float res = a[0] * b[0]  +  a[1] * b[1]  +  a[2] * b[2];
+
+	float res = a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
 
 	return res;
 }
@@ -345,15 +348,16 @@ float gmu::dotProduct(float *a, float *b)
 void gmu::constProduct(float k, float *a, float *res)
 {
 	res[0] = k * a[0];
-	res[1] = k * a[1];;
+	res[1] = k * a[1];
+	;
 	res[2] = k * a[2];
-	
 }
 
 // Normalize a vec3
 void gmu::normalize(float *a)
 {
-	float mag = sqrt(a[0] * a[0]  +  a[1] * a[1]  +  a[2] * a[2]);
+
+	float mag = sqrt(a[0] * a[0] + a[1] * a[1] + a[2] * a[2]);
 
 	a[0] /= mag;
 	a[1] /= mag;
@@ -376,11 +380,11 @@ void gmu::add(float *a, float *b, float *res)
 	res[2] = b[2] + a[2];
 }
 
-
 // returns |a|
 float gmu::length(float *a)
 {
-	return(sqrt(a[0] * a[0]  +  a[1] * a[1]  +  a[2] * a[2]));
+
+	return (sqrt(a[0] * a[0] + a[1] * a[1] + a[2] * a[2]));
 }
 
 // Computes derived matrices
@@ -389,7 +393,8 @@ void gmu::computeDerivedMatrix(ComputedMatrixTypes aType)
 	memcpy(mCompMatrix[ComputedMatrixTypes::VIEW_MODEL], mMatrix[MatrixTypes::VIEW], 16 * sizeof(float));
 	multMatrix(mCompMatrix[ComputedMatrixTypes::VIEW_MODEL], mMatrix[MatrixTypes::MODEL]);
 
-	if (aType == ComputedMatrixTypes::PROJ_VIEW_MODEL) {
+	if (aType == ComputedMatrixTypes::PROJ_VIEW_MODEL)
+	{
 		memcpy(mCompMatrix[ComputedMatrixTypes::PROJ_VIEW_MODEL], mMatrix[MatrixTypes::PROJECTION], 16 * sizeof(float));
 		multMatrix(mCompMatrix[ComputedMatrixTypes::PROJ_VIEW_MODEL], mCompMatrix[ComputedMatrixTypes::VIEW_MODEL]);
 	}
@@ -415,8 +420,8 @@ void gmu::computeNormalMatrix3x3()
 	float det, invDet;
 
 	det = mMat3x3[0] * (mMat3x3[4] * mMat3x3[8] - mMat3x3[5] * mMat3x3[7]) +
-		mMat3x3[1] * (mMat3x3[5] * mMat3x3[6] - mMat3x3[8] * mMat3x3[3]) +
-		mMat3x3[2] * (mMat3x3[3] * mMat3x3[7] - mMat3x3[4] * mMat3x3[6]);
+		  mMat3x3[1] * (mMat3x3[5] * mMat3x3[6] - mMat3x3[8] * mMat3x3[3]) +
+		  mMat3x3[2] * (mMat3x3[3] * mMat3x3[7] - mMat3x3[4] * mMat3x3[6]);
 
 	invDet = 1.0f / det;
 
@@ -431,23 +436,21 @@ void gmu::computeNormalMatrix3x3()
 	mNormal3x3[8] = (mMat3x3[0] * mMat3x3[4] - mMat3x3[3] * mMat3x3[1]) * invDet;
 }
 
-
 // returns a pointer to the requested matrix
-float* gmu::get(MatrixTypes aType)
+float *gmu::get(MatrixTypes aType)
 {
 	return mMatrix[aType];
 }
 
-
 // returns a pointer to the requested matrix of ComputedMatrixTypes
-float* gmu::get(ComputedMatrixTypes aType)
+float *gmu::get(ComputedMatrixTypes aType)
 {
-	//computeDerivedMatrix(aType);
+	// computeDerivedMatrix(aType);
 	return mCompMatrix[aType];
 }
 
-//Calculate and return the normal matrix
-float* gmu::getNormalMatrix()
+// Calculate and return the normal matrix
+float *gmu::getNormalMatrix()
 {
 	return mNormal3x3;
 }
@@ -459,16 +462,15 @@ void gmu::computeDerivedMatrix_PVM()
 	multMatrix(mCompMatrix[ComputedMatrixTypes::PROJ_VIEW_MODEL], mCompMatrix[ComputedMatrixTypes::VIEW_MODEL]);
 }
 
-
-//Maps object coordinates to window coordinates: - should be used after computeDerivedMatrix
-bool gmu::project(float* objCoord, float* windowCoord, int* m_viewport)
+// Maps object coordinates to window coordinates: - should be used after computeDerivedMatrix
+bool gmu::project(float *objCoord, float *windowCoord, int *m_viewport)
 {
 	float point_tmp[4];
 
-	//gets point in clipping coordinates
+	// gets point in clipping coordinates
 	multMatrixPoint(ComputedMatrixTypes::PROJ_VIEW_MODEL, objCoord, point_tmp);
-	//normalize between -1 and 1 
-	if (point_tmp[3] == 0.0f)  //the w value
+	// normalize between -1 and 1
+	if (point_tmp[3] == 0.0f) // the w value
 		return false;
 	else
 		point_tmp[3] = 1 / point_tmp[3];
@@ -479,16 +481,15 @@ bool gmu::project(float* objCoord, float* windowCoord, int* m_viewport)
 	point_tmp[2] *= point_tmp[3];
 
 	// Window coordinates
-	 // Map x, y to range 0-1
+	// Map x, y to range 0-1
 	windowCoord[0] = (point_tmp[0] * 0.5 + 0.5) * m_viewport[2] + m_viewport[0];
 	windowCoord[1] = (point_tmp[1] * 0.5 + 0.5) * m_viewport[3] + m_viewport[1];
 	// This is only correct when glDepthRange(0.0, 1.0)
-	windowCoord[2] = (1.0 + point_tmp[2]) * 0.5;	// Between 0 and 1
+	windowCoord[2] = (1.0 + point_tmp[2]) * 0.5; // Between 0 and 1
 	return true;
 }
 
-
-void gmu::shadow_matrix(float* m, float* plane, float* light)    //planar shadows
+void gmu::shadow_matrix(float *m, float *plane, float *light) // planar shadows
 {
 	float dot = plane[0] * light[0] + plane[1] * light[1] + plane[2] * light[2] + plane[3] * light[3];
 

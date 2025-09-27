@@ -35,8 +35,10 @@
 #include "texture.h"
 #include "camera.h"
 #include "sceneObject.h"
-#include "drone.h"
 #include "light.h"
+#include "drone.cpp"
+
+using namespace std;
 
 #define CAPTION "AVT 2025 Welcome Demo"
 int WindowHandle = 0;
@@ -54,6 +56,9 @@ Renderer renderer;
 std::vector<SceneObject *> sceneObjects;
 std::vector<Light *> sceneLights;
 
+// Collision system
+CollisionSystem collisionSystem;
+
 // Cameras
 Camera *cams[3];
 int activeCam = 0;
@@ -63,7 +68,7 @@ int startX, startY, tracking = 0;
 float mouseSensitivity = 0.3f;
 
 // Frame counting and FPS computation
-long myTime, timebase = 0, frame = 0;
+float lastTime = glutGet(GLUT_ELAPSED_TIME);
 char s[32];
 
 bool fontLoaded = false;
@@ -83,6 +88,8 @@ void timer(int value)
 	glutSetWindow(WindowHandle);
 	glutSetWindowTitle(s.c_str());
 	FrameCount = 0;
+
+	// Every second
 	glutTimerFunc(1000, timer, 0);
 }
 
@@ -94,6 +101,20 @@ void refresh(int value)
 	glutTimerFunc(1000 / 60, refresh, 0);
 }
 
+void gameloop(void)
+{
+	float currentTime = glutGet(GLUT_ELAPSED_TIME);
+	float deltaTime = (currentTime - lastTime) / 1000.0f; // Convert milliseconds to seconds
+	lastTime = currentTime;
+
+	// Update all scene objects with the elapsed time
+	for (size_t i = 0; i < sceneObjects.size(); i++)
+	{
+		sceneObjects[i]->update(deltaTime);
+	}
+
+	glutPostRedisplay();
+}
 // ------------------------------------------------------------
 //
 // Reshape Callback Function
@@ -175,9 +196,14 @@ void renderSim(void)
 	// Update and then render scene objects
 	for (size_t i = 0; i < sceneObjects.size(); i++)
 	{
-		sceneObjects[i]->update();
 		sceneObjects[i]->render(renderer, mu);
 	}
+
+	// Check collisions
+	collisionSystem.checkCollisions();
+
+	// Render debug information
+	collisionSystem.showDebug(renderer, mu);
 
 	// Render text (bitmap fonts) in screen coordinates. So use ortoghonal projection with viewport coordinates.
 	// Each glyph quad texture needs just one byte color channel: 0 in background and 1 for the actual character pixels. Use it for alpha blending
@@ -188,48 +214,36 @@ void renderSim(void)
 
 		std::vector<TextCommand> texts;
 		float size = 0.5f;
-		texts.push_back({
-			.str = "X",
-			.position = { 0.f, 0.f },
-			.size = size,
-			.color = { 1.f, 0.f, 0.f, 1.f }
-		});
-		
-		texts.push_back({
-			.str = "Y",
-			.position = { 30.f, 0.f },
-			.size = size,
-			.color = { 0.f, 1.f, 0.f, 1.f }
-		});
-		
-		texts.push_back({
-			.str = "Z",
-			.position = { 50.f, 0.f },
-			.size = size,
-			.color = { 0.f, 0.f, 1.f, 1.f }
-		});
+		texts.push_back({.str = "X",
+						 .position = {0.f, 0.f},
+						 .size = size,
+						 .color = {1.f, 0.f, 0.f, 1.f}});
+
+		texts.push_back({.str = "Y",
+						 .position = {30.f, 0.f},
+						 .size = size,
+						 .color = {0.f, 1.f, 0.f, 1.f}});
+
+		texts.push_back({.str = "Z",
+						 .position = {50.f, 0.f},
+						 .size = size,
+						 .color = {0.f, 0.f, 1.f, 1.f}});
 
 		size = 0.4f;
-		texts.push_back({
-			.str = "X",
-			.position = { 0.f, 80.f },
-			.size = size,
-			.color = { 1.f, 0.f, 0.f, 1.f }
-		});
-		
-		texts.push_back({
-			.str = "Y",
-			.position = { 30.f, 80.f },
-			.size = size,
-			.color = { 0.f, 1.f, 0.f, 1.f }
-		});
-		
-		texts.push_back({
-			.str = "Z",
-			.position = { 50.f, 80.f },
-			.size = size,
-			.color = { 0.f, 0.f, 1.f, 1.f }
-		});
+		texts.push_back({.str = "X",
+						 .position = {0.f, 80.f},
+						 .size = size,
+						 .color = {1.f, 0.f, 0.f, 1.f}});
+
+		texts.push_back({.str = "Y",
+						 .position = {30.f, 80.f},
+						 .size = size,
+						 .color = {0.f, 1.f, 0.f, 1.f}});
+
+		texts.push_back({.str = "Z",
+						 .position = {50.f, 80.f},
+						 .size = size,
+						 .color = {0.f, 0.f, 1.f, 1.f}});
 		// the glyph contains transparent background colors and non-transparent for the actual character pixels. So we use the blending
 		glEnable(GL_BLEND);
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -245,7 +259,8 @@ void renderSim(void)
 		mu.ortho(m_viewport[0], m_viewport[0] + m_viewport[2] - 1, m_viewport[1], m_viewport[1] + m_viewport[3] - 1, -1, 1);
 		mu.computeDerivedMatrix(gmu::PROJ_VIEW_MODEL);
 
-		for (auto text : texts) {
+		for (auto text : texts)
+		{
 			text.pvm = mu.get(gmu::PROJ_VIEW_MODEL);
 			renderer.renderText(text);
 		}
@@ -269,7 +284,7 @@ void processKeys(unsigned char key, int xx, int yy)
 
 	for (size_t i = 0; i < sceneObjects.size(); i++)
 	{
-		sceneObjects[i]->handleInput(key);
+		sceneObjects[i]->handleKeyInput(key);
 	}
 
 	switch (key)
@@ -280,24 +295,30 @@ void processKeys(unsigned char key, int xx, int yy)
 		break;
 
 	case 'n': // toggle directional light
-		for (auto light : sceneLights) {
-			if (light->isType(lightType::DIRECTIONAL)) {
+		for (auto light : sceneLights)
+		{
+			if (light->isType(lightType::DIRECTIONAL))
+			{
 				light->toggle();
 			}
 		}
 		break;
 
 	case 'c': // toggle point lights
-		for (auto light : sceneLights) {
-			if (light->isType(lightType::POINTLIGHT)) {
+		for (auto light : sceneLights)
+		{
+			if (light->isType(lightType::POINTLIGHT))
+			{
 				light->toggle();
 			}
 		}
 		break;
 
 	case 'h': // toggle spotlights
-		for (auto light : sceneLights) {
-			if (light->isType(lightType::SPOTLIGHT)) {
+		for (auto light : sceneLights)
+		{
+			if (light->isType(lightType::SPOTLIGHT))
+			{
 				light->toggle();
 			}
 		}
@@ -318,6 +339,14 @@ void processKeys(unsigned char key, int xx, int yy)
 	}
 }
 
+void processKeysUp(unsigned char key, int xx, int yy)
+{
+	for (size_t i = 0; i < sceneObjects.size(); i++)
+	{
+		sceneObjects[i]->handleKeyRelease(key);
+	}
+}
+
 void processSpecialKeys(int key, int xx, int yy)
 {
 	(void)xx;
@@ -325,7 +354,15 @@ void processSpecialKeys(int key, int xx, int yy)
 
 	for (size_t i = 0; i < sceneObjects.size(); i++)
 	{
-		sceneObjects[i]->handleSpecialInput(key);
+		sceneObjects[i]->handleSpecialKeyInput(key);
+	}
+}
+
+void processSpecialKeysUp(int key, int xx, int yy)
+{
+	for (size_t i = 0; i < sceneObjects.size(); i++)
+	{
+		sceneObjects[i]->handleSpecialKeyRelease(key);
 	}
 }
 
@@ -412,14 +449,13 @@ void buildScene()
 	renderer.TexObjArray.texture2D_Loader("resources/assets/lightwood.tga");
 
 	// Scene geometry with triangle meshes
-
 	MyMesh amesh;
 
 	float amb1[] = {1.f, 1.f, 1.f, 1.f};
 	float diff1[] = {1.f, 1.f, 1.f, 1.f};
 	float spec[] = {0.8f, 0.8f, 0.8f, 1.0f};
 	float spec1[] = {0.3f, 0.3f, 0.3f, 1.0f};
-	float black[] = { 0.f, 0.f, 0.f, 1.f };
+	float black[] = {0.f, 0.f, 0.f, 1.f};
 	float nonemissive[] = {0.0f, 0.0f, 0.0f, 1.0f};
 	float shininess = 100.0f;
 	int texcount = 0;
@@ -432,7 +468,17 @@ void buildScene()
 	memcpy(amesh.mat.emissive, nonemissive, 4 * sizeof(float));
 	amesh.mat.shininess = shininess;
 	amesh.mat.texCount = texcount;
-	renderer.myMeshes.push_back(amesh);
+	int quadID = renderer.addMesh(amesh);
+
+	// create geometry and VAO of the sphere
+	amesh = createSphere(0.1f, 20);
+	memcpy(amesh.mat.ambient, amb1, 4 * sizeof(float));
+	memcpy(amesh.mat.diffuse, diff1, 4 * sizeof(float));
+	memcpy(amesh.mat.specular, spec, 4 * sizeof(float));
+	memcpy(amesh.mat.emissive, nonemissive, 4 * sizeof(float));
+	amesh.mat.shininess = shininess;
+	amesh.mat.texCount = texcount;
+	int sphereID = renderer.addMesh(amesh);
 
 	// create geometry and VAO of the cube
 	amesh = createCube();
@@ -442,63 +488,78 @@ void buildScene()
 	memcpy(amesh.mat.emissive, nonemissive, 4 * sizeof(float));
 	amesh.mat.shininess = shininess;
 	amesh.mat.texCount = texcount;
-	renderer.myMeshes.push_back(amesh);
+	int cubeID = renderer.addMesh(amesh);
 
-	// The truetypeInit creates a texture object in TexObjArray for storing the fontAtlasTexture
-	fontLoaded = renderer.truetypeInit("resources/fonts/arial.ttf");
-	if (!fontLoaded)
-		std::cerr << "Fonts not loaded\n";
-	else
-		std::cerr << "Fonts loaded\n";
+	// Load drone model from file
+	std::vector<MyMesh> droneMeshs = createFromFile("resources/assets/drone.obj");
+	std::vector<int> droneMeshIDs;
+	for (size_t i = 0; i < droneMeshs.size(); i++)
+	{
+		// set material properties
+		memcpy(droneMeshs[i].mat.ambient, amb1, 4 * sizeof(float));
+		memcpy(droneMeshs[i].mat.diffuse, diff1, 4 * sizeof(float));
+		memcpy(droneMeshs[i].mat.specular, spec1, 4 * sizeof(float));
+		memcpy(droneMeshs[i].mat.emissive, nonemissive, 4 * sizeof(float));
+		droneMeshs[i].mat.shininess = shininess;
+		droneMeshs[i].mat.texCount = texcount;
+		int meshID = renderer.addMesh(droneMeshs[i]);
+		droneMeshIDs.push_back(meshID);
+	}
 
-	printf("\nNumber of Texture Objects is %d\n\n", renderer.TexObjArray.getNumTextureObjects());
-
+	// Scene Lights
 	float ambient = 0.01f;
 	float diffuse = 0.5f;
 
-	// scene lights
-	float whiteLight[4] = { 1.f, 1.f, 1.f, 1.f };
-	float fortyfive[4] = { -1.f, -1.f, -1.f, 0.f };
+	float whiteLight[4] = {1.f, 1.f, 1.f, 1.f};
+	float fortyfive[4] = {-1.f, -1.f, -1.f, 0.f};
 	Light *sun = new Light(whiteLight, 0.1f, diffuse, fortyfive);
 	sceneLights.push_back(sun);
 
-	float blueLight[4] = { 0.f, 0.f, 1.f, 1.f };
-	float bLightPos[4] = { 4.f, 2.f, 2.f, 1.f };
+	float blueLight[4] = {0.f, 0.f, 1.f, 1.f};
+	float bLightPos[4] = {4.f, 2.f, 2.f, 1.f};
 	Light *bluePoint = new Light(blueLight, ambient, diffuse, bLightPos, 1.f, 0.1f, 0.01f);
 	sceneLights.push_back(bluePoint);
 
-	float redLight[4] = { 1.f, 0.f, 0.f, 1.f };
-	float rLightPos[4] = { 0.f, 2.f, 2.f, 1.f };
+	float redLight[4] = {1.f, 0.f, 0.f, 1.f};
+	float rLightPos[4] = {0.f, 2.f, 2.f, 1.f};
 	Light *redPoint = new Light(redLight, ambient, diffuse, rLightPos, 1.f, 0.1f, 0.01f);
 	sceneLights.push_back(redPoint);
 
-	float greenLight[4] = { 0.f, 1.f, 0.f, 1.f };
-	float yellowLight[4] = { 1.f, 1.f, 0.f, 1.f };
-	float yLightPos[4] = { 2.5f, 4.f, 1.5f, 1.f };
-	float yLightDir[4] = { 0.f, -1.f, 0.f, 0.f };
+	float greenLight[4] = {0.f, 1.f, 0.f, 1.f};
+	float yellowLight[4] = {1.f, 1.f, 0.f, 1.f};
+	float yLightPos[4] = {2.5f, 4.f, 1.5f, 1.f};
+	float yLightDir[4] = {0.f, -1.f, 0.f, 0.f};
 	Light *yellowSpot = new Light(yellowLight, ambient, diffuse, yLightPos, yLightDir, 0.93f, 1.f, 0.1f, 0.01f);
 	sceneLights.push_back(yellowSpot);
 
+	float cyanLight[4] = {0.f, 1.f, 1.f, 1.f};
+	float cLightPos[4] = {2.f, 0.2f, -2.f, 1.f};
+	float cLightDir[4] = {0.f, 0.f, -1.f, 0.f};
+	Light *cyanSpot = new Light(cyanLight, ambient, diffuse, cLightPos, cLightDir, 0.93f, 1.f, 0.1f, 0.01f);
+	sceneLights.push_back(cyanSpot);
+
 	// Scene objects
-	// Floor, meshID=0 (quad), texMode=1 (lighwood.tga)
-	SceneObject *floor = new SceneObject(0, 1);
+	// Floor
+	SceneObject *floor = new SceneObject(std::vector<int>{quadID}, 2);
 	floor->setRotation(0.0f, -90.0f, 0.0f);
 	floor->setScale(30.0f, 30.0f, 1.0f);
 	sceneObjects.push_back(floor);
 
-	// Drone, meshID=1 (cube), texMode=2 (stone.tga)
-	Drone *drone = new Drone(cams[2], 1, 2);
-	drone->setPosition(2.0f, 2.0f, 1.0f);
+	// Drone
+	Drone *drone = new Drone(cams[2], droneMeshIDs, 1);
+	drone->setPosition(5.0f, 5.0f, 1.0f);
+	drone->setScale(0.05f, 0.05f, 0.05f);
 	sceneObjects.push_back(drone);
 
+	// Light markers
 	amesh = createSphere(0.1f, 20);
 	memcpy(amesh.mat.ambient, black, 4 * sizeof(float));
 	memcpy(amesh.mat.diffuse, black, 4 * sizeof(float));
 	memcpy(amesh.mat.specular, black, 4 * sizeof(float));
 	memcpy(amesh.mat.emissive, blueLight, 4 * sizeof(float));
 	amesh.mat.shininess = 0.f;
-	renderer.myMeshes.push_back(amesh);
-	SceneObject *bluePointLight = new SceneObject(renderer.myMeshes.size()-1, 0);
+	int blueLightID = renderer.addMesh(amesh);
+	SceneObject *bluePointLight = new SceneObject({blueLightID}, 0);
 	bluePointLight->setPosition(4.f, 2.f, 2.f);
 	sceneObjects.push_back(bluePointLight);
 
@@ -508,8 +569,8 @@ void buildScene()
 	memcpy(amesh.mat.specular, black, 4 * sizeof(float));
 	memcpy(amesh.mat.emissive, redLight, 4 * sizeof(float));
 	amesh.mat.shininess = 0.f;
-	renderer.myMeshes.push_back(amesh);
-	SceneObject *redPointLight = new SceneObject(renderer.myMeshes.size()-1, 0);
+	int redLightID = renderer.addMesh(amesh);
+	SceneObject *redPointLight = new SceneObject({redLightID}, 0);
 	redPointLight->setPosition(0.f, 2.f, 2.f);
 	sceneObjects.push_back(redPointLight);
 
@@ -519,25 +580,19 @@ void buildScene()
 	memcpy(amesh.mat.specular, black, 4 * sizeof(float));
 	memcpy(amesh.mat.emissive, yellowLight, 4 * sizeof(float));
 	amesh.mat.shininess = 0.f;
-	renderer.myMeshes.push_back(amesh);
-	SceneObject *yellowSpotLight = new SceneObject(renderer.myMeshes.size()-1, 0);
+	int yellowLightID = renderer.addMesh(amesh);
+	SceneObject *yellowSpotLight = new SceneObject({yellowLightID}, 0);
 	yellowSpotLight->setPosition(2.5f, 4.f, 1.5f);
 	sceneObjects.push_back(yellowSpotLight);
-	
 
-	float cyanLight[4] = { 0.f, 1.f, 1.f, 1.f };
-	float cLightPos[4] = { 2.f, 0.2f, -2.f, 1.f };
-	float cLightDir[4] = { 0.f, 0.f, -1.f, 0.f };
-	Light *cyanSpot = new Light(cyanLight, ambient, diffuse, cLightPos, cLightDir, 0.93f, 1.f, 0.1f, 0.01f);
-	sceneLights.push_back(cyanSpot);
-	amesh = createCone(0.2f, 0.1f, 10);//createSphere(0.1f, 20);
+	amesh = createCone(0.2f, 0.1f, 10); // createSphere(0.1f, 20);
 	memcpy(amesh.mat.ambient, black, 4 * sizeof(float));
 	memcpy(amesh.mat.diffuse, black, 4 * sizeof(float));
 	memcpy(amesh.mat.specular, black, 4 * sizeof(float));
 	memcpy(amesh.mat.emissive, cyanLight, 4 * sizeof(float));
 	amesh.mat.shininess = 0.f;
-	renderer.myMeshes.push_back(amesh);
-	SceneObject *cyanSpotLight = new SceneObject(renderer.myMeshes.size()-1, 0);
+	int cyanLightID = renderer.addMesh(amesh);
+	SceneObject *cyanSpotLight = new SceneObject({cyanLightID}, 0);
 	cyanSpotLight->setPosition(2.f, 0.2f, -2.f);
 	cyanSpotLight->setRotation(0.f, 90.f, 0.f);
 	sceneObjects.push_back(cyanSpotLight);
@@ -549,8 +604,8 @@ void buildScene()
 	memcpy(amesh.mat.specular, black, 4 * sizeof(float));
 	memcpy(amesh.mat.emissive, whiteLight, 4 * sizeof(float));
 	amesh.mat.shininess = 0.f;
-	renderer.myMeshes.push_back(amesh);
-	SceneObject *whiteSpot = new SceneObject(renderer.myMeshes.size()-1, 0);
+	int whiteLightID = renderer.addMesh(amesh);
+	SceneObject *whiteSpot = new SceneObject({whiteLightID}, 0);
 	whiteSpot->setPosition(0.f, 0.f, 0.f);
 	sceneObjects.push_back(whiteSpot);
 
@@ -560,20 +615,20 @@ void buildScene()
 	memcpy(amesh.mat.specular, black, 4 * sizeof(float));
 	memcpy(amesh.mat.emissive, redLight, 4 * sizeof(float));
 	amesh.mat.shininess = 0.f;
-	renderer.myMeshes.push_back(amesh);
-	SceneObject *redXunit = new SceneObject(renderer.myMeshes.size()-1, 0);
+	int redXunitID = renderer.addMesh(amesh);
+	SceneObject *redXunit = new SceneObject({redXunitID}, 0);
 	redXunit->setPosition(0.f, 0.f, 0.f);
 	redXunit->setRotation(90.f, 90.f, 0.f);
 	sceneObjects.push_back(redXunit);
-	
+
 	amesh = createCone(1.f, 0.05f, 4);
 	memcpy(amesh.mat.ambient, black, 4 * sizeof(float));
 	memcpy(amesh.mat.diffuse, black, 4 * sizeof(float));
 	memcpy(amesh.mat.specular, black, 4 * sizeof(float));
 	memcpy(amesh.mat.emissive, greenLight, 4 * sizeof(float));
 	amesh.mat.shininess = 0.f;
-	renderer.myMeshes.push_back(amesh);
-	SceneObject *greenYunit = new SceneObject(renderer.myMeshes.size()-1, 0);
+	int greenYunitID = renderer.addMesh(amesh);
+	SceneObject *greenYunit = new SceneObject({greenYunitID}, 0);
 	greenYunit->setPosition(0.f, 0.f, 0.f);
 	greenYunit->setRotation(0.f, 0.f, 0.f);
 	sceneObjects.push_back(greenYunit);
@@ -584,14 +639,14 @@ void buildScene()
 	memcpy(amesh.mat.specular, black, 4 * sizeof(float));
 	memcpy(amesh.mat.emissive, blueLight, 4 * sizeof(float));
 	amesh.mat.shininess = 0.f;
-	renderer.myMeshes.push_back(amesh);
-	SceneObject *blueZunit = new SceneObject(renderer.myMeshes.size()-1, 0);
+	int blueZunitID = renderer.addMesh(amesh);
+	SceneObject *blueZunit = new SceneObject({blueZunitID}, 0);
 	blueZunit->setPosition(0.f, 0.f, 0.f);
 	blueZunit->setRotation(0.f, 90.f, 0.f);
 	sceneObjects.push_back(blueZunit);
 
-
-	// Setup cameras
+	// Cameras
+	// Create 3 cameras
 	for (int i = 0; i < 3; i++)
 		cams[i] = new Camera();
 
@@ -612,6 +667,23 @@ void buildScene()
 	cams[2]->setTarget(2.0f, 2.0f, 0.0f);
 	cams[2]->setUp(0.0f, 1.0f, 0.0f);
 	cams[2]->setProjectionType(ProjectionType::Perspective);
+
+	// Collision System
+	collisionSystem.setDebugCubeMesh(cubeID);
+
+	floor->getCollider()->setBox(-30.0f, -0.1f, -30.0f,
+								 30.0f, 0.0f, 30.0f);
+	collisionSystem.addCollider(drone->getCollider());
+	collisionSystem.addCollider(floor->getCollider());
+
+	// The truetypeInit creates a texture object in TexObjArray for storing the fontAtlasTexture
+	fontLoaded = renderer.truetypeInit("resources/fonts/arial.ttf");
+	if (!fontLoaded)
+		std::cerr << "Fonts not loaded\n";
+	else
+		std::cerr << "Fonts loaded\n";
+
+	printf("\nNumber of Texture Objects is %d\n\n", renderer.TexObjArray.getNumTextureObjects());
 }
 
 // ------------------------------------------------------------
@@ -638,13 +710,16 @@ int main(int argc, char **argv)
 	glutDisplayFunc(renderSim);
 	glutReshapeFunc(changeSize);
 
+	// Update window title with FPS every second
 	glutTimerFunc(0, timer, 0);
-	// glutIdleFunc(renderSim); // Use it for maximum performance
-	glutTimerFunc(0, refresh, 0); // use it to to get 60 FPS whatever
+	glutIdleFunc(gameloop); // Use it for maximum performance
+	// glutTimerFunc(0, refresh, 0); // use it to to get 60 FPS whatever
 
 	//	Mouse and Keyboard Callbacks
 	glutKeyboardFunc(processKeys);
+	glutKeyboardUpFunc(processKeysUp);
 	glutSpecialFunc(processSpecialKeys);
+	glutSpecialUpFunc(processSpecialKeysUp);
 	glutMouseFunc(processMouseButtons);
 	glutMotionFunc(processMouseMotion);
 	glutMouseWheelFunc(mouseWheel);

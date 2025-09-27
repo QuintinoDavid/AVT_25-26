@@ -19,9 +19,9 @@
 class Shader
 {
 public:
-	
 	/// Types of Vertex Attributes
-	enum AttribType {
+	enum AttribType
+	{
 		VERTEX_COORD_ATTRIB,
 		NORMAL_ATTRIB,
 		TEXTURE_COORD_ATTRIB,
@@ -34,7 +34,8 @@ public:
 	};
 
 	/// Types of Shaders
-	enum ShaderType {
+	enum ShaderType
+	{
 		VERTEX_SHADER,
 		GEOMETRY_SHADER,
 		TESS_CONTROL_SHADER,
@@ -43,20 +44,19 @@ public:
 		COUNT_SHADER_TYPE
 	};
 
-
 	Shader();
 	~Shader();
 
 	/** Init should be called for every shader instance
-	  * prior to any other function
-	*/
+	 * prior to any other function
+	 */
 	void init();
-	
-	/** Loads the text in the file to the source of the specified shader 
-	  *
-	  * \param st one of the enum values of ShaderType
-	  *	\param filename the file where the source is to be found
-	*/
+
+	/** Loads the text in the file to the source of the specified shader
+	 *
+	 * \param st one of the enum values of ShaderType
+	 *	\param filename the file where the source is to be found
+	 */
 	void compileShader(Shader::ShaderType st, std::string fileName);
 
 	/// returns the program index
@@ -69,14 +69,12 @@ public:
 	std::string getProgramInfoLog();
 	/// returns a string will all info logs
 	std::string getAllInfoLogs();
-	/// returns GL_VALIDATE_STATUS for the program 
+	/// returns GL_VALIDATE_STATUS for the program
 	bool isProgramValid();
 	/// returns true if linked, false otherwise
 	bool isProgramLinked();
 
-
 protected:
-
 	/// stores the OpenGL shader types
 	static GLenum spGLShaderTypes[COUNT_SHADER_TYPE];
 
