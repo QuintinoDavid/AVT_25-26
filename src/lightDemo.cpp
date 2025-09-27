@@ -33,12 +33,15 @@
 #include "mathUtility.h"
 #include "model.h"
 #include "texture.h"
-#include "camera.h"
 #include "sceneObject.h"
 #include "light.h"
 #include "drone.cpp"
 
 using namespace std;
+
+#ifndef RESOURCE_BASE
+#define RESOURCE_BASE "resources/"
+#endif
 
 #define CAPTION "AVT 2025 Welcome Demo"
 int WindowHandle = 0;
@@ -444,9 +447,9 @@ void mouseWheel(int wheel, int direction, int x, int y)
 void buildScene()
 {
 	// Texture Object definition
-	renderer.TexObjArray.texture2D_Loader("resources/assets/stone.tga");
-	renderer.TexObjArray.texture2D_Loader("resources/assets/checker.png");
-	renderer.TexObjArray.texture2D_Loader("resources/assets/lightwood.tga");
+	renderer.TexObjArray.texture2D_Loader((std::string(RESOURCE_BASE) + "assets/stone.tga").c_str());
+	renderer.TexObjArray.texture2D_Loader((std::string(RESOURCE_BASE) + "assets/checker.png").c_str());
+	renderer.TexObjArray.texture2D_Loader((std::string(RESOURCE_BASE) + "assets/lightwood.tga").c_str());
 
 	// Scene geometry with triangle meshes
 	MyMesh amesh;
@@ -491,7 +494,7 @@ void buildScene()
 	int cubeID = renderer.addMesh(amesh);
 
 	// Load drone model from file
-	std::vector<MyMesh> droneMeshs = createFromFile("resources/assets/drone.obj");
+	std::vector<MyMesh> droneMeshs = createFromFile((std::string(RESOURCE_BASE) + "assets/drone.obj").c_str());
 	std::vector<int> droneMeshIDs;
 	for (size_t i = 0; i < droneMeshs.size(); i++)
 	{
@@ -677,7 +680,7 @@ void buildScene()
 	collisionSystem.addCollider(floor->getCollider());
 
 	// The truetypeInit creates a texture object in TexObjArray for storing the fontAtlasTexture
-	fontLoaded = renderer.truetypeInit("resources/fonts/arial.ttf");
+	fontLoaded = renderer.truetypeInit((std::string(RESOURCE_BASE) + "fonts/arial.ttf").c_str());
 	if (!fontLoaded)
 		std::cerr << "Fonts not loaded\n";
 	else
@@ -752,8 +755,12 @@ int main(int argc, char **argv)
 
 	buildScene();
 
-	if (!renderer.setRenderMeshesShaderProg("resources/shaders/mesh.vert", "resources/shaders/mesh.frag") ||
-		!renderer.setRenderTextShaderProg("resources/shaders/ttf.vert", "resources/shaders/ttf.frag"))
+	if (!renderer.setRenderMeshesShaderProg(
+			(std::string(RESOURCE_BASE) + "shaders/mesh.vert").c_str(),
+			(std::string(RESOURCE_BASE) + "shaders/mesh.frag").c_str()) ||
+		!renderer.setRenderTextShaderProg(
+			(std::string(RESOURCE_BASE) + "shaders/ttf.vert").c_str(),
+			(std::string(RESOURCE_BASE) + "shaders/ttf.frag").c_str()))
 		return (1);
 
 	//  GLUT main loop
