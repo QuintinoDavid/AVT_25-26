@@ -37,60 +37,63 @@
 #include "light.h"
 #include "drone.cpp"
 
-using namespace std;
+struct {
+	int WindowHandle = 0;
+	int WinX = 1024, WinY = 695;
+	unsigned int FrameCount = 0;
+	const char* WinTitle = "AVT Project 2025 G13";
 
-#ifndef RESOURCE_BASE
+	// Mouse Tracking Variables
+	int startX, startY, tracking = 0;
+	float mouseSensitivity = 0.3f;
+
+	float lastTime = glutGet(GLUT_ELAPSED_TIME);
+	bool fontLoaded = false;
+} GLOBAL;
+
 #define RESOURCE_BASE "resources/"
-#endif
+#define FONT_FOLDER   RESOURCE_BASE "fonts/"
+#define ASSET_FOLDER  RESOURCE_BASE "assets/"
+#define SHADER_FOLDER RESOURCE_BASE "shaders/"
 
-#define CAPTION "AVT 2025 Welcome Demo"
-int WindowHandle = 0;
-int WinX = 1024, WinY = 695;
+struct {
+	const char* Drone_OBJ = ASSET_FOLDER "drone.obj";
+	const char* Stone_Tex = ASSET_FOLDER "stone.tga";
+	const char* Checker_Tex = ASSET_FOLDER "checker.png";
+	const char* Lightwood_Tex = ASSET_FOLDER "lightwood.tga";
 
-unsigned int FrameCount = 0;
+	const char* Font_File = FONT_FOLDER "arial.ttf";
 
-// Object of class gmu (Graphics Math Utility) to manage math and matrix operations
+	const char* Mesh_Vert = SHADER_FOLDER "mesh.vert";
+	const char* Mesh_Frag = SHADER_FOLDER "mesh.frag";
+	const char* Font_Vert = SHADER_FOLDER "ttf.vert";
+	const char* Font_Frag = SHADER_FOLDER "ttf.frag";
+} FILEPATH;
+
 gmu mu;
-
-// Object of class renderer to manage the rendering of meshes and ttf-based bitmap text
 Renderer renderer;
 
-// Scene objects
-std::vector<SceneObject *> sceneObjects;
 std::vector<Light *> sceneLights;
-
-// Collision system
+std::vector<SceneObject *> sceneObjects;
 CollisionSystem collisionSystem;
 
-// Cameras
 Camera *cams[3];
 int activeCam = 0;
 
-// Mouse Tracking Variables
-int startX, startY, tracking = 0;
-float mouseSensitivity = 0.3f;
 
-// Frame counting and FPS computation
-float lastTime = glutGet(GLUT_ELAPSED_TIME);
-char s[32];
-
-bool fontLoaded = false;
-
-/// ::::::::::::::::::::::::::::::::::::::::::::::::CALLBACK FUNCIONS:::::::::::::::::::::::::::::::::::::::::::::::::://///
+/// ::::::::::::::::::::::: CALLBACK FUNCTIONS ::::::::::::::::::::::: ///
 
 void timer(int value)
 {
 	(void)value;
 
 	std::ostringstream oss;
-	oss << CAPTION << ": " << FrameCount << " FPS @ (" << WinX << "x" << WinY << ")";
+	oss << GLOBAL.WinTitle << ": " << GLOBAL.FrameCount << " FPS @ (" << GLOBAL.WinX << "x" << GLOBAL.WinY << ")";
 	std::string s = oss.str();
 
-	// std::cout << s << std::endl;
-
-	glutSetWindow(WindowHandle);
+	glutSetWindow(GLOBAL.WindowHandle);
 	glutSetWindowTitle(s.c_str());
-	FrameCount = 0;
+	GLOBAL.FrameCount = 0;
 
 	// Every second
 	glutTimerFunc(1000, timer, 0);
@@ -107,8 +110,8 @@ void refresh(int value)
 void gameloop(void)
 {
 	float currentTime = glutGet(GLUT_ELAPSED_TIME);
-	float deltaTime = (currentTime - lastTime) / 1000.0f; // Convert milliseconds to seconds
-	lastTime = currentTime;
+	float deltaTime = (currentTime - GLOBAL.lastTime) / 1000.0f; // Convert milliseconds to seconds
+	GLOBAL.lastTime = currentTime;
 
 	// Update all scene objects with the elapsed time
 	for (size_t i = 0; i < sceneObjects.size(); i++)
@@ -118,6 +121,7 @@ void gameloop(void)
 
 	glutPostRedisplay();
 }
+
 // ------------------------------------------------------------
 //
 // Reshape Callback Function
@@ -131,8 +135,8 @@ void changeSize(int w, int h)
 	// set the viewport to be the entire window
 	glViewport(0, 0, w, h);
 
-	WinX = w;
-	WinY = h;
+	GLOBAL.WinX = w;
+	GLOBAL.WinY = h;
 
 	mu.loadIdentity(gmu::PROJECTION);
 
@@ -155,7 +159,7 @@ void changeSize(int w, int h)
 
 void renderSim(void)
 {
-	FrameCount++;
+	GLOBAL.FrameCount++;
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	// use the required GLSL program to draw the meshes with illumination
@@ -185,14 +189,13 @@ void renderSim(void)
 	}
 	else
 	{
-		float ratio = (1.0f * WinX) / WinY;
+		float ratio = (1.0f * GLOBAL.WinX) / GLOBAL.WinY;
 		mu.perspective(53.13f, ratio, 0.1f, 1000.0f);
 	}
 
 	// setup the lights
 	for (size_t i = 0; i < sceneLights.size(); i++)
 	{
-		// std::cout << "Loading " << sceneLights[i]->typeString() << " light.\n";
 		sceneLights[i]->render(renderer, mu);
 	}
 
@@ -211,12 +214,12 @@ void renderSim(void)
 	// Render text (bitmap fonts) in screen coordinates. So use ortoghonal projection with viewport coordinates.
 	// Each glyph quad texture needs just one byte color channel: 0 in background and 1 for the actual character pixels. Use it for alpha blending
 	// text to be rendered in last place to be in front of everything
-	if (fontLoaded)
+	if (GLOBAL.fontLoaded)
 	{
 		glDisable(GL_DEPTH_TEST);
 
 		std::vector<TextCommand> texts;
-		float size = 0.5f;
+		float size = 0.3f;
 		texts.push_back({.str = "X",
 						 .position = {0.f, 0.f},
 						 .size = size,
@@ -232,21 +235,6 @@ void renderSim(void)
 						 .size = size,
 						 .color = {0.f, 0.f, 1.f, 1.f}});
 
-		size = 0.4f;
-		texts.push_back({.str = "X",
-						 .position = {0.f, 80.f},
-						 .size = size,
-						 .color = {1.f, 0.f, 0.f, 1.f}});
-
-		texts.push_back({.str = "Y",
-						 .position = {30.f, 80.f},
-						 .size = size,
-						 .color = {0.f, 1.f, 0.f, 1.f}});
-
-		texts.push_back({.str = "Z",
-						 .position = {50.f, 80.f},
-						 .size = size,
-						 .color = {0.f, 0.f, 1.f, 1.f}});
 		// the glyph contains transparent background colors and non-transparent for the actual character pixels. So we use the blending
 		glEnable(GL_BLEND);
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -299,32 +287,20 @@ void processKeys(unsigned char key, int xx, int yy)
 
 	case 'n': // toggle directional light
 		for (auto light : sceneLights)
-		{
 			if (light->isType(lightType::DIRECTIONAL))
-			{
 				light->toggle();
-			}
-		}
 		break;
 
 	case 'c': // toggle point lights
 		for (auto light : sceneLights)
-		{
 			if (light->isType(lightType::POINTLIGHT))
-			{
 				light->toggle();
-			}
-		}
 		break;
 
 	case 'h': // toggle spotlights
 		for (auto light : sceneLights)
-		{
 			if (light->isType(lightType::SPOTLIGHT))
-			{
 				light->toggle();
-			}
-		}
 		break;
 
 	case '1':
@@ -344,6 +320,9 @@ void processKeys(unsigned char key, int xx, int yy)
 
 void processKeysUp(unsigned char key, int xx, int yy)
 {
+	(void)xx;
+	(void)yy;
+
 	for (size_t i = 0; i < sceneObjects.size(); i++)
 	{
 		sceneObjects[i]->handleKeyRelease(key);
@@ -363,6 +342,9 @@ void processSpecialKeys(int key, int xx, int yy)
 
 void processSpecialKeysUp(int key, int xx, int yy)
 {
+	(void)xx;
+	(void)yy;
+
 	for (size_t i = 0; i < sceneObjects.size(); i++)
 	{
 		sceneObjects[i]->handleSpecialKeyRelease(key);
@@ -376,19 +358,22 @@ void processSpecialKeysUp(int key, int xx, int yy)
 
 void processMouseButtons(int button, int state, int xx, int yy)
 {
+	(void)xx;
+	(void)yy;
+
 	// start tracking the mouse
 	if (state == GLUT_DOWN)
 	{
-		startX = xx;
-		startY = yy;
+		GLOBAL.startX = xx;
+		GLOBAL.startY = yy;
 		if (button == GLUT_LEFT_BUTTON)
-			tracking = 1;
+			GLOBAL.tracking = 1;
 	}
 
 	// stop tracking the mouse
 	else if (state == GLUT_UP)
 	{
-		tracking = 0;
+		GLOBAL.tracking = 0;
 	}
 }
 
@@ -396,16 +381,16 @@ void processMouseButtons(int button, int state, int xx, int yy)
 
 void processMouseMotion(int xx, int yy)
 {
-	if (tracking == 0 || activeCam != 2)
+	if (GLOBAL.tracking == 0 || activeCam != 2)
 		return;
 
 	SphericalCoords sc = cams[activeCam]->getSpherical();
 
-	int deltaX = -xx + startX;
-	int deltaY = yy - startY;
+	int deltaX = -xx + GLOBAL.startX;
+	int deltaY = yy - GLOBAL.startY;
 
-	float alphaAux = sc.alpha + deltaX * mouseSensitivity;
-	float betaAux = sc.beta + deltaY * mouseSensitivity;
+	float alphaAux = sc.alpha + deltaX * GLOBAL.mouseSensitivity;
+	float betaAux = sc.beta + deltaY * GLOBAL.mouseSensitivity;
 
 	if (betaAux > 85.0f)
 		betaAux = 85.0f;
@@ -414,8 +399,8 @@ void processMouseMotion(int xx, int yy)
 
 	cams[activeCam]->setSpherical(alphaAux, betaAux, sc.r);
 
-	startX = xx;
-	startY = yy;
+	GLOBAL.startX = xx;
+	GLOBAL.startY = yy;
 
 	//  uncomment this if not using an idle or refresh func
 	//	glutPostRedisplay();
@@ -447,9 +432,31 @@ void mouseWheel(int wheel, int direction, int x, int y)
 void buildScene()
 {
 	// Texture Object definition
-	renderer.TexObjArray.texture2D_Loader((std::string(RESOURCE_BASE) + "assets/stone.tga").c_str());
-	renderer.TexObjArray.texture2D_Loader((std::string(RESOURCE_BASE) + "assets/checker.png").c_str());
-	renderer.TexObjArray.texture2D_Loader((std::string(RESOURCE_BASE) + "assets/lightwood.tga").c_str());
+	renderer.TexObjArray.texture2D_Loader(FILEPATH.Stone_Tex);
+	renderer.TexObjArray.texture2D_Loader(FILEPATH.Checker_Tex);
+	renderer.TexObjArray.texture2D_Loader(FILEPATH.Lightwood_Tex);
+
+	// Cameras
+	// Create 3 cameras
+	for (int i = 0; i < 3; i++)
+		cams[i] = new Camera();
+
+	// Top Orthogonal Camera
+	cams[0]->setPosition(0.0f, 30.0f, 0.0f);
+	cams[0]->setTarget(0.0f, 0.0f, 0.0f);
+	cams[0]->setUp(0.0f, 0.0f, -1.0f);
+	cams[0]->setProjectionType(ProjectionType::Orthographic);
+
+	// Top Perspective Camera
+	cams[1]->setPosition(0.0f, 30.0f, 0.0f);
+	cams[1]->setTarget(0.0f, 0.0f, 0.0f);
+	cams[1]->setUp(0.0f, 0.0f, -1.0f);
+	cams[1]->setProjectionType(ProjectionType::Perspective);
+
+	// Drone camera
+	cams[2]->setPosition(0.0f, 10.0f, 10.0f);
+	cams[2]->setUp(0.0f, 1.0f, 0.0f);
+	cams[2]->setProjectionType(ProjectionType::Perspective);
 
 	// Scene geometry with triangle meshes
 	MyMesh amesh;
@@ -481,7 +488,6 @@ void buildScene()
 	memcpy(amesh.mat.emissive, nonemissive, 4 * sizeof(float));
 	amesh.mat.shininess = shininess;
 	amesh.mat.texCount = texcount;
-	int sphereID = renderer.addMesh(amesh);
 
 	// create geometry and VAO of the cube
 	amesh = createCube();
@@ -494,7 +500,7 @@ void buildScene()
 	int cubeID = renderer.addMesh(amesh);
 
 	// Load drone model from file
-	std::vector<MyMesh> droneMeshs = createFromFile((std::string(RESOURCE_BASE) + "assets/drone.obj").c_str());
+	std::vector<MyMesh> droneMeshs = createFromFile(FILEPATH.Drone_OBJ);
 	std::vector<int> droneMeshIDs;
 	for (size_t i = 0; i < droneMeshs.size(); i++)
 	{
@@ -551,7 +557,8 @@ void buildScene()
 	// Drone
 	Drone *drone = new Drone(cams[2], droneMeshIDs, 1);
 	drone->setPosition(5.0f, 5.0f, 1.0f);
-	drone->setScale(0.05f, 0.05f, 0.05f);
+	drone->setScale(2.f, 2.f, 2.f);
+	// drone->setScale(0.05f, 0.05f, 0.05f);
 	sceneObjects.push_back(drone);
 
 	// Light markers
@@ -588,7 +595,7 @@ void buildScene()
 	yellowSpotLight->setPosition(2.5f, 4.f, 1.5f);
 	sceneObjects.push_back(yellowSpotLight);
 
-	amesh = createCone(0.2f, 0.1f, 10); // createSphere(0.1f, 20);
+	amesh = createCone(0.2f, 0.1f, 10);
 	memcpy(amesh.mat.ambient, black, 4 * sizeof(float));
 	memcpy(amesh.mat.diffuse, black, 4 * sizeof(float));
 	memcpy(amesh.mat.specular, black, 4 * sizeof(float));
@@ -648,29 +655,6 @@ void buildScene()
 	blueZunit->setRotation(0.f, 90.f, 0.f);
 	sceneObjects.push_back(blueZunit);
 
-	// Cameras
-	// Create 3 cameras
-	for (int i = 0; i < 3; i++)
-		cams[i] = new Camera();
-
-	// Top Orthogonal Camera
-	cams[0]->setPosition(0.0f, 30.0f, 0.0f);
-	cams[0]->setTarget(0.0f, 0.0f, 0.0f);
-	cams[0]->setUp(0.0f, 0.0f, -1.0f);
-	cams[0]->setProjectionType(ProjectionType::Orthographic);
-
-	// Top Perspective Camera
-	cams[1]->setPosition(0.0f, 30.0f, 0.0f);
-	cams[1]->setTarget(0.0f, 0.0f, 0.0f);
-	cams[1]->setUp(0.0f, 0.0f, -1.0f);
-	cams[1]->setProjectionType(ProjectionType::Perspective);
-
-	// Drone camera
-	cams[2]->setPosition(5.0f, 5.0f, 0.0f);
-	cams[2]->setTarget(2.0f, 2.0f, 0.0f);
-	cams[2]->setUp(0.0f, 1.0f, 0.0f);
-	cams[2]->setProjectionType(ProjectionType::Perspective);
-
 	// Collision System
 	collisionSystem.setDebugCubeMesh(cubeID);
 
@@ -680,8 +664,8 @@ void buildScene()
 	collisionSystem.addCollider(floor->getCollider());
 
 	// The truetypeInit creates a texture object in TexObjArray for storing the fontAtlasTexture
-	fontLoaded = renderer.truetypeInit((std::string(RESOURCE_BASE) + "fonts/arial.ttf").c_str());
-	if (!fontLoaded)
+	GLOBAL.fontLoaded = renderer.truetypeInit(FILEPATH.Font_File);
+	if (!GLOBAL.fontLoaded)
 		std::cerr << "Fonts not loaded\n";
 	else
 		std::cerr << "Fonts loaded\n";
@@ -706,8 +690,8 @@ int main(int argc, char **argv)
 	glutInitContextFlags(GLUT_FORWARD_COMPATIBLE | GLUT_DEBUG);
 
 	glutInitWindowPosition(100, 100);
-	glutInitWindowSize(WinX, WinY);
-	WindowHandle = glutCreateWindow(CAPTION);
+	glutInitWindowSize(GLOBAL.WinX, GLOBAL.WinY);
+	GLOBAL.WindowHandle = glutCreateWindow(GLOBAL.WinTitle);
 
 	//  Callback Registration
 	glutDisplayFunc(renderSim);
@@ -755,12 +739,8 @@ int main(int argc, char **argv)
 
 	buildScene();
 
-	if (!renderer.setRenderMeshesShaderProg(
-			(std::string(RESOURCE_BASE) + "shaders/mesh.vert").c_str(),
-			(std::string(RESOURCE_BASE) + "shaders/mesh.frag").c_str()) ||
-		!renderer.setRenderTextShaderProg(
-			(std::string(RESOURCE_BASE) + "shaders/ttf.vert").c_str(),
-			(std::string(RESOURCE_BASE) + "shaders/ttf.frag").c_str()))
+	if (!renderer.setRenderMeshesShaderProg(FILEPATH.Mesh_Vert, FILEPATH.Mesh_Frag) ||
+		!renderer.setRenderTextShaderProg(FILEPATH.Font_Vert, FILEPATH.Font_Frag))
 		return (1);
 
 	//  GLUT main loop

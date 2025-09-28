@@ -4,11 +4,11 @@
 SceneObject::SceneObject(const std::vector<int> &meshes, int texMode_)
 	: meshID(meshes), texMode(texMode_), collider(this) {}
 
-void SceneObject::handleKeyInput(int key) {}
-void SceneObject::handleSpecialKeyInput(int key) {}
-void SceneObject::handleKeyRelease(int key) {}
-void SceneObject::handleSpecialKeyRelease(int key) {}
-void SceneObject::update(float deltaTime) {}
+void SceneObject::handleKeyInput(int) {}
+void SceneObject::handleSpecialKeyInput(int) {}
+void SceneObject::handleKeyRelease(int) {}
+void SceneObject::handleSpecialKeyRelease(int) {}
+void SceneObject::update(float) {}
 
 void SceneObject::render(Renderer &renderer, gmu &mu)
 {
@@ -39,6 +39,7 @@ void SceneObject::render(Renderer &renderer, gmu &mu)
 
 void SceneObject::onCollision(Collider *other)
 {
+	(void)other;
 	// std::cout << "SceneObject collided with another object!\n";
 }
 

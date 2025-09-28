@@ -115,6 +115,8 @@ private:
 
 	void updateCamera(float prevPos[3])
 	{
+		(void)prevPos;
+
 		if (!cam)
 			return;
 
@@ -141,8 +143,6 @@ private:
 
 		// Since we want the bottom of the box at drone position,
 		// we offset the box vertically by half of its height
-		float yOffset = halfSizeY;
-
 		collider.setBox(
 			pos[0] - halfSizeX, pos[1], pos[2] - halfSizeZ,					  // min corner
 			pos[0] + halfSizeX, pos[1] + halfSizeY * 2.0f, pos[2] + halfSizeZ // max corner

@@ -32,14 +32,10 @@ void gmu::pushMatrix(MatrixTypes aType)
 // glPopMatrix implementation
 void gmu::popMatrix(MatrixTypes aType)
 {
-
-	if (mMatrixStack[aType].size() - 1 >= 0)
-	{
-		float *m = mMatrixStack[aType][mMatrixStack[aType].size() - 1];
-		memcpy(mMatrix[aType], m, sizeof(float) * 16);
-		mMatrixStack[aType].pop_back();
-		free(m);
-	}
+	float *m = mMatrixStack[aType][mMatrixStack[aType].size() - 1];
+	memcpy(mMatrix[aType], m, sizeof(float) * 16);
+	mMatrixStack[aType].pop_back();
+	free(m);
 }
 
 // glLoadIdentity implementation
