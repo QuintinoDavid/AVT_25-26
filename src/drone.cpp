@@ -123,8 +123,8 @@ private:
 		SphericalCoords sc = cam->getSpherical();
 
 		// Convert spherical to Cartesian offset
-		float alpha = sc.alpha * M_PI / 180.0f;
-		float beta = sc.beta * M_PI / 180.0f;
+		float alpha = sc.alpha * PI_F / 180.0f;
+		float beta = sc.beta * PI_F / 180.0f;
 
 		float x = sc.r * sin(alpha) * cos(beta);
 		float y = sc.r * sin(beta);

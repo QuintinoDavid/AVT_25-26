@@ -101,12 +101,14 @@
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="src\basic_geometry.cpp" />
+    <ClCompile Include="src\model.cpp" />
     <ClCompile Include="src\lightDemo.cpp" />
     <ClCompile Include="src\mathUtility.cpp" />
     <ClCompile Include="src\renderer.cpp" />
     <ClCompile Include="src\shader.cpp" />
     <ClCompile Include="src\texture.cpp" />
+    <ClCompile Include="src\collision.cpp" />
+    <ClCompile Include="src\sceneObject.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="resources\shaders\mesh.frag" />

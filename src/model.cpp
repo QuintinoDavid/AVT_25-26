@@ -240,7 +240,7 @@ MyMesh createCube()
 
 MyMesh createSphere(float radius, int divisions)
 {
-	float *p = circularProfile(-3.14159f / 2.0f, 3.14159f / 2.0f, radius, divisions);
+	float *p = circularProfile(PI_F / 2.0f, PI_F / 2.0f, radius, divisions);
 	return (computeVAO(divisions + 1, p + 2, p, divisions * 2, 0.0f));
 }
 
@@ -248,7 +248,7 @@ MyMesh createTorus(float innerRadius, float outerRadius, int rings, int sides)
 {
 
 	float tubeRadius = (outerRadius - innerRadius) * 0.5f;
-	float *p = circularProfile(-3.14159f, 3.14159f, tubeRadius, sides, innerRadius + tubeRadius);
+	float *p = circularProfile(PI_F, PI_F, tubeRadius, sides, innerRadius + tubeRadius);
 	return (computeVAO(sides + 1, p + 2, p, rings, 0.0f));
 }
 
@@ -280,7 +280,7 @@ MyMesh createCone(float height, float baseRadius, int sides)
 	p.push_back(0.0f);
 	p.push_back(baseRadius);
 	p.push_back(0.0f);
-	int max = (int)(1 + height / (baseRadius * 2 * 3.14159 / sides));
+	int max = (int)(1 + height / (baseRadius * 2 * PI_F / sides));
 	for (int i = 0; i < max; ++i)
 	{
 
@@ -417,7 +417,7 @@ MyMesh computeVAO(int numP, float *p, float *points, int sides, float smoothCos)
 	float *textco = (float *)malloc(sizeof(float) * 4 * numVertices);
 	float *tangent = (float *)malloc(sizeof(float) * 4 * numVertices);
 
-	float inc = 2 * 3.14159f / (numSides);
+	float inc = 2 * PI_F / (numSides);
 	float nx, ny;
 	float delta;
 	int smooth;

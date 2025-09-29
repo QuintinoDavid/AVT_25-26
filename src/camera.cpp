@@ -85,8 +85,8 @@ public:
 
 		SphericalCoords s;
 		s.r = std::sqrt(dx * dx + dy * dy + dz * dz);
-		s.alpha = std::atan2(dx, dz) * 180.0f / M_PI; // azimuth
-		s.beta = std::asin(dy / s.r) * 180.0f / M_PI; // elevation
+		s.alpha = std::atan2(dx, dz) * 180.0f / PI_F; // azimuth
+		s.beta = std::asin(dy / s.r) * 180.0f / PI_F; // elevation
 
 		return s;
 	}
@@ -94,8 +94,8 @@ public:
 	void setSpherical(float alphaDeg, float betaDeg, float r)
 	{
 		// Convert to radians
-		float alpha = alphaDeg * M_PI / 180.0f;
-		float beta = betaDeg * M_PI / 180.0f;
+		float alpha = alphaDeg * PI_F / 180.0f;
+		float beta = betaDeg * PI_F / 180.0f;
 
 		// Compute Cartesian coordinates relative to target
 		float x = r * sin(alpha) * cos(beta);

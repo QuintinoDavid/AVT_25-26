@@ -222,7 +222,7 @@ void gmu::perspective(float fov, float ratio, float nearp, float farp)
 {
 	float projMatrix[16];
 
-	float f = 1.0f / tan(fov * (M_PI / 360.0f));
+	float f = 1.0f / tan(fov * (PI_F / 360.0f));
 
 	setIdentityMatrix(projMatrix, 4);
 
