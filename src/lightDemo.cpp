@@ -429,6 +429,172 @@ void mouseWheel(int wheel, int direction, int x, int y)
 // Scene building with basic geometry
 //
 
+// Build a simple city with buildings primitives
+void buildCity(MyMesh amesh, float amb1[], float diff1[], float spec1[], float nonemissive[],
+	 		   float shininess, int texcount, int cubeID) {
+
+	SceneObject *tower_1 = new SceneObject(std::vector<int>{cubeID}, 2);
+	tower_1->setScale(2.0f, 10.0f, 2.0f);
+	tower_1->setPosition(10.0f, 0.f, 5.f);
+	sceneObjects.push_back(tower_1);
+
+	SceneObject *tower_2 = new SceneObject(std::vector<int>{cubeID}, 2);
+	tower_2->setScale(2.0f, 10.0f, 2.0f);
+	tower_2->setPosition(6.0f, 0.f, 5.f);
+	sceneObjects.push_back(tower_2);
+	
+	SceneObject *tower_rot_1 = new SceneObject(std::vector<int>{cubeID}, 2);
+	tower_rot_1->setRotation(30.0f, 0.0f, 0.0f);
+	tower_rot_1->setScale(2.0f, 6.0f, 2.0f);	
+	tower_rot_1->setPosition(12.0f, 0.f, 13.f);
+	sceneObjects.push_back(tower_rot_1);
+
+	SceneObject *tower_rot_2 = new SceneObject(std::vector<int>{cubeID}, 2);
+	tower_rot_2->setRotation(30.0f, 0.0f, 0.0f);
+	tower_rot_2->setScale(2.0f, 10.0f, 2.0f);	
+	tower_rot_2->setPosition(10.0f, 0.0f, 13.0f);
+	sceneObjects.push_back(tower_rot_2);
+
+	SceneObject *tower_rot_3 = new SceneObject(std::vector<int>{cubeID}, 2);
+	tower_rot_3->setRotation(30.0f, 0.0f, 0.0f);
+	tower_rot_3->setScale(2.0f, 10.0f, 2.0f);	
+	tower_rot_3->setPosition(8.0f, 0.0f, 13.0f);
+	sceneObjects.push_back(tower_rot_3);
+
+	SceneObject *tower_rot_4 = new SceneObject(std::vector<int>{cubeID}, 2);
+	tower_rot_4->setRotation(30.0f, 0.0f, 0.0f);
+	tower_rot_4->setScale(2.0f, 6.0f, 2.0f);	
+	tower_rot_4->setPosition(6.0f, 0.0f, 13.0f);
+	sceneObjects.push_back(tower_rot_4);
+
+	// create geometry and VAO of the cylinder
+	amesh = createCylinder(1.0f, 1.0f, 20);
+	memcpy(amesh.mat.ambient, amb1, 4 * sizeof(float));
+	memcpy(amesh.mat.diffuse, diff1, 4 * sizeof(float));
+	memcpy(amesh.mat.specular, spec1, 4 * sizeof(float));
+	memcpy(amesh.mat.emissive, nonemissive, 4 * sizeof(float));
+	amesh.mat.shininess = shininess;
+	amesh.mat.texCount = texcount;
+	renderer.myMeshes.push_back(amesh);
+	int cylinderID = renderer.addMesh(amesh);
+
+
+	SceneObject *cyl_tower_1 = new SceneObject(std::vector<int>{cylinderID}, 2);
+	cyl_tower_1->setScale(1.4f, 8.0f, 1.4f);
+	cyl_tower_1->setPosition(-5.0f, 4.f, 12.f);
+	sceneObjects.push_back(cyl_tower_1);
+
+	SceneObject *cyl_tower_2 = new SceneObject(std::vector<int>{cylinderID}, 2);
+	cyl_tower_2->setScale(2.0f, 3.0f, 2.0f);	
+	cyl_tower_2->setPosition(.0f, 1.5f, 12.f);
+	sceneObjects.push_back(cyl_tower_2);
+
+	SceneObject *cyl_tower_3 = new SceneObject(std::vector<int>{cylinderID}, 2);
+	cyl_tower_3->setScale(1.0f, 12.0f, 1.0f);
+	cyl_tower_3->setPosition(-3.0f, 6.0f, 3.f);
+	sceneObjects.push_back(cyl_tower_3);
+
+	SceneObject *cyl_tower_4 = new SceneObject(std::vector<int>{cylinderID}, 2);
+	cyl_tower_4->setScale(2.0f, 10.0f, 1.5f);
+	cyl_tower_4->setPosition(-12.0f, 5.0f, 10.f);
+	sceneObjects.push_back(cyl_tower_4);
+
+	SceneObject *cyl_tower_5 = new SceneObject(std::vector<int>{cylinderID}, 2);
+	cyl_tower_5->setScale(2.0f, 10.0f, 1.5f);
+	cyl_tower_5->setPosition(-12.0f, 5.0f, 6.5f);
+	sceneObjects.push_back(cyl_tower_5);
+
+	SceneObject *cyl_tower_6 = new SceneObject(std::vector<int>{cylinderID}, 2);
+	cyl_tower_6->setScale(2.0f, 10.0f, 1.5f);
+	cyl_tower_6->setPosition(-12.0f, 5.0f, 3.4f);
+	sceneObjects.push_back(cyl_tower_6);
+
+	amesh = createTorus(0.5f, 2.0f, 20, 20);
+	memcpy(amesh.mat.ambient, amb1, 4 * sizeof(float));
+	memcpy(amesh.mat.diffuse, diff1, 4 * sizeof(float));
+	memcpy(amesh.mat.specular, spec1, 4 * sizeof(float));
+	memcpy(amesh.mat.emissive, nonemissive, 4 * sizeof(float));
+	amesh.mat.shininess = shininess;
+	amesh.mat.texCount = texcount;
+	renderer.myMeshes.push_back(amesh);
+	int torusID = renderer.addMesh(amesh);
+
+
+	SceneObject *torus = new SceneObject(std::vector<int>{torusID}, 2);
+	torus->setScale(3.0f, 2.0f, 3.0f);
+	torus->setPosition(-7.5f, 1.50f, -7.5f);
+	sceneObjects.push_back(torus);
+
+	amesh = createCone(1.0f, 1.0f, 5);
+	memcpy(amesh.mat.ambient, amb1, 4 * sizeof(float));
+	memcpy(amesh.mat.diffuse, diff1, 4 * sizeof(float));
+	memcpy(amesh.mat.specular, spec1, 4 * sizeof(float));
+	memcpy(amesh.mat.emissive, nonemissive, 4 * sizeof(float));
+	amesh.mat.shininess = shininess;
+	amesh.mat.texCount = texcount;
+	renderer.myMeshes.push_back(amesh);
+	int coneID = renderer.addMesh(amesh);
+
+	SceneObject *piramid_1 = new SceneObject(std::vector<int>{coneID}, 2);
+	piramid_1->setScale(2.5f, 5.0f, 2.5f);
+	piramid_1->setPosition(7.5f, 0.0f, -11.25f);
+	sceneObjects.push_back(piramid_1);
+
+	SceneObject *piramid_2 = new SceneObject(std::vector<int>{coneID}, 2);
+	piramid_2->setScale(2.5f, 5.0f, 2.5f);
+	piramid_2->setPosition(11.25f, 0.0f, -7.5f);
+	sceneObjects.push_back(piramid_2);
+
+	SceneObject *piramid_3 = new SceneObject(std::vector<int>{coneID}, 2);
+	piramid_3->setScale(2.5f, 5.0f, 2.5f);
+	piramid_3->setPosition(7.5f, 0.0f, -3.75f);
+	sceneObjects.push_back(piramid_3);
+
+	SceneObject *piramid_4 = new SceneObject(std::vector<int>{coneID}, 2);
+	piramid_4->setScale(2.5f, 5.0f, 2.5f);
+	piramid_4->setPosition(3.75f, 0.0f, -7.5f);
+	sceneObjects.push_back(piramid_4);
+
+	// --------------------------------------------------------------------
+	// Collider registration for city buildings (AABB approximations)
+	// Ignore rotation of buildings for simplicity
+
+	// Lambda function to reduce code repetition
+	auto addBox = [&](SceneObject *obj,
+					float minX, float minY, float minZ,
+					float maxX, float maxY, float maxZ) {
+		obj->getCollider()->setBox(minX, minY, minZ, maxX, maxY, maxZ);
+		collisionSystem.addCollider(obj->getCollider());
+	};
+
+	// Cube based buildings (scale.x/z span full width, centered at position)
+	addBox(tower_1, 10.0f , 0.0f, 5.0f , 10.0f + 2.0f, 10.0f, 5.0f + 2.0f);
+	addBox(tower_2, 6.0f , 0.0f, 5.0f , 6.0f + 2.0f, 10.0f, 5.0f + 2.0f);
+	addBox(tower_rot_1, 12.0f , 0.0f, 13.0f , 12.0f + 2.0f, 6.0f, 13.0f + 2.0f);
+	addBox(tower_rot_2, 10.0f , 0.0f, 13.0f , 10.0f + 2.0f, 10.0f, 13.0f + 2.0f);
+	addBox(tower_rot_3, 8.0f , 0.0f, 13.0f , 8.0f + 2.0f, 10.0f, 13.0f + 2.0f);
+	addBox(tower_rot_4, 6.0f , 0.0f, 13.0f , 6.0f + 2.0f, 6.0f, 13.0f + 2.0f);
+
+	// Cylinders (approximated as boxes)
+	addBox(cyl_tower_1, -5.0f - 0.7f, 0.0f, 12.0f - 0.7f, -5.0f + 0.7f, 8.0f, 12.0f + 0.7f);
+	addBox(cyl_tower_2, 0.0f - 1.0f, 0.0f, 12.0f - 1.0f, 0.0f + 1.0f, 3.0f, 12.0f + 1.0f);
+	addBox(cyl_tower_3, -3.0f - 0.5f, 0.0f, 3.0f - 0.5f, -3.0f + 0.5f, 12.0f, 3.0f + 0.5f);
+	addBox(cyl_tower_4, -12.0f - 1.0f, 0.0f, 10.0f - 0.75f, -12.0f + 1.0f, 10.0f, 10.0f + 0.75f);
+	addBox(cyl_tower_5, -12.0f - 1.0f, 0.0f, 6.5f - 0.75f, -12.0f + 1.0f, 10.0f, 6.5f + 0.75f);
+	addBox(cyl_tower_6, -12.0f - 1.0f, 0.0f, 3.4f - 0.75f, -12.0f + 1.0f, 10.0f, 3.4f + 0.75f);
+
+	// Torus (broad bounding box; torus center elevated at y=1.5 with scale.y = 2)
+	addBox(torus, -7.5f - 1.5f, 0.5f, -7.5f - 1.5f,-7.5f + 1.5f, 2.5f, -7.5f + 1.5f);
+
+	// Cones (centered, base on ground)
+	addBox(piramid_1, 7.5f - 1.25f, 0.0f, -11.25f - 1.25f, 7.5f + 1.25f, 5.0f, -11.25f + 1.25f);
+	addBox(piramid_2, 11.25f - 1.25f, 0.0f, -7.5f - 1.25f, 11.25f + 1.25f, 5.0f, -7.5f + 1.25f);
+	addBox(piramid_3, 7.5f - 1.25f, 0.0f, -3.75f - 1.25f, 7.5f + 1.25f, 5.0f, -3.75f + 1.25f);
+	addBox(piramid_4, 3.75f - 1.25f, 0.0f, -7.5f - 1.25f, 3.75f + 1.25f, 5.0f, -7.5f + 1.25f);
+
+}
+
+// Create the scene objects, cameras and lights
 void buildScene()
 {
 	// Texture Object definition
@@ -662,6 +828,8 @@ void buildScene()
 								 30.0f, 0.0f, 30.0f);
 	collisionSystem.addCollider(drone->getCollider());
 	collisionSystem.addCollider(floor->getCollider());
+	
+	buildCity(amesh, amb1, diff1, spec1, nonemissive, shininess, texcount, cubeID);
 
 	// The truetypeInit creates a texture object in TexObjArray for storing the fontAtlasTexture
 	GLOBAL.fontLoaded = renderer.truetypeInit(FILEPATH.Font_File);
