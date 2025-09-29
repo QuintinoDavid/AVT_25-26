@@ -12,7 +12,7 @@ class Texture
 {
 
 public:
-	void texture2D_Loader(const char *strFileName);
+	void texture2D_Loader(const char *strFileName, bool repeat = true);
 
 	// Loader de uma textura apenas com um canal de cor
 	void texture2D_Loader(int width, int height, const uint8_t *data);

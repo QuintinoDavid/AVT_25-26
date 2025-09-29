@@ -44,9 +44,12 @@
 
 struct {
 	const char* Drone_OBJ = ASSET_FOLDER "drone.obj";
+	const char* Grass_OBJ = ASSET_FOLDER "grass_billboard.obj";
+
 	const char* Stone_Tex = ASSET_FOLDER "stone.tga";
-	const char* Grass_Tex = ASSET_FOLDER "Grass_01.png";
+	const char* Floor_Tex = ASSET_FOLDER "floor_grass.png";
 	const char* Window_Tex = ASSET_FOLDER "window.png";
+	const char* BBGrass_Tex = ASSET_FOLDER "billboard_grass.png";
 	const char* Lightwood_Tex = ASSET_FOLDER "lightwood.tga";
 
 	const char* Skybox_Cubemap_Day[6] = {
@@ -185,9 +188,10 @@ void renderSim(void)
 
 	// Associar os Texture Units aos Objects Texture
 	renderer.setTexUnit(0, 0); // Stone
-	renderer.setTexUnit(1, 1); // Grass
+	renderer.setTexUnit(1, 1); // Floor grass
 	renderer.setTexUnit(2, 2); // Window
-	renderer.setTexUnit(3, 3); // Lightwood
+	renderer.setTexUnit(3, 3); // Billboard grass
+	renderer.setTexUnit(4, 4); // Lightwood
 
 	// load identity matrices
 	mu.loadIdentity(gmu::VIEW);
@@ -482,8 +486,9 @@ void buildScene()
 {
 	// Texture Object definition
 	renderer.TexObjArray.texture2D_Loader(FILEPATH.Stone_Tex);
-	renderer.TexObjArray.texture2D_Loader(FILEPATH.Grass_Tex);
+	renderer.TexObjArray.texture2D_Loader(FILEPATH.Floor_Tex);
 	renderer.TexObjArray.texture2D_Loader(FILEPATH.Window_Tex);
+	renderer.TexObjArray.texture2D_Loader(FILEPATH.BBGrass_Tex, false);
 	renderer.TexObjArray.texture2D_Loader(FILEPATH.Lightwood_Tex);
 	GLOBAL.cubemap_dayID = renderer.TexObjArray.getNumTextureObjects();
 	renderer.TexObjArray.textureCubeMap_Loader(FILEPATH.Skybox_Cubemap_Day);
@@ -536,10 +541,40 @@ void buildScene()
 	int cubeID = renderer.addMesh(amesh);
 
 	SceneObject* window = new SceneObject(std::vector<int>{cubeID}, TexMode::TEXTURE_WINDOW);
-	window->setPosition(-10.f, 5.f, -10.f);
-	window->setRotation(10.f, 0.f, 0.f);
+	window->setPosition(0.f, 5.f, 10.f);
+	window->setScale(10.f, 5.f, 2.f);
+	window->getCollider()->setBox(0.f, 5.f, 10.f, 10.0f, 10.0f, 12.0f);
 	transparentObjects.push_back(window);
+	collisionSystem.addCollider(window->getCollider());
 
+	// Load drone model from file
+	std::vector<MyMesh> grassMesh = createFromFile(FILEPATH.Grass_OBJ);
+	std::vector<int> grassMeshIDs;
+	for (size_t i = 0; i < grassMesh.size(); i++)
+	{
+		float amb[] = {10.f, 10.f, 10.f, 1.f};
+		float blk[] = {0.f, 0.f, 0.f, 1.f};
+		// set material properties
+		memcpy(grassMesh[i].mat.ambient, amb, 4 * sizeof(float));
+		memcpy(grassMesh[i].mat.diffuse, blk, 4 * sizeof(float));
+		memcpy(grassMesh[i].mat.specular, blk, 4 * sizeof(float));
+		memcpy(grassMesh[i].mat.emissive, blk, 4 * sizeof(float));
+		int meshID = renderer.addMesh(grassMesh[i]);
+		grassMeshIDs.push_back(meshID);
+	}
+
+	const int grassCount = 100;
+	for (int i = 1; i < grassCount; i++) {
+		SceneObject* grass = new SceneObject(grassMeshIDs, TexMode::TEXTURE_BBGRASS);
+		const float goldRatio = PI_F * (3 - std::sqrt(5));
+		const float radius = std::sqrt(i / (float)grassCount) * 10.f;
+		const float angle = i * goldRatio;
+
+		grass->setPosition(std::cos(angle) * radius, 0.f, 30 + std::sin(angle) * radius);
+		grass->setScale(2.f, 1.5f, 2.f);
+		grass->setRotation(10.f * i, 0.0f, 0.0f);
+		sceneObjects.push_back(grass);
+	}
 
 	amesh = createTorus(1.f, 10.f, 20, 20);
 	memcpy(amesh.mat.ambient, amb1, 4 * sizeof(float));
@@ -550,7 +585,7 @@ void buildScene()
 	int torusID = renderer.addMesh(amesh);
 	for (int i = 1; i < 10; i++) {
 		SceneObject* torus = new SceneObject(std::vector<int>{torusID}, TexMode::TEXTURE_STONE);
-		torus->setPosition(50.0f * i, 0.0f, -1.f * (i&1) * 2.0f * i * i);
+		torus->setPosition(50.0f * i, 0.0f, -1.f * 2.0f * i * i);
 		torus->setRotation(10.f * i, 0.0f, 0.0f);
 		sceneObjects.push_back(torus);
 	}
@@ -588,7 +623,7 @@ void buildScene()
 	
 	// === SCENE LIGHTS === //
 	float whiteLight[4] = {1.f, 1.f, 1.f, 1.f};
-	float sunDirection[4] = {-1.f, -1.f, 0.f, 0.f};
+	float sunDirection[4] = {-1.f, -1.f, 0.001f, 0.f};
 	sceneLights.emplace_back(LightType::DIRECTIONAL, whiteLight)
 		.setDirection(sunDirection);
 

@@ -52,6 +52,7 @@ uniform int texMode;
 uniform sampler2D texmap_stone;
 uniform sampler2D texmap_grass;
 uniform sampler2D texmap_window;
+uniform sampler2D texmap_bbgrass;
 uniform sampler2D texmap_lightwood;
 
 const int MAX_POINT_LIGHTS = 6;
@@ -163,6 +164,11 @@ void main()
         // window texture
         colorOut = texture(texmap_window, DataIn.texCoord) * vec4(lightTotal.xyz, 1.f);
     } else if (texMode == 4) {
+        // billboard grass texture
+        vec4 texel = texture(texmap_bbgrass, DataIn.texCoord);
+        if (texel.a < 0.1f) discard;
+        colorOut = texel * lightTotal;
+    }  else if (texMode == 5) {
         // lightwood texture
         colorOut = texture(texmap_lightwood, DataIn.texCoord) * lightTotal;
     } 
