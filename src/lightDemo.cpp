@@ -37,6 +37,39 @@
 #include "light.h"
 #include "drone.cpp"
 
+#define RESOURCE_BASE "resources/"
+#define FONT_FOLDER   RESOURCE_BASE "fonts/"
+#define ASSET_FOLDER  RESOURCE_BASE "assets/"
+#define SHADER_FOLDER RESOURCE_BASE "shaders/"
+
+struct {
+	const char* Drone_OBJ = ASSET_FOLDER "drone.obj";
+	const char* Stone_Tex = ASSET_FOLDER "stone.tga";
+	const char* Grass_Tex = ASSET_FOLDER "Grass_01.png";
+	const char* Lightwood_Tex = ASSET_FOLDER "lightwood.tga";
+
+	const char* Skybox_Cubemap_Day[6] = {
+		ASSET_FOLDER "skybox/day_right.png", ASSET_FOLDER "skybox/day_left.png",
+		ASSET_FOLDER "skybox/day_top.png", ASSET_FOLDER "skybox/day_bottom.png",
+		ASSET_FOLDER "skybox/day_front.png", ASSET_FOLDER "skybox/day_back.png"
+	};
+
+	const char* Skybox_Cubemap_Night[6] = {
+		ASSET_FOLDER "skybox/night_right.png", ASSET_FOLDER "skybox/night_left.png",
+		ASSET_FOLDER "skybox/night_top.png", ASSET_FOLDER "skybox/night_bottom.png",
+		ASSET_FOLDER "skybox/night_front.png", ASSET_FOLDER "skybox/night_back.png"
+	};
+
+	const char* Font_File = FONT_FOLDER "arial.ttf";
+
+	const char* Mesh_Vert = SHADER_FOLDER "mesh.vert";
+	const char* Mesh_Frag = SHADER_FOLDER "mesh.frag";
+	const char* Font_Vert = SHADER_FOLDER "ttf.vert";
+	const char* Font_Frag = SHADER_FOLDER "ttf.frag";
+	const char* Post_Vert = SHADER_FOLDER "skybox.vert";
+	const char* Post_Frag = SHADER_FOLDER "skybox.frag";
+} FILEPATH;
+
 struct {
 	int WindowHandle = 0;
 	int WinX = 1024, WinY = 695;
@@ -49,37 +82,23 @@ struct {
 
 	float lastTime = glutGet(GLUT_ELAPSED_TIME);
 	bool fontLoaded = false;
+	bool daytime = true;
+	bool showFog = true;
+	bool showDebug = true;
+
+	unsigned int cubemap_dayID = 0;
+	unsigned int cubemap_nightID = 0;
 } GLOBAL;
-
-#define RESOURCE_BASE "resources/"
-#define FONT_FOLDER   RESOURCE_BASE "fonts/"
-#define ASSET_FOLDER  RESOURCE_BASE "assets/"
-#define SHADER_FOLDER RESOURCE_BASE "shaders/"
-
-struct {
-	const char* Drone_OBJ = ASSET_FOLDER "drone.obj";
-	const char* Stone_Tex = ASSET_FOLDER "stone.tga";
-	const char* Checker_Tex = ASSET_FOLDER "checker.png";
-	const char* Lightwood_Tex = ASSET_FOLDER "lightwood.tga";
-
-	const char* Font_File = FONT_FOLDER "arial.ttf";
-
-	const char* Mesh_Vert = SHADER_FOLDER "mesh.vert";
-	const char* Mesh_Frag = SHADER_FOLDER "mesh.frag";
-	const char* Font_Vert = SHADER_FOLDER "ttf.vert";
-	const char* Font_Frag = SHADER_FOLDER "ttf.frag";
-} FILEPATH;
 
 gmu mu;
 Renderer renderer;
 
-std::vector<Light *> sceneLights;
-std::vector<SceneObject *> sceneObjects;
+std::vector<Light> sceneLights;
+std::vector<SceneObject*> sceneObjects;
 CollisionSystem collisionSystem;
 
 Camera *cams[3];
 int activeCam = 0;
-
 
 /// ::::::::::::::::::::::: CALLBACK FUNCTIONS ::::::::::::::::::::::: ///
 
@@ -102,9 +121,8 @@ void timer(int value)
 void refresh(int value)
 {
 	(void)value;
-
 	glutPostRedisplay();
-	glutTimerFunc(1000 / 60, refresh, 0);
+	glutTimerFunc(1000 / 100, refresh, 0);
 }
 
 void gameloop(void)
@@ -114,10 +132,7 @@ void gameloop(void)
 	GLOBAL.lastTime = currentTime;
 
 	// Update all scene objects with the elapsed time
-	for (size_t i = 0; i < sceneObjects.size(); i++)
-	{
-		sceneObjects[i]->update(deltaTime);
-	}
+	for (auto obj: sceneObjects) obj->update(deltaTime);
 
 	glutPostRedisplay();
 }
@@ -193,23 +208,50 @@ void renderSim(void)
 		mu.perspective(53.13f, ratio, 0.1f, 1000.0f);
 	}
 
+	float fogColor[] = { 0.f, 0.f, 0.f, 0.f };
+	if (GLOBAL.showFog) {
+		float lightgray[] = { .55f, 0.65f, 0.55f, 1.f };
+		float darkgray[]  = { 0.25f, 0.25f, 0.25f, 1.f };
+		if (GLOBAL.daytime) {
+			for (int i = 0; i < 4; i++) fogColor[i] = lightgray[i];
+		} else {
+			for (int i = 0; i < 4; i++) fogColor[i] = darkgray[i];
+		}
+	}
+	renderer.setFogColor(fogColor);
+
 	// setup the lights
-	for (size_t i = 0; i < sceneLights.size(); i++)
+	for (auto& light: sceneLights)
 	{
-		sceneLights[i]->render(renderer, mu);
+		light.render(renderer, mu);
 	}
 
-	// Update and then render scene objects
-	for (size_t i = 0; i < sceneObjects.size(); i++)
+	for (auto obj: sceneObjects)
 	{
-		sceneObjects[i]->render(renderer, mu);
+		obj->render(renderer, mu);
 	}
 
 	// Check collisions
 	collisionSystem.checkCollisions();
 
 	// Render debug information
-	collisionSystem.showDebug(renderer, mu);
+	if (GLOBAL.showDebug)
+		collisionSystem.showDebug(renderer, mu);
+
+	// Render skybox
+	mu.pushMatrix(gmu::MODEL);
+	mu.translate(gmu::MODEL, cams[activeCam]->getX(), cams[activeCam]->getY(), cams[activeCam]->getZ());
+	mu.computeDerivedMatrix(gmu::PROJ_VIEW_MODEL);
+	float* m_VP = mu.get(gmu::PROJ_VIEW_MODEL);
+	if (GLOBAL.daytime) {
+		unsigned int id = renderer.TexObjArray.getTextureId(GLOBAL.cubemap_dayID);
+		renderer.activateSkyboxShaderProg(m_VP, id, fogColor);
+	} else {
+		unsigned int id = renderer.TexObjArray.getTextureId(GLOBAL.cubemap_nightID);
+		renderer.activateSkyboxShaderProg(m_VP, id, fogColor);
+	}
+	mu.popMatrix(gmu::MODEL);
+
 
 	// Render text (bitmap fonts) in screen coordinates. So use ortoghonal projection with viewport coordinates.
 	// Each glyph quad texture needs just one byte color channel: 0 in background and 1 for the actual character pixels. Use it for alpha blending
@@ -220,20 +262,9 @@ void renderSim(void)
 
 		std::vector<TextCommand> texts;
 		float size = 0.3f;
-		texts.push_back({.str = "X",
-						 .position = {0.f, 0.f},
-						 .size = size,
-						 .color = {1.f, 0.f, 0.f, 1.f}});
-
-		texts.push_back({.str = "Y",
-						 .position = {30.f, 0.f},
-						 .size = size,
-						 .color = {0.f, 1.f, 0.f, 1.f}});
-
-		texts.push_back({.str = "Z",
-						 .position = {50.f, 0.f},
-						 .size = size,
-						 .color = {0.f, 0.f, 1.f, 1.f}});
+		texts.push_back(TextCommand{"X", { 0.f, 0.f}, size, {1.f, 0.f, 0.f, 1.f}});
+		texts.push_back(TextCommand{"Y", {20.f, 0.f}, size, {0.f, 1.f, 0.f, 1.f}});
+		texts.push_back(TextCommand{"Z", {35.f, 0.f}, size, {0.f, 0.f, 1.f, 1.f}});
 
 		// the glyph contains transparent background colors and non-transparent for the actual character pixels. So we use the blending
 		glEnable(GL_BLEND);
@@ -286,21 +317,33 @@ void processKeys(unsigned char key, int xx, int yy)
 		break;
 
 	case 'n': // toggle directional light
-		for (auto light : sceneLights)
-			if (light->isType(lightType::DIRECTIONAL))
-				light->toggle();
+		GLOBAL.daytime = !GLOBAL.daytime;
+		for (auto& light : sceneLights)
+			if (light.isType(LightType::DIRECTIONAL))
+				light.toggleLight();
 		break;
 
 	case 'c': // toggle point lights
-		for (auto light : sceneLights)
-			if (light->isType(lightType::POINTLIGHT))
-				light->toggle();
+		for (auto& light : sceneLights)
+			if (light.isType(LightType::POINTLIGHT))
+				light.toggleLight();
 		break;
 
 	case 'h': // toggle spotlights
-		for (auto light : sceneLights)
-			if (light->isType(lightType::SPOTLIGHT))
-				light->toggle();
+		for (auto& light : sceneLights)
+			if (light.isType(LightType::SPOTLIGHT))
+				light.toggleLight();
+		break;
+
+	case 'k': // toggle debug
+		GLOBAL.showDebug = !GLOBAL.showDebug;
+		for (auto& light : sceneLights)
+			light.toggleObj();
+			//if (light.isDebug())
+		break;
+
+	case 'f': // toggle fog
+		GLOBAL.showFog = !GLOBAL.showFog;
 		break;
 
 	case '1':
@@ -433,27 +476,29 @@ void buildScene()
 {
 	// Texture Object definition
 	renderer.TexObjArray.texture2D_Loader(FILEPATH.Stone_Tex);
-	renderer.TexObjArray.texture2D_Loader(FILEPATH.Checker_Tex);
+	renderer.TexObjArray.texture2D_Loader(FILEPATH.Grass_Tex);
 	renderer.TexObjArray.texture2D_Loader(FILEPATH.Lightwood_Tex);
-
-	// Cameras
-	// Create 3 cameras
-	for (int i = 0; i < 3; i++)
-		cams[i] = new Camera();
+	GLOBAL.cubemap_dayID = renderer.TexObjArray.getNumTextureObjects();
+	renderer.TexObjArray.textureCubeMap_Loader(FILEPATH.Skybox_Cubemap_Day);
+	GLOBAL.cubemap_nightID = renderer.TexObjArray.getNumTextureObjects();
+	renderer.TexObjArray.textureCubeMap_Loader(FILEPATH.Skybox_Cubemap_Night);
 
 	// Top Orthogonal Camera
+	cams[0] = new Camera();
 	cams[0]->setPosition(0.0f, 30.0f, 0.0f);
 	cams[0]->setTarget(0.0f, 0.0f, 0.0f);
 	cams[0]->setUp(0.0f, 0.0f, -1.0f);
 	cams[0]->setProjectionType(ProjectionType::Orthographic);
 
 	// Top Perspective Camera
+	cams[1] = new Camera();
 	cams[1]->setPosition(0.0f, 30.0f, 0.0f);
 	cams[1]->setTarget(0.0f, 0.0f, 0.0f);
 	cams[1]->setUp(0.0f, 0.0f, -1.0f);
 	cams[1]->setProjectionType(ProjectionType::Perspective);
 
 	// Drone camera
+	cams[2] = new Camera();
 	cams[2]->setPosition(0.0f, 10.0f, 10.0f);
 	cams[2]->setUp(0.0f, 1.0f, 0.0f);
 	cams[2]->setProjectionType(ProjectionType::Perspective);
@@ -465,39 +510,39 @@ void buildScene()
 	float diff1[] = {1.f, 1.f, 1.f, 1.f};
 	float spec[] = {0.8f, 0.8f, 0.8f, 1.0f};
 	float spec1[] = {0.3f, 0.3f, 0.3f, 1.0f};
-	float black[] = {0.f, 0.f, 0.f, 1.f};
 	float nonemissive[] = {0.0f, 0.0f, 0.0f, 1.0f};
 	float shininess = 100.0f;
 	int texcount = 0;
 
-	// create geometry and VAO of the quad
+	// create geometry and VAO of the floor quad
 	amesh = createQuad(1.0f, 1.0f);
 	memcpy(amesh.mat.ambient, amb1, 4 * sizeof(float));
 	memcpy(amesh.mat.diffuse, diff1, 4 * sizeof(float));
 	memcpy(amesh.mat.specular, spec, 4 * sizeof(float));
 	memcpy(amesh.mat.emissive, nonemissive, 4 * sizeof(float));
-	amesh.mat.shininess = shininess;
+	amesh.mat.shininess = 1.f;
 	amesh.mat.texCount = texcount;
 	int quadID = renderer.addMesh(amesh);
 
-	// create geometry and VAO of the sphere
-	amesh = createSphere(0.1f, 20);
+	// create geometry and VAO of the cube
+	amesh = createCube();
+	int cubeID = renderer.addMesh(amesh);
+
+	/*
+	amesh = createTorus(1.f, 10.f, 20, 20);
 	memcpy(amesh.mat.ambient, amb1, 4 * sizeof(float));
 	memcpy(amesh.mat.diffuse, diff1, 4 * sizeof(float));
 	memcpy(amesh.mat.specular, spec, 4 * sizeof(float));
 	memcpy(amesh.mat.emissive, nonemissive, 4 * sizeof(float));
-	amesh.mat.shininess = shininess;
-	amesh.mat.texCount = texcount;
-
-	// create geometry and VAO of the cube
-	amesh = createCube();
-	memcpy(amesh.mat.ambient, amb1, 4 * sizeof(float));
-	memcpy(amesh.mat.diffuse, diff1, 4 * sizeof(float));
-	memcpy(amesh.mat.specular, spec1, 4 * sizeof(float));
-	memcpy(amesh.mat.emissive, nonemissive, 4 * sizeof(float));
-	amesh.mat.shininess = shininess;
-	amesh.mat.texCount = texcount;
-	int cubeID = renderer.addMesh(amesh);
+	amesh.mat.shininess = shininess * 2;
+	int torusID = renderer.addMesh(amesh);
+	for (int i = 1; i < 10; i++) {
+		SceneObject* torus = new SceneObject(std::vector<int>{torusID}, TexMode::TEXTURE_STONE);
+		torus->setPosition(50.0f * i, 0.0f, -1.f * (i&1) * 2.0f * i * i);
+		torus->setRotation(10.f * i, 0.0f, 0.0f);
+		sceneObjects.push_back(torus);
+	}
+	*/
 
 	// Load drone model from file
 	std::vector<MyMesh> droneMeshs = createFromFile(FILEPATH.Drone_OBJ);
@@ -515,145 +560,73 @@ void buildScene()
 		droneMeshIDs.push_back(meshID);
 	}
 
-	// Scene Lights
-	float ambient = 0.01f;
-	float diffuse = 0.5f;
-
-	float whiteLight[4] = {1.f, 1.f, 1.f, 1.f};
-	float fortyfive[4] = {-1.f, -1.f, -1.f, 0.f};
-	Light *sun = new Light(whiteLight, 0.1f, diffuse, fortyfive);
-	sceneLights.push_back(sun);
-
-	float blueLight[4] = {0.f, 0.f, 1.f, 1.f};
-	float bLightPos[4] = {4.f, 2.f, 2.f, 1.f};
-	Light *bluePoint = new Light(blueLight, ambient, diffuse, bLightPos, 1.f, 0.1f, 0.01f);
-	sceneLights.push_back(bluePoint);
-
-	float redLight[4] = {1.f, 0.f, 0.f, 1.f};
-	float rLightPos[4] = {0.f, 2.f, 2.f, 1.f};
-	Light *redPoint = new Light(redLight, ambient, diffuse, rLightPos, 1.f, 0.1f, 0.01f);
-	sceneLights.push_back(redPoint);
-
-	float greenLight[4] = {0.f, 1.f, 0.f, 1.f};
-	float yellowLight[4] = {1.f, 1.f, 0.f, 1.f};
-	float yLightPos[4] = {2.5f, 4.f, 1.5f, 1.f};
-	float yLightDir[4] = {0.f, -1.f, 0.f, 0.f};
-	Light *yellowSpot = new Light(yellowLight, ambient, diffuse, yLightPos, yLightDir, 0.93f, 1.f, 0.1f, 0.01f);
-	sceneLights.push_back(yellowSpot);
-
-	float cyanLight[4] = {0.f, 1.f, 1.f, 1.f};
-	float cLightPos[4] = {2.f, 0.2f, -2.f, 1.f};
-	float cLightDir[4] = {0.f, 0.f, -1.f, 0.f};
-	Light *cyanSpot = new Light(cyanLight, ambient, diffuse, cLightPos, cLightDir, 0.93f, 1.f, 0.1f, 0.01f);
-	sceneLights.push_back(cyanSpot);
-
 	// Scene objects
 	// Floor
-	SceneObject *floor = new SceneObject(std::vector<int>{quadID}, 2);
+	SceneObject *floor = new SceneObject(std::vector<int>{quadID}, TexMode::TEXTURE_FLOOR);
 	floor->setRotation(0.0f, -90.0f, 0.0f);
-	floor->setScale(30.0f, 30.0f, 1.0f);
+	floor->setScale(1000.0f, 1000.0f, 1.0f);
 	sceneObjects.push_back(floor);
 
 	// Drone
-	Drone *drone = new Drone(cams[2], droneMeshIDs, 1);
+	Drone *drone = new Drone(cams[2], droneMeshIDs, TexMode::TEXTURE_STONE);
 	drone->setPosition(5.0f, 5.0f, 1.0f);
 	drone->setScale(2.f, 2.f, 2.f);
 	// drone->setScale(0.05f, 0.05f, 0.05f);
 	sceneObjects.push_back(drone);
 
-	// Light markers
-	amesh = createSphere(0.1f, 20);
-	memcpy(amesh.mat.ambient, black, 4 * sizeof(float));
-	memcpy(amesh.mat.diffuse, black, 4 * sizeof(float));
-	memcpy(amesh.mat.specular, black, 4 * sizeof(float));
-	memcpy(amesh.mat.emissive, blueLight, 4 * sizeof(float));
-	amesh.mat.shininess = 0.f;
-	int blueLightID = renderer.addMesh(amesh);
-	SceneObject *bluePointLight = new SceneObject({blueLightID}, 0);
-	bluePointLight->setPosition(4.f, 2.f, 2.f);
-	sceneObjects.push_back(bluePointLight);
+	
+	// === SCENE LIGHTS === //
+	float whiteLight[4] = {1.f, 1.f, 1.f, 1.f};
+	float sunDirection[4] = {-1.f, -1.f, 0.f, 0.f};
+	sceneLights.emplace_back(LightType::DIRECTIONAL, whiteLight)
+		.setDirection(sunDirection);
 
-	amesh = createSphere(0.1f, 20);
-	memcpy(amesh.mat.ambient, black, 4 * sizeof(float));
-	memcpy(amesh.mat.diffuse, black, 4 * sizeof(float));
-	memcpy(amesh.mat.specular, black, 4 * sizeof(float));
-	memcpy(amesh.mat.emissive, redLight, 4 * sizeof(float));
-	amesh.mat.shininess = 0.f;
-	int redLightID = renderer.addMesh(amesh);
-	SceneObject *redPointLight = new SceneObject({redLightID}, 0);
-	redPointLight->setPosition(0.f, 2.f, 2.f);
-	sceneObjects.push_back(redPointLight);
+	float blueLight[4] = {0.f, 0.f, 1.f, 1.f};
+	float bLightPos[4] = {4.f, 2.f, 2.f, 1.f};
+	sceneLights.emplace_back(LightType::POINTLIGHT, blueLight)
+		.setPosition(bLightPos).createObject(renderer, sceneObjects);
 
-	amesh = createCone(0.2f, 0.1f, 10);
-	memcpy(amesh.mat.ambient, black, 4 * sizeof(float));
-	memcpy(amesh.mat.diffuse, black, 4 * sizeof(float));
-	memcpy(amesh.mat.specular, black, 4 * sizeof(float));
-	memcpy(amesh.mat.emissive, yellowLight, 4 * sizeof(float));
-	amesh.mat.shininess = 0.f;
-	int yellowLightID = renderer.addMesh(amesh);
-	SceneObject *yellowSpotLight = new SceneObject({yellowLightID}, 0);
-	yellowSpotLight->setPosition(2.5f, 4.f, 1.5f);
-	sceneObjects.push_back(yellowSpotLight);
+	float redLight[4] = {1.f, 0.f, 0.f, 1.f};
+	float rLightPos[4] = {0.f, 2.f, 2.f, 1.f};
+	sceneLights.emplace_back(LightType::POINTLIGHT, redLight)
+		.setPosition(rLightPos).createObject(renderer, sceneObjects);
 
-	amesh = createCone(0.2f, 0.1f, 10);
-	memcpy(amesh.mat.ambient, black, 4 * sizeof(float));
-	memcpy(amesh.mat.diffuse, black, 4 * sizeof(float));
-	memcpy(amesh.mat.specular, black, 4 * sizeof(float));
-	memcpy(amesh.mat.emissive, cyanLight, 4 * sizeof(float));
-	amesh.mat.shininess = 0.f;
-	int cyanLightID = renderer.addMesh(amesh);
-	SceneObject *cyanSpotLight = new SceneObject({cyanLightID}, 0);
-	cyanSpotLight->setPosition(2.f, 0.2f, -2.f);
-	cyanSpotLight->setRotation(0.f, 90.f, 0.f);
-	sceneObjects.push_back(cyanSpotLight);
+	float yellowLight[4] = {1.f, 1.f, 0.f, 1.f};
+	float yLightPos[4] = {2.5f, 4.f, 1.5f, 1.f};
+	float yLightDir[4] = {0.f, -1.f, 0.f, 0.f};
+	sceneLights.emplace_back(LightType::SPOTLIGHT, yellowLight)
+		.setPosition(yLightPos).setDirection(yLightDir)
+		.createObject(renderer, sceneObjects);
 
-	// === ORIGIN MARKER ===
-	amesh = createSphere(0.1f, 20);
-	memcpy(amesh.mat.ambient, black, 4 * sizeof(float));
-	memcpy(amesh.mat.diffuse, black, 4 * sizeof(float));
-	memcpy(amesh.mat.specular, black, 4 * sizeof(float));
-	memcpy(amesh.mat.emissive, whiteLight, 4 * sizeof(float));
-	amesh.mat.shininess = 0.f;
-	int whiteLightID = renderer.addMesh(amesh);
-	SceneObject *whiteSpot = new SceneObject({whiteLightID}, 0);
-	whiteSpot->setPosition(0.f, 0.f, 0.f);
-	sceneObjects.push_back(whiteSpot);
+	float cyanLight[4] = {0.f, 1.f, 1.f, 1.f};
+	float cLightPos[4] = {1.f, 25.f, 0.f, 1.f};
+	float cLightDir[4] = {1.f, 0.f, 0.f, 0.f};
+	sceneLights.emplace_back(LightType::SPOTLIGHT, cyanLight)
+		.setPosition(cLightPos).setDirection(cLightDir)
+		.setDiffuse(2.f).setAttenuation(1.f, 0.f, 0.0005f)
+		.createObject(renderer, sceneObjects);
 
-	amesh = createCone(1.f, 0.05f, 4);
-	memcpy(amesh.mat.ambient, black, 4 * sizeof(float));
-	memcpy(amesh.mat.diffuse, black, 4 * sizeof(float));
-	memcpy(amesh.mat.specular, black, 4 * sizeof(float));
-	memcpy(amesh.mat.emissive, redLight, 4 * sizeof(float));
-	amesh.mat.shininess = 0.f;
-	int redXunitID = renderer.addMesh(amesh);
-	SceneObject *redXunit = new SceneObject({redXunitID}, 0);
-	redXunit->setPosition(0.f, 0.f, 0.f);
-	redXunit->setRotation(90.f, 90.f, 0.f);
-	sceneObjects.push_back(redXunit);
+	// === ORIGIN MARKER === //
+	float origin[] = { 0.f, 0.f, 0.f, 1.f };
+	sceneLights.emplace_back(LightType::POINTLIGHT, whiteLight).setDebug()
+		.setPosition(origin).setAmbient(0.f).setDiffuse(0.f)
+		.createObject(renderer, sceneObjects);
 
-	amesh = createCone(1.f, 0.05f, 4);
-	memcpy(amesh.mat.ambient, black, 4 * sizeof(float));
-	memcpy(amesh.mat.diffuse, black, 4 * sizeof(float));
-	memcpy(amesh.mat.specular, black, 4 * sizeof(float));
-	memcpy(amesh.mat.emissive, greenLight, 4 * sizeof(float));
-	amesh.mat.shininess = 0.f;
-	int greenYunitID = renderer.addMesh(amesh);
-	SceneObject *greenYunit = new SceneObject({greenYunitID}, 0);
-	greenYunit->setPosition(0.f, 0.f, 0.f);
-	greenYunit->setRotation(0.f, 0.f, 0.f);
-	sceneObjects.push_back(greenYunit);
+	float axisXdir[] = { -1.f, 0.f, 0.f, 0.f };
+	sceneLights.emplace_back(LightType::SPOTLIGHT, redLight).setDebug()
+		.setPosition(origin).setDirection(axisXdir).setAmbient(0.f).setDiffuse(0.f)
+		.createObject(renderer, sceneObjects);
 
-	amesh = createCone(1.f, 0.05f, 4);
-	memcpy(amesh.mat.ambient, black, 4 * sizeof(float));
-	memcpy(amesh.mat.diffuse, black, 4 * sizeof(float));
-	memcpy(amesh.mat.specular, black, 4 * sizeof(float));
-	memcpy(amesh.mat.emissive, blueLight, 4 * sizeof(float));
-	amesh.mat.shininess = 0.f;
-	int blueZunitID = renderer.addMesh(amesh);
-	SceneObject *blueZunit = new SceneObject({blueZunitID}, 0);
-	blueZunit->setPosition(0.f, 0.f, 0.f);
-	blueZunit->setRotation(0.f, 90.f, 0.f);
-	sceneObjects.push_back(blueZunit);
+	float greenLight[] = {0.f, 1.f, 0.f, 1.f};
+	float axisYdir[] = { 0.f, -1.f, 0.f, 0.f };
+	sceneLights.emplace_back(LightType::SPOTLIGHT, greenLight).setDebug()
+		.setPosition(origin).setDirection(axisYdir).setAmbient(0.f).setDiffuse(0.f)
+		.createObject(renderer, sceneObjects);
+
+	float axisZdir[] = { 0.f, 0.f, -1.f, 0.f };
+	sceneLights.emplace_back(LightType::SPOTLIGHT, blueLight).setDebug()
+		.setPosition(origin).setDirection(axisZdir).setAmbient(0.f).setDiffuse(0.f)
+		.createObject(renderer, sceneObjects);
 
 	// Collision System
 	collisionSystem.setDebugCubeMesh(cubeID);
@@ -680,7 +653,6 @@ void buildScene()
 
 int main(int argc, char **argv)
 {
-
 	//  GLUT initialization
 	glutInit(&argc, argv);
 	glutInitDisplayMode(GLUT_DEPTH | GLUT_DOUBLE | GLUT_RGBA | GLUT_MULTISAMPLE);
@@ -740,7 +712,8 @@ int main(int argc, char **argv)
 	buildScene();
 
 	if (!renderer.setRenderMeshesShaderProg(FILEPATH.Mesh_Vert, FILEPATH.Mesh_Frag) ||
-		!renderer.setRenderTextShaderProg(FILEPATH.Font_Vert, FILEPATH.Font_Frag))
+		!renderer.setRenderTextShaderProg(FILEPATH.Font_Vert, FILEPATH.Font_Frag) ||
+		!renderer.setSkyboxShaderProg(FILEPATH.Post_Vert, FILEPATH.Post_Frag))
 		return (1);
 
 	//  GLUT main loop

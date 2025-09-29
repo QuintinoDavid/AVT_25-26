@@ -155,6 +155,8 @@ bool Renderer::setRenderMeshesShaderProg(const std::string &vertShaderPath, cons
     tex_loc[1] = glGetUniformLocation(program, "texmap1");
     tex_loc[2] = glGetUniformLocation(program, "texmap2");
 
+    fogColor_loc = glGetUniformLocation(program, "fogColor");
+
     directionalLight_loc.color = glGetUniformLocation(program, "directionalLight.base.color");
     directionalLight_loc.ambient = glGetUniformLocation(program, "directionalLight.base.ambientIntensity");
     directionalLight_loc.diffuse = glGetUniformLocation(program, "directionalLight.base.diffuseIntensity");
@@ -225,6 +227,55 @@ bool Renderer::setRenderMeshesShaderProg(const std::string &vertShaderPath, cons
     return (shader.isProgramLinked() && shader.isProgramValid());
 }
 
+bool Renderer::setSkyboxShaderProg(const std::string &vertShaderPath, const std::string &fragShaderPath)
+{
+    // Shader for models
+    Shader shader;
+    shader.init();
+    skyboxProgram = shader.getProgramIndex();
+    shader.compileShader(Shader::VERTEX_SHADER, vertShaderPath);
+    shader.compileShader(Shader::FRAGMENT_SHADER, fragShaderPath);
+
+    // set semantics for the shader variables
+    glBindFragDataLocation(skyboxProgram, 0, "colorOut");
+    glBindAttribLocation(skyboxProgram, Shader::VERTEX_COORD_ATTRIB, "position");
+
+    glLinkProgram(skyboxProgram);
+
+    printf("InfoLog for Skybox Shaders and Program\n%s\n\n", shader.getAllInfoLogs().c_str());
+    if (!shader.isProgramValid())
+        printf("GLSL Skybox Program Not Valid!\n");
+
+    skyboxprojview_loc = glGetUniformLocation(skyboxProgram, "projview");
+    fogColor_skyloc = glGetUniformLocation(skyboxProgram, "fogColor");
+    cubemap_loc = glGetUniformLocation(skyboxProgram, "skybox");
+
+    float skyboxVert[] = {
+        -1.f, 1.f, -1.f,  -1.f, -1.f, -1.f,  1.f, -1.f, -1.f,
+        1.f, -1.f, -1.f,  1.f, 1.f, -1.f,  -1.f, 1.f, -1.f,
+        -1.f, -1.f, 1.f,  -1.f, -1.f, -1.f,  -1.f, 1.f, -1.f,
+        -1.f, 1.f, -1.f,  -1.f, 1.f, 1.f,  -1.f, -1.f, 1.f,
+        1.f, -1.f, -1.f,  1.f, -1.f, 1.f,  1.f, 1.f, 1.f,
+        1.f, 1.f, 1.f,  1.f, 1.f, -1.f,  1.f, -1.f, -1.f,
+        -1.f, -1.f, 1.f,  -1.f, 1.f, 1.f,  1.f, 1.f, 1.f,
+        1.f, 1.f, 1.f,  1.f, -1.f, 1.f,  -1.f, -1.f, 1.f,
+        -1.f, 1.f, -1.f,  1.f, 1.f, -1.f,  1.f, 1.f, 1.f,
+        1.f, 1.f, 1.f,  -1.f, 1.f, 1.f,  -1.f, 1.f, -1.f,
+        -1.f, -1.f, -1.f,  -1.f, -1.f, 1.f,  1.f, -1.f, -1.f,
+        1.f, -1.f, -1.f,  -1.f, -1.f, 1.f,  1.f, -1.f, 1.f,
+    };
+
+    glGenVertexArrays(1, &skyboxVAO);
+    glGenBuffers(1, &skyboxVBO);
+    glBindVertexArray(skyboxVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, skyboxVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(skyboxVert), &skyboxVert, GL_STATIC_DRAW);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), 0);
+
+    return (shader.isProgramLinked() && shader.isProgramValid());
+}
+
 Renderer::~Renderer()
 {
     glDeleteProgram(program);
@@ -269,6 +320,24 @@ void Renderer::activateRenderMeshesShaderProg()
     glUseProgram(program);
 }
 
+void Renderer::activateSkyboxShaderProg(float* projview, unsigned int cubemap, float* fogColor)
+{
+    // GLSL program to draw the skybox
+	glDepthFunc(GL_LEQUAL);
+    glUseProgram(skyboxProgram);
+    glUniformMatrix4fv(skyboxprojview_loc, 1, GL_FALSE, projview);
+
+    glUniform4fv(fogColor_skyloc, 1, fogColor);
+    glBindVertexArray(skyboxVAO);
+    glActiveTexture(GL_TEXTURE0 + cubemap);
+	glBindTexture(GL_TEXTURE_CUBE_MAP, cubemap);
+    glUniform1i(cubemap_loc, cubemap);
+
+	glDrawArrays(GL_TRIANGLES, 0, 36);
+    glBindVertexArray(0);
+	glDepthFunc(GL_LESS);
+}
+
 void Renderer::resetLights()
 {
     pointLightCount = 0;
@@ -276,6 +345,11 @@ void Renderer::resetLights()
     glUniform1i(directionalLightToggle_loc, 0);
     glUniform1i(pointLightNum_loc, pointLightCount);
     glUniform1i(spotLightNum_loc, spotLightCount);
+}
+
+void Renderer::setFogColor(float* color)
+{
+    glUniform4fv(fogColor_loc, 1, color);
 }
 
 void Renderer::setDirectionalLight(float *color, float ambient, float diffuse, float *direction)

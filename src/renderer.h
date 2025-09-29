@@ -52,13 +52,19 @@ public:
 	// setup text font rasterizer GLSL program
 	bool setRenderTextShaderProg(const std::string &vertShaderPath, const std::string &fragShaderPath);
 
+	bool setSkyboxShaderProg(const std::string &vertShaderPath, const std::string &fragShaderPath);
+
 	void activateRenderMeshesShaderProg();
+
+	void activateSkyboxShaderProg(float*, unsigned int, float*);
 
 	void renderMesh(const dataMesh &data);
 
 	void renderText(const TextCommand &text);
 
 	void resetLights();
+
+	void setFogColor(float *color);
 
 	void setDirectionalLight(float *color, float ambient, float diffuse, float *direction);
 
@@ -97,7 +103,7 @@ private:
 	// Text font rasterizer GLSL program
 	GLuint textProgram;
 
-	GLint pvm_loc, vm_loc, normal_loc, texMode_loc;
+	GLint pvm_loc, vm_loc, normal_loc, texMode_loc, fogColor_loc;
 	GLint tex_loc[MAX_TEXTURES];
 
 #define MAX_POINT_LIGHTS 6
@@ -139,6 +145,10 @@ private:
 	} spotLight_loc[MAX_SPOT_LIGHTS];
 	GLuint spotLightNum_loc;
 	int spotLightCount = 0;
+
+	// renderer variables for skybox
+	GLuint skyboxProgram, skyboxVAO, skyboxVBO;
+	GLuint skyboxprojview_loc, cubemap_loc, fogColor_skyloc;
 
 	// render font GLSL program variable locations and VAO
 	GLint fontPvm_loc, textColor_loc;

@@ -64,6 +64,8 @@ uniform int pointLightNum;
 uniform SpotLight spotLightArray[MAX_SPOT_LIGHTS];
 uniform int spotLightNum;
 
+uniform vec4 fogColor = vec4(0.f);
+
 vec4 CalcLight(Light light, vec3 lightDirection, vec3 normal)
 {
     vec4 ambient  = light.color * light.ambientIntensity * mat.ambient;
@@ -82,7 +84,7 @@ vec4 CalcLight(Light light, vec3 lightDirection, vec3 normal)
         }
     }
 
-    return ambient + diffuse + specular + mat.emissive;
+    return ambient + diffuse + specular;
 }
 
 vec4 CalcDirectionalLight(vec3 normal)
@@ -118,10 +120,22 @@ vec4 CalcSpotLight(SpotLight light, vec3 normal)
     return vec4(0);
 }
 
+float CalcFogFactor()
+{
+    float fogEnd = 500.f;
+    float fogDensity = .65f;
+
+    float distance = length(DataIn.position);
+    float distRatio = 4.f * distance / fogEnd;
+    return exp(-distRatio * distRatio * fogDensity * fogDensity);
+}
+
 void main()
 {
     vec3 normal = normalize(DataIn.normal);
-    vec4 lightTotal = directionalLightToggle * CalcDirectionalLight(normal);
+    vec4 lightTotal = mat.emissive;
+
+    lightTotal += directionalLightToggle * CalcDirectionalLight(normal);
 
     for (int i = 0; i < pointLightNum; i++) {
         lightTotal += CalcPointLight(pointLightArray[i], normal);
@@ -135,12 +149,18 @@ void main()
         // no texture
         colorOut = lightTotal;
     } else if (texMode == 1) {
-        // texel + diffuse, use lighwood.tga
-        vec4 texel1 = texture(texmap1, DataIn.texCoord);
-        vec4 texel2 = texture(texmap2, DataIn.texCoord);
-        colorOut = texel1 * texel2 * lightTotal;
+        // tiled grass
+        float tilingFactor1 = 23.f;
+        float tilingFactor2 = 121.f;
+        vec4 texel1 = texture(texmap1, DataIn.texCoord * tilingFactor1);
+        vec4 texel2 = texture(texmap1, DataIn.texCoord * tilingFactor2);
+        colorOut = mix(texel1, texel2, 0.5f) * lightTotal;
     } else {
         // texel only, use stone.tga
         colorOut = texture(texmap, DataIn.texCoord) * lightTotal;
+    }
+
+    if (fogColor != vec4(0)) {
+        colorOut = mix(fogColor, colorOut, CalcFogFactor());
     }
 }

@@ -5,6 +5,12 @@
 #include <vector>
 #include <iostream>
 
+enum TexMode {
+	TEXTURE_NONE, // ambient + diffuse + light colors only
+	TEXTURE_FLOOR, // tiled grass + diffuse light
+	TEXTURE_STONE // stretched stone + diffuse light
+};
+
 class SceneObject : public ICollidable
 {
 public:
@@ -13,6 +19,7 @@ public:
 	float scale[3] = {1.0f, 1.0f, 1.0f};
 	std::vector<int> meshID;
 	int texMode = 1;
+	bool active = true;
 	Collider collider;
 
 public:
@@ -32,4 +39,5 @@ public:
 	void setPosition(float x, float y, float z);
 	void setRotation(float yaw_, float pitch_, float roll_);
 	void setScale(float x, float y, float z);
+	void toggle() { active = !active; }
 };

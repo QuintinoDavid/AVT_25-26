@@ -12,6 +12,8 @@ void SceneObject::update(float) {}
 
 void SceneObject::render(Renderer &renderer, gmu &mu)
 {
+	if (!active) return;
+
 	mu.pushMatrix(gmu::MODEL);
 	mu.translate(gmu::MODEL, pos[0], pos[1], pos[2]);
 	mu.rotate(gmu::MODEL, yaw, 0.0f, 1.0f, 0.0f);
@@ -51,12 +53,14 @@ void SceneObject::setPosition(float x, float y, float z)
 	pos[1] = y;
 	pos[2] = z;
 }
+
 void SceneObject::setRotation(float yaw_, float pitch_, float roll_)
 {
 	yaw = yaw_;
 	pitch = pitch_;
 	roll = roll_;
 }
+
 void SceneObject::setScale(float x, float y, float z)
 {
 	scale[0] = x;

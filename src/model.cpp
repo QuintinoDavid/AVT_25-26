@@ -156,7 +156,6 @@ std::vector<MyMesh> createFromFile(const std::string &path)
 
 MyMesh createQuad(float size_x, float size_y)
 {
-
 	int i;
 	float vert[16];
 	MyMesh amesh;
@@ -201,7 +200,6 @@ MyMesh createQuad(float size_x, float size_y)
 
 MyMesh createCube()
 {
-
 	MyMesh amesh;
 	amesh.numIndexes = faceCount * 3;
 
@@ -212,11 +210,6 @@ MyMesh createCube()
 	glBindBuffer(GL_ARRAY_BUFFER, VboId[0]);
 
 	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices) + sizeof(normals) + sizeof(texCoords) + sizeof(tangents), vertices, GL_STATIC_DRAW);
-
-	// glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertices), vertices);
-	// glBufferSubData(GL_ARRAY_BUFFER, sizeof(vertices), sizeof(normals), normals);
-	// glBufferSubData(GL_ARRAY_BUFFER, sizeof(vertices) + sizeof(normals) + sizeof(texCoords), sizeof(tangents), tangents);
-	// glBufferSubData(GL_ARRAY_BUFFER, sizeof(vertices) + sizeof(normals), sizeof(texCoords), texCoords);
 
 	glEnableVertexAttribArray(Shader::VERTEX_COORD_ATTRIB);
 	glVertexAttribPointer(Shader::VERTEX_COORD_ATTRIB, 4, GL_FLOAT, 0, 0, 0);
@@ -254,7 +247,6 @@ MyMesh createTorus(float innerRadius, float outerRadius, int rings, int sides)
 
 MyMesh createCylinder(float height, float radius, int sides)
 {
-
 	float p[] = {
 		-radius, -height * 0.5f,
 		0.0f, -height * 0.5f,
