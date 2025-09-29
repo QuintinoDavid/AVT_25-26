@@ -12,7 +12,6 @@ out Data {
 	vec3 normal;
 	vec3 position;
 	vec2 texCoord;
-	mat4 m_vm;
 } DataOut;
 
 void main ()
@@ -20,7 +19,6 @@ void main ()
 	DataOut.normal = normalize(m_normal * normal.xyz);
 	DataOut.position = vec3(m_viewModel * position);
 	DataOut.texCoord = texCoord.st;
-	DataOut.m_vm = m_viewModel;
 
 	gl_Position = m_pvm * position;	
 }

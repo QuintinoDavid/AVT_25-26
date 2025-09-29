@@ -46,6 +46,7 @@ struct {
 	const char* Drone_OBJ = ASSET_FOLDER "drone.obj";
 	const char* Stone_Tex = ASSET_FOLDER "stone.tga";
 	const char* Grass_Tex = ASSET_FOLDER "Grass_01.png";
+	const char* Window_Tex = ASSET_FOLDER "window.png";
 	const char* Lightwood_Tex = ASSET_FOLDER "lightwood.tga";
 
 	const char* Skybox_Cubemap_Day[6] = {
@@ -95,6 +96,7 @@ Renderer renderer;
 
 std::vector<Light> sceneLights;
 std::vector<SceneObject*> sceneObjects;
+std::vector<SceneObject*> transparentObjects;
 CollisionSystem collisionSystem;
 
 Camera *cams[3];
@@ -182,10 +184,10 @@ void renderSim(void)
 	renderer.resetLights();
 
 	// Associar os Texture Units aos Objects Texture
-	// stone.tga loaded in TU0; checker.tga loaded in TU1;  lightwood.tga loaded in TU2
-	renderer.setTexUnit(0, 0);
-	renderer.setTexUnit(1, 1);
-	renderer.setTexUnit(2, 2);
+	renderer.setTexUnit(0, 0); // Stone
+	renderer.setTexUnit(1, 1); // Grass
+	renderer.setTexUnit(2, 2); // Window
+	renderer.setTexUnit(3, 3); // Lightwood
 
 	// load identity matrices
 	mu.loadIdentity(gmu::VIEW);
@@ -210,8 +212,8 @@ void renderSim(void)
 
 	float fogColor[] = { 0.f, 0.f, 0.f, 0.f };
 	if (GLOBAL.showFog) {
-		float lightgray[] = { .55f, 0.65f, 0.55f, 1.f };
-		float darkgray[]  = { 0.25f, 0.25f, 0.25f, 1.f };
+		float lightgray[] = { .75f, 0.85f, 0.75f, 1.f };
+		float darkgray[]  = { 0.15f, 0.15f, 0.15f, 1.f };
 		if (GLOBAL.daytime) {
 			for (int i = 0; i < 4; i++) fogColor[i] = lightgray[i];
 		} else {
@@ -220,23 +222,15 @@ void renderSim(void)
 	}
 	renderer.setFogColor(fogColor);
 
-	// setup the lights
-	for (auto& light: sceneLights)
-	{
-		light.render(renderer, mu);
-	}
+	/*  RENDER QUEUE	
+	  1) setup the lights
+	  2) render opaque objects
+	  3) render skybox
+	  4) render transparent objects
+	*/
 
-	for (auto obj: sceneObjects)
-	{
-		obj->render(renderer, mu);
-	}
-
-	// Check collisions
-	collisionSystem.checkCollisions();
-
-	// Render debug information
-	if (GLOBAL.showDebug)
-		collisionSystem.showDebug(renderer, mu);
+	for (auto& light: sceneLights) light.render(renderer, mu);
+	for (auto obj: sceneObjects) obj->render(renderer, mu);
 
 	// Render skybox
 	mu.pushMatrix(gmu::MODEL);
@@ -251,7 +245,19 @@ void renderSim(void)
 		renderer.activateSkyboxShaderProg(m_VP, id, fogColor);
 	}
 	mu.popMatrix(gmu::MODEL);
+	renderer.activateRenderMeshesShaderProg();
 
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	for (auto obj: transparentObjects) obj->render(renderer, mu);
+	glDisable(GL_BLEND);
+
+	// Check collisions
+	collisionSystem.checkCollisions();
+
+	// Render debug information
+	if (GLOBAL.showDebug)
+		collisionSystem.showDebug(renderer, mu);
 
 	// Render text (bitmap fonts) in screen coordinates. So use ortoghonal projection with viewport coordinates.
 	// Each glyph quad texture needs just one byte color channel: 0 in background and 1 for the actual character pixels. Use it for alpha blending
@@ -477,6 +483,7 @@ void buildScene()
 	// Texture Object definition
 	renderer.TexObjArray.texture2D_Loader(FILEPATH.Stone_Tex);
 	renderer.TexObjArray.texture2D_Loader(FILEPATH.Grass_Tex);
+	renderer.TexObjArray.texture2D_Loader(FILEPATH.Window_Tex);
 	renderer.TexObjArray.texture2D_Loader(FILEPATH.Lightwood_Tex);
 	GLOBAL.cubemap_dayID = renderer.TexObjArray.getNumTextureObjects();
 	renderer.TexObjArray.textureCubeMap_Loader(FILEPATH.Skybox_Cubemap_Day);
@@ -528,7 +535,12 @@ void buildScene()
 	amesh = createCube();
 	int cubeID = renderer.addMesh(amesh);
 
-	/*
+	SceneObject* window = new SceneObject(std::vector<int>{cubeID}, TexMode::TEXTURE_WINDOW);
+	window->setPosition(-10.f, 5.f, -10.f);
+	window->setRotation(10.f, 0.f, 0.f);
+	transparentObjects.push_back(window);
+
+
 	amesh = createTorus(1.f, 10.f, 20, 20);
 	memcpy(amesh.mat.ambient, amb1, 4 * sizeof(float));
 	memcpy(amesh.mat.diffuse, diff1, 4 * sizeof(float));
@@ -542,7 +554,6 @@ void buildScene()
 		torus->setRotation(10.f * i, 0.0f, 0.0f);
 		sceneObjects.push_back(torus);
 	}
-	*/
 
 	// Load drone model from file
 	std::vector<MyMesh> droneMeshs = createFromFile(FILEPATH.Drone_OBJ);
@@ -568,7 +579,7 @@ void buildScene()
 	sceneObjects.push_back(floor);
 
 	// Drone
-	Drone *drone = new Drone(cams[2], droneMeshIDs, TexMode::TEXTURE_STONE);
+	Drone *drone = new Drone(cams[2], droneMeshIDs, TexMode::TEXTURE_LIGHTWOOD);
 	drone->setPosition(5.0f, 5.0f, 1.0f);
 	drone->setScale(2.f, 2.f, 2.f);
 	// drone->setScale(0.05f, 0.05f, 0.05f);

@@ -1,5 +1,4 @@
 #include "texture.h"
-#include <iostream>
 
 void Texture::texture2D_Loader(const char *strFileName)
 {
@@ -42,7 +41,6 @@ void Texture::textureCubeMap_Loader(const char **strFileName)
 	GLuint id;
 	glGenTextures(1, &id);
 	glBindTexture(GL_TEXTURE_CUBE_MAP, id);
-	std::cerr << id << " is the cubemap id\n" << textureArray.size() << " is the texture's id\n";
 	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 

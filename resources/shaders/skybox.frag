@@ -13,7 +13,7 @@ void main()
     if (fogColor != vec4(0)) {
         float height = normalize(TexCoords).y;
         float distRatio = 4.f * (height * height);
-        float fogDensity = .65f;
+        float fogDensity = .5f;
         float fogFactor = (1 - height) * exp(-distRatio * fogDensity * fogDensity);
 
         colorOut = mix(colorOut, fogColor, fogFactor);

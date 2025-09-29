@@ -4,7 +4,6 @@ in Data {
 	vec3 normal;
 	vec3 position;
 	vec2 texCoord;
-    mat4 m_vm;
 } DataIn;
 
 out vec4 colorOut;
@@ -50,9 +49,10 @@ struct Materials {
 uniform Materials mat;
 uniform int texMode;
 
-uniform sampler2D texmap;
-uniform sampler2D texmap1;
-uniform sampler2D texmap2;
+uniform sampler2D texmap_stone;
+uniform sampler2D texmap_grass;
+uniform sampler2D texmap_window;
+uniform sampler2D texmap_lightwood;
 
 const int MAX_POINT_LIGHTS = 6;
 const int MAX_SPOT_LIGHTS = 2;
@@ -123,7 +123,7 @@ vec4 CalcSpotLight(SpotLight light, vec3 normal)
 float CalcFogFactor()
 {
     float fogEnd = 500.f;
-    float fogDensity = .65f;
+    float fogDensity = .5f;
 
     float distance = length(DataIn.position);
     float distRatio = 4.f * distance / fogEnd;
@@ -152,13 +152,20 @@ void main()
         // tiled grass
         float tilingFactor1 = 23.f;
         float tilingFactor2 = 121.f;
-        vec4 texel1 = texture(texmap1, DataIn.texCoord * tilingFactor1);
-        vec4 texel2 = texture(texmap1, DataIn.texCoord * tilingFactor2);
+
+        vec4 texel1 = texture(texmap_grass, DataIn.texCoord * tilingFactor1);
+        vec4 texel2 = texture(texmap_grass, DataIn.texCoord * tilingFactor2);
         colorOut = mix(texel1, texel2, 0.5f) * lightTotal;
-    } else {
+    } else if (texMode == 2) {
         // texel only, use stone.tga
-        colorOut = texture(texmap, DataIn.texCoord) * lightTotal;
-    }
+        colorOut = texture(texmap_stone, DataIn.texCoord) * lightTotal;
+    } else if (texMode == 3) {
+        // window texture
+        colorOut = texture(texmap_window, DataIn.texCoord) * vec4(lightTotal.xyz, 1.f);
+    } else if (texMode == 4) {
+        // lightwood texture
+        colorOut = texture(texmap_lightwood, DataIn.texCoord) * lightTotal;
+    } 
 
     if (fogColor != vec4(0)) {
         colorOut = mix(fogColor, colorOut, CalcFogFactor());

@@ -151,9 +151,10 @@ bool Renderer::setRenderMeshesShaderProg(const std::string &vertShaderPath, cons
     normal_loc = glGetUniformLocation(program, "m_normal");
     texMode_loc = glGetUniformLocation(program, "texMode"); // different modes of texturing
 
-    tex_loc[0] = glGetUniformLocation(program, "texmap");
-    tex_loc[1] = glGetUniformLocation(program, "texmap1");
-    tex_loc[2] = glGetUniformLocation(program, "texmap2");
+    tex_loc[0] = glGetUniformLocation(program, "texmap_stone");
+    tex_loc[1] = glGetUniformLocation(program, "texmap_grass");
+    tex_loc[2] = glGetUniformLocation(program, "texmap_window");
+    tex_loc[3] = glGetUniformLocation(program, "texmap_lightwood");
 
     fogColor_loc = glGetUniformLocation(program, "fogColor");
 

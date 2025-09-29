@@ -209,10 +209,9 @@ MyMesh createCube()
 	glGenBuffers(2, VboId);
 	glBindBuffer(GL_ARRAY_BUFFER, VboId[0]);
 
-	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices) + sizeof(normals) + sizeof(texCoords) + sizeof(tangents), NULL, GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices) + sizeof(normals) + sizeof(texCoords), NULL, GL_STATIC_DRAW);
 	glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertices), vertices);
 	glBufferSubData(GL_ARRAY_BUFFER, sizeof(vertices), sizeof(normals), normals);
-	glBufferSubData(GL_ARRAY_BUFFER, sizeof(vertices) + sizeof(normals) + sizeof(texCoords), sizeof(tangents), tangents);
 	glBufferSubData(GL_ARRAY_BUFFER, sizeof(vertices) + sizeof(normals), sizeof(texCoords), texCoords);
 
 
@@ -222,8 +221,6 @@ MyMesh createCube()
 	glVertexAttribPointer(Shader::NORMAL_ATTRIB, 4, GL_FLOAT, 0, 0, (void *)sizeof(vertices));
 	glEnableVertexAttribArray(Shader::TEXTURE_COORD_ATTRIB);
 	glVertexAttribPointer(Shader::TEXTURE_COORD_ATTRIB, 4, GL_FLOAT, 0, 0, (void *)(sizeof(vertices) + sizeof(normals)));
-	glEnableVertexAttribArray(Shader::TANGENT_ATTRIB);
-	glVertexAttribPointer(Shader::TANGENT_ATTRIB, 4, GL_FLOAT, 0, 0, (void *)(sizeof(vertices) + sizeof(normals) + sizeof(texCoords)));
 
 	// index buffer
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, VboId[1]);

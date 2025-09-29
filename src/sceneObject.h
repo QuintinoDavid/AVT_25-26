@@ -7,8 +7,10 @@
 
 enum TexMode {
 	TEXTURE_NONE, // ambient + diffuse + light colors only
-	TEXTURE_FLOOR, // tiled grass + diffuse light
-	TEXTURE_STONE // stretched stone + diffuse light
+	TEXTURE_FLOOR,
+	TEXTURE_STONE,
+	TEXTURE_WINDOW,
+	TEXTURE_LIGHTWOOD
 };
 
 class SceneObject : public ICollidable
