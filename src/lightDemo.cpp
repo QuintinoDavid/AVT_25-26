@@ -36,6 +36,7 @@
 #include "sceneObject.h"
 #include "light.h"
 #include "drone.cpp"
+#include "autoMover.cpp"
 
 struct {
 	int WindowHandle = 0;
@@ -830,6 +831,31 @@ void buildScene()
 	collisionSystem.addCollider(floor->getCollider());
 	
 	buildCity(amesh, amb1, diff1, spec1, nonemissive, shininess, texcount, cubeID);
+
+	// Moving object
+	// Texture not working	
+	MyMesh moverMesh = createSphere(2.0f, 16);
+	memcpy(moverMesh.mat.ambient, amb1, 4 * sizeof(float));
+	memcpy(moverMesh.mat.diffuse, amb1, 4 * sizeof(float));
+	memcpy(moverMesh.mat.specular, spec1, 4 * sizeof(float));
+	memcpy(moverMesh.mat.emissive, nonemissive, 4 * sizeof(float));
+	moverMesh.mat.shininess = 50.0f;
+	moverMesh.mat.texCount = 0;
+	int moverID = renderer.addMesh(moverMesh);
+
+
+
+	AutoMover *mover = new AutoMover({cubeID}, 2, 20.0f, 4.0f);
+	mover->setPosition(0.f, 5.0f, 0.f);
+	mover->setScale(1.0f, 1.0f, 1.0f);
+	sceneObjects.push_back(mover);
+
+	AutoMover *mover2 = new AutoMover({cubeID}, 2, 20.0f, 6.0f);
+	mover2->setPosition(0.f, 5.0f, 0.f);
+	mover2->setScale(1.0f, 1.0f, 1.0f);
+	sceneObjects.push_back(mover2);
+	//collisionSystem.addCollider(mover->getCollider());
+
 
 	// The truetypeInit creates a texture object in TexObjArray for storing the fontAtlasTexture
 	GLOBAL.fontLoaded = renderer.truetypeInit(FILEPATH.Font_File);
