@@ -8,7 +8,7 @@ void Texture::texture2D_Loader(const char *strFileName, bool repeat)
 	GLuint id;
 	glGenTextures(1, &id);
 	glBindTexture(GL_TEXTURE_2D, id);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	if (repeat) {
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
@@ -34,6 +34,7 @@ void Texture::texture2D_Loader(const char *strFileName, bool repeat)
 	ilConvertImage(GL_RGBA, GL_UNSIGNED_BYTE);  //Image converted to GL_RGBA  of type unsigned byte
 
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, ilGetInteger(IL_IMAGE_WIDTH), ilGetInteger(IL_IMAGE_HEIGHT), 0, GL_RGBA, GL_UNSIGNED_BYTE, ilGetData());
+	glGenerateMipmap(GL_TEXTURE_2D);
 	ilDeleteImages(1, &ImageId);
 	ilDisable(IL_ORIGIN_SET);
 	textureArray.push_back(id);
