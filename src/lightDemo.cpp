@@ -224,20 +224,20 @@ void renderSim(void)
 
 		std::vector<TextCommand> texts;
 		float size = 0.3f;
-		texts.push_back({.str = "X",
-						 .position = {0.f, 0.f},
-						 .size = size,
-						 .color = {1.f, 0.f, 0.f, 1.f}});
+		// texts.push_back({.str = "X",
+		// 				 .position = {0.f, 0.f},
+		// 				 .size = size,
+		// 				 .color = {1.f, 0.f, 0.f, 1.f}});
 
-		texts.push_back({.str = "Y",
-						 .position = {30.f, 0.f},
-						 .size = size,
-						 .color = {0.f, 1.f, 0.f, 1.f}});
+		// texts.push_back({.str = "Y",
+		// 				 .position = {30.f, 0.f},
+		// 				 .size = size,
+		// 				 .color = {0.f, 1.f, 0.f, 1.f}});
 
-		texts.push_back({.str = "Z",
-						 .position = {50.f, 0.f},
-						 .size = size,
-						 .color = {0.f, 0.f, 1.f, 1.f}});
+		// texts.push_back({.str = "Z",
+		// 				 .position = {50.f, 0.f},
+		// 				 .size = size,
+		// 				 .color = {0.f, 0.f, 1.f, 1.f}});
 
 		// the glyph contains transparent background colors and non-transparent for the actual character pixels. So we use the blending
 		glEnable(GL_BLEND);
@@ -780,28 +780,30 @@ void buildScene()
 	sceneObjects.push_back(drone);
 	collisionSystem.addCollider(drone->getCollider());
 
-	// Moving obstacles
-	AutoMover *mover_1 = new AutoMover({cubeID}, 1, 20.0f, 4.0f);
+	// Moving obstacles	
+	std::mt19937 gen{ std::random_device{}() }; // random engine 
+	std::uniform_real_distribution<float> velocity{ 4.0f, 8.0f };
+	AutoMover *mover_1 = new AutoMover({torusID}, 1, 15.0f, velocity(gen));
 	mover_1->setPosition(0.f, 5.0f, 0.f);
-	mover_1->setScale(1.0f, 1.0f, 1.0f);
+	mover_1->setScale(0.35f, 0.7f, 0.7f);
 	sceneObjects.push_back(mover_1);
 	collisionSystem.addCollider(mover_1->getCollider());
 
-	AutoMover *mover_2 = new AutoMover({cubeID}, 0, 20.0f, 6.0f);
+	AutoMover *mover_2 = new AutoMover({torusID}, 0, 15.0f, velocity(gen));
 	mover_2->setPosition(0.f, 5.0f, 0.f);
-	mover_2->setScale(0.7f, 0.7f, 0.7f);
+	mover_2->setScale(0.35f, 0.7f, 0.7f);
 	sceneObjects.push_back(mover_2);
 	collisionSystem.addCollider(mover_2->getCollider());
 
-	AutoMover *mover_3 = new AutoMover({cubeID}, 1, 20.0f, 8.0f);
+	AutoMover *mover_3 = new AutoMover({torusID}, 1, 15.0f, velocity(gen));
 	mover_3->setPosition(0.f, 5.0f, 0.f);
-	mover_3->setScale(1.5f, 1.5f, 1.5f);
+	mover_3->setScale(1.5f, 1.5f, 1.0f);
 	sceneObjects.push_back(mover_3);
 	collisionSystem.addCollider(mover_3->getCollider());
 
-	AutoMover *mover_4 = new AutoMover({cubeID}, 0, 20.0f, 8.0f);
+	AutoMover *mover_4 = new AutoMover({torusID}, 0, 15.0f, velocity(gen));
 	mover_4->setPosition(0.f, 5.0f, 0.f);
-	mover_4->setScale(1.5f, 1.5f, 1.5f);
+	mover_4->setScale(1.5f, 1.2f, 1.0f);
 	sceneObjects.push_back(mover_4);
 	collisionSystem.addCollider(mover_4->getCollider());
 
@@ -860,8 +862,6 @@ void buildScene()
 	blueZunit->setRotation(0.f, 90.f, 0.f);
 	sceneObjects.push_back(blueZunit);
 
-	// Collider debug mesh (cube)
-	collisionSystem.setDebugCubeMesh(cubeID);
 
 	// The truetypeInit creates a texture object in TexObjArray for storing the fontAtlasTexture
 	GLOBAL.fontLoaded = renderer.truetypeInit(FILEPATH.Font_File);
@@ -871,6 +871,9 @@ void buildScene()
 		std::cerr << "Fonts loaded\n";
 
 	printf("\nNumber of Texture Objects is %d\n\n", renderer.TexObjArray.getNumTextureObjects());
+
+	// Collision System
+	collisionSystem.setDebugCubeMesh(cubeID);
 }
 
 // ------------------------------------------------------------

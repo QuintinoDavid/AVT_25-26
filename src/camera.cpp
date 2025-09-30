@@ -2,6 +2,7 @@
 #include <cmath>
 #include <sstream>
 #include <string>
+#include "mathUtility.h"
 
 enum class ProjectionType
 {

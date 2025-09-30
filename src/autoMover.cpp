@@ -9,51 +9,69 @@ class AutoMover : public SceneObject {
 private:
     float dir[3] = { 0.0f, 0.0f, 0.0f }; // direction
     float radius;      // How far from the center to move before turning back
-    float Speed;          // rotações em radianos por segundo
+    float Speed;         
+    std::mt19937 gen{ std::random_device{}() }; // random engine 
     std::uniform_real_distribution<float> dist_pos{ -10.0f, 10.0f };
     std::uniform_real_distribution<float> one{ -1.0f, 1.0f };
-    std::mt19937 gen{ std::random_device{}() }; // random engine for distF
-
+    
     void calcNewDir(float dir[3]) {
-        float theta = std::uniform_real_distribution<float>(0.f, 2.f * PI_F)(gen);
-        float u = std::uniform_real_distribution<float>(-1.f, 1.f)(gen);
-        float s = std::sqrt(1 - u * u);
-        dir[0] = s * std::cos(theta);
-        dir[1] = s * std::sin(theta);
-        dir[2] = u;
+        std::uniform_real_distribution<float> variation(-10.f, 10.f);
+        std::uniform_real_distribution<float> variationY(-5.f, 5.f);
+        float newdir[3] = {-pos[0] + variation(gen), variationY(gen), -pos[2] + variation(gen)};
+
+        // Normalize
+        float length = std::sqrt(newdir[0] * newdir[0] + newdir[1] * newdir[1] + newdir[2] * newdir[2]);
+        if (length > 1e-6f) {
+            dir[0] = newdir[0] / length;
+            dir[1] = newdir[1] / length;
+            dir[2] = newdir[2] / length;
+        } else {
+            dir[0] = 1.0f; dir[1] = 0.0f; dir[2] = 0.0f; // default direction
+        }
     }
 
     void calcNewPos(float pos[3]) {
-        pos[0] = dist_pos(gen);
-        pos[1] = std::fabs(dist_pos(gen));
-        pos[2] = dist_pos(gen);
-    }
+        std::normal_distribution<float> dist(0.f, 1.f);
+        float dir[3];
+        calcNewDir(dir);
+        float x, z, len2;
+        do {
+            x = dist(gen);
+            z = dist(gen);
+            len2 = x * x + z * z;
+        } while (len2 < 1e-6f); // avoid zero vector
+        float invLen = 1.0f / std::sqrt(len2);
 
+        pos[0] = x * invLen * radius;
+        pos[1] = dist(gen) * 5.f + 5.f;
+        pos[2] = z * invLen * radius;
+
+
+    }
 
     void updateCollider() {
-        // Usa o maior componente da escala como base para um AABB simples (esfera aproximada)
         float r = std::max(scale[0], std::max(scale[1], scale[2])) * 0.5f;
-        collider.setBox(pos[0], pos[1], pos[2],
-                        pos[0] + 2*r, pos[1] + 2*r, pos[2] + 2*r);
+        collider.setBox(pos[0] - r, pos[1] - r, pos[2] - r,
+                        pos[0] + r, pos[1] + r, pos[2] + r);
     }
 
-    float calcDistFromOrigin() {
-        return std::sqrt(pos[0] * pos[0] + pos[1] * pos[1] + pos[2] * pos[2]);
+    float calcDistFromXZ0() {
+        return std::sqrt(pos[0] * pos[0] + pos[2] * pos[2]);
     }
 
 public:
     AutoMover(const std::vector<int>& meshes, int texMode, float radius, float speed)
         : SceneObject(meshes, texMode), radius(radius), Speed(speed) {
-            calcNewDir(dir);
-        updateCollider();
+        calcNewDir(dir);
     }
 
     void update(float deltaTime) override {
+        updateCollider();   
         float prevPos[3] = {pos[0], pos[1], pos[2]};
-        float dist = calcDistFromOrigin();
-        float reverse = 1.0f;
+        float PrevRot[3] = {yaw, pitch, roll};
+        float dist = calcDistFromXZ0();
 
-        if (dist >= radius || pos[1] <= 0.1f) {
+        if (dist >= radius || pos[1] <= 0.1f || pos[1] >= 20.0f) {
             //reset position and add new direction
             calcNewDir(dir);
             calcNewPos(prevPos);    
@@ -61,7 +79,8 @@ public:
         pos[0] = prevPos[0] + dir[0] * Speed * deltaTime;
         pos[1] = prevPos[1] + dir[1] * Speed * deltaTime;
         pos[2] = prevPos[2] + dir[2] * Speed * deltaTime;
-        updateCollider();
+
+        setRotation(PrevRot[0] + 1000*deltaTime, PrevRot[1], PrevRot[2]);
         /*
         std::cerr << "[AutoMover::update] dt=" << deltaTime
               << " pos=(" << pos[0] << ", " << pos[1] << ", " << pos[2] << ")"
