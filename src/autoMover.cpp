@@ -33,8 +33,8 @@ private:
     void updateCollider() {
         // Usa o maior componente da escala como base para um AABB simples (esfera aproximada)
         float r = std::max(scale[0], std::max(scale[1], scale[2])) * 0.5f;
-        collider.setBox(pos[0] - r, pos[1] - r, pos[2] - r,
-                        pos[0] + r, pos[1] + r, pos[2] + r);
+        collider.setBox(pos[0], pos[1], pos[2],
+                        pos[0] + 2*r, pos[1] + 2*r, pos[2] + 2*r);
     }
 
     float calcDistFromOrigin() {
@@ -45,7 +45,7 @@ public:
     AutoMover(const std::vector<int>& meshes, int texMode, float radius, float speed)
         : SceneObject(meshes, texMode), radius(radius), Speed(speed) {
             calcNewDir(dir);
-        // updateCollider();
+        updateCollider();
     }
 
     void update(float deltaTime) override {
@@ -54,14 +54,14 @@ public:
         float reverse = 1.0f;
 
         if (dist >= radius || pos[1] <= 0.1f) {
+            //reset position and add new direction
             calcNewDir(dir);
-
-            //reset position
             calcNewPos(prevPos);    
         }
         pos[0] = prevPos[0] + dir[0] * Speed * deltaTime;
         pos[1] = prevPos[1] + dir[1] * Speed * deltaTime;
         pos[2] = prevPos[2] + dir[2] * Speed * deltaTime;
+        updateCollider();
         /*
         std::cerr << "[AutoMover::update] dt=" << deltaTime
               << " pos=(" << pos[0] << ", " << pos[1] << ", " << pos[2] << ")"

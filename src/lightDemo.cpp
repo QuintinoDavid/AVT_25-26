@@ -844,18 +844,29 @@ void buildScene()
 	int moverID = renderer.addMesh(moverMesh);
 
 
+	AutoMover *mover_1 = new AutoMover({cubeID}, 1, 20.0f, 4.0f);
+	mover_1->setPosition(0.f, 5.0f, 0.f);
+	mover_1->setScale(1.0f, 1.0f, 1.0f);
+	sceneObjects.push_back(mover_1);
+	collisionSystem.addCollider(mover_1->getCollider());
 
-	AutoMover *mover = new AutoMover({cubeID}, 2, 20.0f, 4.0f);
-	mover->setPosition(0.f, 5.0f, 0.f);
-	mover->setScale(1.0f, 1.0f, 1.0f);
-	sceneObjects.push_back(mover);
+	AutoMover *mover_2 = new AutoMover({cubeID}, 0, 20.0f, 6.0f);
+	mover_2->setPosition(0.f, 5.0f, 0.f);
+	mover_2->setScale(0.7f, 0.7f, 0.7f);
+	sceneObjects.push_back(mover_2);
+	collisionSystem.addCollider(mover_2->getCollider());
 
-	AutoMover *mover2 = new AutoMover({cubeID}, 2, 20.0f, 6.0f);
-	mover2->setPosition(0.f, 5.0f, 0.f);
-	mover2->setScale(1.0f, 1.0f, 1.0f);
-	sceneObjects.push_back(mover2);
-	//collisionSystem.addCollider(mover->getCollider());
+	AutoMover *mover_3 = new AutoMover({cubeID}, 1, 20.0f, 8.0f);
+	mover_3->setPosition(0.f, 5.0f, 0.f);
+	mover_3->setScale(1.5f, 1.5f, 1.5f);
+	sceneObjects.push_back(mover_3);
+	collisionSystem.addCollider(mover_3->getCollider());
 
+	AutoMover *mover_4 = new AutoMover({cubeID}, 0, 20.0f, 8.0f);
+	mover_4->setPosition(0.f, 5.0f, 0.f);
+	mover_4->setScale(1.5f, 1.5f, 1.5f);
+	sceneObjects.push_back(mover_4);
+	collisionSystem.addCollider(mover_4->getCollider());
 
 	// The truetypeInit creates a texture object in TexObjArray for storing the fontAtlasTexture
 	GLOBAL.fontLoaded = renderer.truetypeInit(FILEPATH.Font_File);
