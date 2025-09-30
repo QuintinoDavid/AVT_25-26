@@ -758,28 +758,30 @@ void buildScene()
 
 	buildCity(quadID, cubeID, coneID, cylinderID, torusID);
 
-	// Moving obstacles
-	AutoMover* mover_1 = new AutoMover({ cubeID }, TexMode::TEXTURE_LIGHTWOOD, 20.0f, 4.0f);
+	// Moving obstacles	
+	std::mt19937 gen{ std::random_device{}() }; // random engine 
+	std::uniform_real_distribution<float> velocity{ 4.0f, 8.0f };
+	AutoMover *mover_1 = new AutoMover({torusID}, TexMode::TEXTURE_LIGHTWOOD, 15.0f, velocity(gen));
 	mover_1->setPosition(0.f, 5.0f, 0.f);
-	mover_1->setScale(1.0f, 1.0f, 1.0f);
+	mover_1->setScale(0.35f, 0.7f, 0.7f);
 	sceneObjects.push_back(mover_1);
 	collisionSystem.addCollider(mover_1->getCollider());
 
-	AutoMover* mover_2 = new AutoMover({ cubeID }, TexMode::TEXTURE_LIGHTWOOD, 20.0f, 6.0f);
+	AutoMover *mover_2 = new AutoMover({torusID}, TexMode::TEXTURE_LIGHTWOOD, 15.0f, velocity(gen));
 	mover_2->setPosition(0.f, 5.0f, 0.f);
-	mover_2->setScale(0.7f, 0.7f, 0.7f);
+	mover_2->setScale(0.35f, 0.7f, 0.7f);
 	sceneObjects.push_back(mover_2);
 	collisionSystem.addCollider(mover_2->getCollider());
 
-	AutoMover* mover_3 = new AutoMover({ cubeID }, TexMode::TEXTURE_LIGHTWOOD, 20.0f, 8.0f);
+	AutoMover *mover_3 = new AutoMover({torusID}, TexMode::TEXTURE_LIGHTWOOD, 15.0f, velocity(gen));
 	mover_3->setPosition(0.f, 5.0f, 0.f);
-	mover_3->setScale(1.5f, 1.5f, 1.5f);
+	mover_3->setScale(1.5f, 1.5f, 1.0f);
 	sceneObjects.push_back(mover_3);
 	collisionSystem.addCollider(mover_3->getCollider());
 
-	AutoMover* mover_4 = new AutoMover({ cubeID }, TexMode::TEXTURE_LIGHTWOOD, 20.0f, 8.0f);
+	AutoMover *mover_4 = new AutoMover({torusID}, TexMode::TEXTURE_LIGHTWOOD, 15.0f, velocity(gen));
 	mover_4->setPosition(0.f, 5.0f, 0.f);
-	mover_4->setScale(1.5f, 1.5f, 1.5f);
+	mover_4->setScale(1.5f, 1.2f, 1.0f);
 	sceneObjects.push_back(mover_4);
 	collisionSystem.addCollider(mover_4->getCollider());
 
@@ -854,6 +856,9 @@ void buildScene()
 		std::cerr << "Fonts loaded\n";
 
 	printf("\nNumber of Texture Objects is %d\n\n", renderer.TexObjArray.getNumTextureObjects());
+
+	// Collision System
+	collisionSystem.setDebugCubeMesh(cubeID);
 }
 
 // ------------------------------------------------------------
