@@ -1,3 +1,5 @@
+#pragma once
+
 #include "renderer.h"
 #include "mathUtility.h"
 #include "sceneObject.h"
@@ -17,8 +19,8 @@ private:
     float diffuse = 1.f;
     LightType type;
 
-    float position[4];
-    float direction[4];
+    float position[4] = {0.f, 0.f, 0.f, 1.f};
+    float direction[4] = {0.f, 0.f, 0.f, 0.f};
     float cutoff = 0.93f;
     bool active = true;
     bool debug = false;
@@ -26,6 +28,9 @@ private:
     float attConstant = 1.f;
     float attLinear = 0.1f;
     float attExp = 0.01f;
+
+    float yaw, pitch;
+    bool rotated = false;
 
     SceneObject* object = nullptr;
 
@@ -39,7 +44,7 @@ public:
 
     Light& setAmbient(float a) { ambient = a; return *this; }
     Light& setDiffuse(float d) { diffuse = d; return *this; }
-    Light& setCutoff (float c) { cutoff = c; return *this; }
+    Light& setCutoff (float c) { cutoff  = c; return *this; }
 
     Light& setColor(float c[4])
     {
@@ -49,13 +54,21 @@ public:
 
     Light& setPosition(float p[4])
     {
-        for (int i = 0; i < 4; i++) this->position[i] = p[i];
+        for (int i = 0; i < 3; i++) this->position[i] = p[i];
+        if (object != nullptr) object->setPosition(p[0], p[1], p[2]);
         return *this;
     }
 
     Light& setDirection(float d[4])
     {
         for (int i = 0; i < 4; i++) this->direction[i] = d[i];
+        return *this;
+    }
+
+    Light& setRotation(float yaw, float pitch) {
+        rotated = true;
+        this->yaw = yaw;
+        this->pitch = pitch;
         return *this;
     }
 
@@ -70,10 +83,12 @@ public:
     Light& createObject(Renderer &renderer, std::vector<SceneObject*>& scene) {
         if (type == LightType::POINTLIGHT) {
             MyMesh sphere = createSphere(0.1f, 20);
-            memset(sphere.mat.ambient, 0, 4 * sizeof(float));
-            memset(sphere.mat.diffuse, 0, 4 * sizeof(float));
-            memset(sphere.mat.specular, 0, 4 * sizeof(float));
-            memcpy(sphere.mat.emissive, color, 4 * sizeof(float));
+            for (int i = 0; i < 4; i++) {
+                sphere.mat.ambient[i] = 0.f;
+                sphere.mat.diffuse[i] = 0.f;
+                sphere.mat.specular[i] = 0.f;
+                sphere.mat.emissive[i] = color[i];
+            }
             int objectId = renderer.addMesh(std::move(sphere));
             object = new SceneObject(std::vector<int>{objectId}, TexMode::TEXTURE_NONE);
             object->setPosition(position[0], position[1], position[2]);
@@ -82,10 +97,12 @@ public:
 
         if (type == LightType::SPOTLIGHT) {
             MyMesh cone = createCone(0.2f, 0.1f, 20);
-            memset(cone.mat.ambient, 0, 4 * sizeof(float));
-            memset(cone.mat.diffuse, 0, 4 * sizeof(float));
-            memset(cone.mat.specular, 0, 4 * sizeof(float));
-            memcpy(cone.mat.emissive, color, 4 * sizeof(float));
+            for (int i = 0; i < 4; i++) {
+                cone.mat.ambient[i] = 0.f;
+                cone.mat.diffuse[i] = 0.f;
+                cone.mat.specular[i] = 0.f;
+                cone.mat.emissive[i] = color[i];
+            }
             int objectId = renderer.addMesh(std::move(cone));
             object = new SceneObject(std::vector<int>{objectId}, TexMode::TEXTURE_NONE);
             object->setPosition(position[0], position[1], position[2]);
@@ -96,6 +113,7 @@ public:
             scene.push_back(object);
         }
 
+        toggleObj();
         return *this;
     }
 
@@ -103,56 +121,43 @@ public:
     {
         if (!active || debug) return;
 
-        float localDirection[4];
+        float pos[4], dir[4];
         float localPosition[4];
+        float localDirection[4];
+        for (int i = 0; i < 4; i++) {
+            pos[i] = position[i];
+            dir[i] = direction[i];
+        }
+        if (rotated) {
+            float yawRad = (yaw + 90.f) * PI_F / 180.0f;
+            float pitchRad = pitch * PI_F / 180.0f;
+            dir[0] = std::cos(pitchRad) * std::cos(yawRad);
+            dir[1] = std::sin(pitchRad);
+            dir[2] = std::cos(pitchRad) * std::sin(-yawRad);
+        }
+        if (object && rotated) object->setRotation(yaw, pitch + 90.f, 0.f);
 
         if (type == LightType::DIRECTIONAL)
         {
-            mu.multMatrixPoint(gmu::VIEW, direction, localDirection);
+            mu.multMatrixPoint(gmu::VIEW, dir, localDirection);
             renderer.setDirectionalLight(color, ambient, diffuse, localDirection);
         }
         if (type == LightType::POINTLIGHT)
         {
-            mu.multMatrixPoint(gmu::VIEW, position, localPosition);
+            mu.multMatrixPoint(gmu::VIEW, pos, localPosition);
             renderer.setPointLight(color, ambient, diffuse, localPosition,
                                    attConstant, attLinear, attExp);
         }
         else if (type == LightType::SPOTLIGHT)
         {
-            mu.multMatrixPoint(gmu::VIEW, position, localPosition);
-            mu.multMatrixPoint(gmu::VIEW, direction, localDirection);
+            mu.multMatrixPoint(gmu::VIEW, pos, localPosition);
+            mu.multMatrixPoint(gmu::VIEW, dir, localDirection);
             renderer.setSpotLight(color, ambient, diffuse, localDirection, cutoff, localPosition,
                                   attConstant, attLinear, attExp);
         }
     }
 
-    std::string str() {
-        if (type == LightType::DIRECTIONAL) {
-            return "DIRECTIONAL";
-        }
-        if (type == LightType::POINTLIGHT) {
-            return "POINTLIGHT";
-        }
-        return "SPOTLIGHT";
-    }
-
-    std::string cstr() {
-        return  "{ " + std::to_string(color[0]) + 
-                ", " + std::to_string(color[1]) +
-                ", " + std::to_string(color[2]) + " }";
-    }
-
-    std::string dpstr() {
-        if (type == LightType::POINTLIGHT) {
-            return  "{ " + std::to_string(position[0]) + 
-                    ", " + std::to_string(position[1]) +
-                    ", " + std::to_string(position[2]) + " }";
-        } else {
-            return  "{ " + std::to_string(direction[0]) + 
-                    ", " + std::to_string(direction[1]) +
-                    ", " + std::to_string(direction[2]) + " }";
-        }
-    }
+    SceneObject* getObject() { return object; }
 
     Light& setDebug() { debug = !debug; return *this; }
     bool isDebug() { return debug; }

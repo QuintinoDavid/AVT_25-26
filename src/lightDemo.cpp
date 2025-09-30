@@ -88,7 +88,7 @@ struct {
 	bool fontLoaded = false;
 	bool daytime = true;
 	bool showFog = true;
-	bool showDebug = true;
+	bool showDebug = false;
 
 	unsigned int cubemap_dayID = 0;
 	unsigned int cubemap_nightID = 0;
@@ -541,9 +541,9 @@ void buildScene()
 	int cubeID = renderer.addMesh(amesh);
 
 	SceneObject* window = new SceneObject(std::vector<int>{cubeID}, TexMode::TEXTURE_WINDOW);
-	window->setPosition(0.f, 5.f, 10.f);
+	window->setPosition(-1.f, 5.f, 10.f);
 	window->setScale(10.f, 5.f, 2.f);
-	window->getCollider()->setBox(0.f, 5.f, 10.f, 10.0f, 10.0f, 12.0f);
+	window->getCollider()->setBox(-1.f, 5.f, 10.f, 9.0f, 10.0f, 12.0f);
 	transparentObjects.push_back(window);
 	collisionSystem.addCollider(window->getCollider());
 
@@ -615,13 +615,14 @@ void buildScene()
 
 	// Drone
 	Drone *drone = new Drone(cams[2], droneMeshIDs, TexMode::TEXTURE_LIGHTWOOD);
-	drone->setPosition(5.0f, 5.0f, 1.0f);
-	drone->setScale(2.f, 2.f, 2.f);
+	drone->setPosition(0.0f, 5.0f, 0.0f);
+	drone->setScale(1.6f, 2.f, 1.4f);
 	// drone->setScale(0.05f, 0.05f, 0.05f);
 	sceneObjects.push_back(drone);
 
 	
 	// === SCENE LIGHTS === //
+	sceneLights.reserve(50);
 	float whiteLight[4] = {1.f, 1.f, 1.f, 1.f};
 	float sunDirection[4] = {-1.f, -1.f, 0.001f, 0.f};
 	sceneLights.emplace_back(LightType::DIRECTIONAL, whiteLight)
@@ -637,12 +638,17 @@ void buildScene()
 	sceneLights.emplace_back(LightType::POINTLIGHT, redLight)
 		.setPosition(rLightPos).createObject(renderer, sceneObjects);
 
+
+	float magLight[4] = {1.f, 0.f, 1.f, 1.f};
 	float yellowLight[4] = {1.f, 1.f, 0.f, 1.f};
-	float yLightPos[4] = {2.5f, 4.f, 1.5f, 1.f};
-	float yLightDir[4] = {0.f, -1.f, 0.f, 0.f};
+	float hlightDir[4] = {0.f, 0.f, -1.f, 0.f};
 	sceneLights.emplace_back(LightType::SPOTLIGHT, yellowLight)
-		.setPosition(yLightPos).setDirection(yLightDir)
-		.createObject(renderer, sceneObjects);
+		.setDirection(hlightDir).createObject(renderer, sceneObjects);
+	Light& headlight_l = sceneLights.back();
+
+	sceneLights.emplace_back(LightType::SPOTLIGHT, magLight)
+		.setDirection(hlightDir).createObject(renderer, sceneObjects);
+	drone->addHeadlight(headlight_l, sceneLights.back());
 
 	float cyanLight[4] = {0.f, 1.f, 1.f, 1.f};
 	float cLightPos[4] = {1.f, 25.f, 0.f, 1.f};

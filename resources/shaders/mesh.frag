@@ -55,8 +55,8 @@ uniform sampler2D texmap_window;
 uniform sampler2D texmap_bbgrass;
 uniform sampler2D texmap_lightwood;
 
-const int MAX_POINT_LIGHTS = 6;
-const int MAX_SPOT_LIGHTS = 2;
+const int MAX_POINT_LIGHTS = 10;
+const int MAX_SPOT_LIGHTS = 4;
 
 uniform DirectionalLight directionalLight;
 uniform int directionalLightToggle;

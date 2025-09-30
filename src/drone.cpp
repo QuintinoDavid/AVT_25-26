@@ -1,6 +1,7 @@
 #include "sceneObject.h"
 #include "camera.cpp"
 #include "mathUtility.h"
+#include "light.h"
 #include <cmath>
 #include <algorithm>
 #include <iostream>
@@ -9,6 +10,8 @@ class Drone : public SceneObject
 {
 private:
 	Camera *cam = nullptr;
+	Light *headlight_l = nullptr;
+	Light *headlight_r = nullptr;
 
 	// Drone physics state
 	float velocity[3] = {0.0f, 0.0f, 0.0f}; // world-space velocity
@@ -113,12 +116,9 @@ private:
 		roll = desiredRoll;
 	}
 
-	void updateCamera(float prevPos[3])
+	void updateCamera()
 	{
-		(void)prevPos;
-
-		if (!cam)
-			return;
+		if (!cam) return;
 
 		SphericalCoords sc = cam->getSpherical();
 
@@ -135,17 +135,43 @@ private:
 		cam->setTarget(pos[0], pos[1], pos[2]);
 	}
 
+	void updateLights()
+	{
+		float yawDir = yaw / std::abs(yaw);
+		float cosYaw = std::cos(yaw * PI_F / 180.0f);
+		float sinYaw = std::sin(yaw * PI_F / 180.0f);
+		float cosPitch = std::cos(pitch * PI_F / 180.0f);
+		float sinPitch = std::sin(pitch * PI_F / 180.0f);
+
+		if (headlight_l != nullptr) {
+			float x =  -0.25f * cosYaw - 1.21f * sinYaw;
+			float y = (-0.25f * sinYaw + 1.21f * cosYaw) * sinPitch;
+			float z = (-0.25f * sinYaw + 1.21f * cosYaw) * cosPitch;
+			float position[4] = { pos[0] + x, pos[1] + yawDir*y, pos[2] - z, 1.f };
+			headlight_l->setRotation(yaw, pitch);
+			headlight_l->setPosition(position);
+		}
+		if (headlight_r != nullptr) {
+			float x =  0.25f * cosYaw - 1.21f * sinYaw;
+			float y = (0.25f * sinYaw + 1.21f * cosYaw) * sinPitch;
+			float z = (0.25f * sinYaw + 1.21f * cosYaw) * cosPitch;
+			float position[4] = { pos[0] + x, pos[1] + yawDir*y, pos[2] - z, 1.f };
+			headlight_r->setRotation(yaw, pitch);
+			headlight_r->setPosition(position);
+		}
+	}
+
 	void updateCollision()
 	{
-		float halfSizeX = 2.0f;
-		float halfSizeY = 1.4f;
-		float halfSizeZ = 2.0f;
+		float halfSizeX = 1.4f;
+		float halfSizeY = 0.6f;
+		float halfSizeZ = 1.8f;
 
 		// Since we want the bottom of the box at drone position,
 		// we offset the box vertically by half of its height
 		collider.setBox(
-			pos[0] - halfSizeX, pos[1], pos[2] - halfSizeZ,					  // min corner
-			pos[0] + halfSizeX, pos[1] + halfSizeY * 2.0f, pos[2] + halfSizeZ // max corner
+			pos[0] - halfSizeX, pos[1], pos[2] - halfSizeZ, // min corner
+			pos[0] + halfSizeX, pos[1] + halfSizeY, pos[2] + halfSizeZ // max corner
 		);
 	}
 
@@ -155,18 +181,27 @@ public:
 
 	void update(float deltaTime) override
 	{
-		float prevPos[3] = {pos[0], pos[1], pos[2]};
-
 		updateDrone(deltaTime);
 
 		updateCollision();
 
-		updateCamera(prevPos);
+		updateCamera();
+		updateLights();
 
 		// std::cout << "Drone Position: (" << pos[0] << ", " << pos[1] << ", " << pos[2] << ")\n";
 		// std::cout << "Velocity: (" << velocity[0] << ", " << velocity[1] << ", " << velocity[2] << ")\n";
 		// std::cout << "Pitch: " << pitch << ", Roll: " << roll << ", Yaw: " << yaw << "\n";
 		// std::cout << "-------------------------\n";
+	}
+
+	void addHeadlight(Light& light_left, Light& light_right) {
+		float position_l[4] = { pos[0] - 0.25f, pos[1], pos[2] - 1.21f, 1.f };
+		light_left.setPosition(position_l);
+		float position_r[4] = { pos[0] + 0.25f, pos[1], pos[2] - 1.21f, 1.f };
+		light_right.setPosition(position_r);
+
+		headlight_l = &light_left;
+		headlight_r = &light_right;
 	}
 
 	// --- Collision handling ---

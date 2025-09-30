@@ -106,8 +106,8 @@ private:
 	GLint pvm_loc, vm_loc, normal_loc, texMode_loc, fogColor_loc;
 	GLint tex_loc[MAX_TEXTURES];
 
-#define MAX_POINT_LIGHTS 6
-#define MAX_SPOT_LIGHTS 2
+#define MAX_POINT_LIGHTS 10
+#define MAX_SPOT_LIGHTS 4
 
 	struct
 	{
