@@ -38,11 +38,12 @@
 #include "drone.cpp"
 #include "autoMover.cpp"
 
-struct {
+struct
+{
 	int WindowHandle = 0;
 	int WinX = 1024, WinY = 695;
 	unsigned int FrameCount = 0;
-	const char* WinTitle = "AVT Project 2025 G13";
+	const char *WinTitle = "AVT Project 2025 G13";
 
 	// Mouse Tracking Variables
 	int startX, startY, tracking = 0;
@@ -52,23 +53,26 @@ struct {
 	bool fontLoaded = false;
 } GLOBAL;
 
+#ifndef RESOURCE_BASE
 #define RESOURCE_BASE "resources/"
-#define FONT_FOLDER   RESOURCE_BASE "fonts/"
-#define ASSET_FOLDER  RESOURCE_BASE "assets/"
+#endif
+#define FONT_FOLDER RESOURCE_BASE "fonts/"
+#define ASSET_FOLDER RESOURCE_BASE "assets/"
 #define SHADER_FOLDER RESOURCE_BASE "shaders/"
 
-struct {
-	const char* Drone_OBJ = ASSET_FOLDER "drone.obj";
-	const char* Stone_Tex = ASSET_FOLDER "stone.tga";
-	const char* Checker_Tex = ASSET_FOLDER "checker.png";
-	const char* Lightwood_Tex = ASSET_FOLDER "lightwood.tga";
+struct
+{
+	const char *Drone_OBJ = ASSET_FOLDER "drone.obj";
+	const char *Stone_Tex = ASSET_FOLDER "stone.tga";
+	const char *Checker_Tex = ASSET_FOLDER "checker.png";
+	const char *Lightwood_Tex = ASSET_FOLDER "lightwood.tga";
 
-	const char* Font_File = FONT_FOLDER "arial.ttf";
+	const char *Font_File = FONT_FOLDER "arial.ttf";
 
-	const char* Mesh_Vert = SHADER_FOLDER "mesh.vert";
-	const char* Mesh_Frag = SHADER_FOLDER "mesh.frag";
-	const char* Font_Vert = SHADER_FOLDER "ttf.vert";
-	const char* Font_Frag = SHADER_FOLDER "ttf.frag";
+	const char *Mesh_Vert = SHADER_FOLDER "mesh.vert";
+	const char *Mesh_Frag = SHADER_FOLDER "mesh.frag";
+	const char *Font_Vert = SHADER_FOLDER "ttf.vert";
+	const char *Font_Frag = SHADER_FOLDER "ttf.frag";
 } FILEPATH;
 
 gmu mu;
@@ -80,7 +84,6 @@ CollisionSystem collisionSystem;
 
 Camera *cams[3];
 int activeCam = 0;
-
 
 /// ::::::::::::::::::::::: CALLBACK FUNCTIONS ::::::::::::::::::::::: ///
 
@@ -431,8 +434,13 @@ void mouseWheel(int wheel, int direction, int x, int y)
 //
 
 // Build a simple city with buildings primitives
-void buildCity(MyMesh amesh, float amb1[], float diff1[], float spec1[], float nonemissive[],
-	 		   float shininess, int texcount, int cubeID) {
+void buildCity(int quadID, int cubeID, int coneID, int cylinderID, int torusID)
+{
+	// Scene objects
+	SceneObject *floor = new SceneObject(std::vector<int>{quadID}, 2);
+	floor->setRotation(0.0f, -90.0f, 0.0f);
+	floor->setScale(30.0f, 30.0f, 1.0f);
+	sceneObjects.push_back(floor);
 
 	SceneObject *tower_1 = new SceneObject(std::vector<int>{cubeID}, 2);
 	tower_1->setScale(2.0f, 10.0f, 2.0f);
@@ -443,42 +451,30 @@ void buildCity(MyMesh amesh, float amb1[], float diff1[], float spec1[], float n
 	tower_2->setScale(2.0f, 10.0f, 2.0f);
 	tower_2->setPosition(6.0f, 0.f, 5.f);
 	sceneObjects.push_back(tower_2);
-	
+
 	SceneObject *tower_rot_1 = new SceneObject(std::vector<int>{cubeID}, 2);
 	tower_rot_1->setRotation(30.0f, 0.0f, 0.0f);
-	tower_rot_1->setScale(2.0f, 6.0f, 2.0f);	
+	tower_rot_1->setScale(2.0f, 6.0f, 2.0f);
 	tower_rot_1->setPosition(12.0f, 0.f, 13.f);
 	sceneObjects.push_back(tower_rot_1);
 
 	SceneObject *tower_rot_2 = new SceneObject(std::vector<int>{cubeID}, 2);
 	tower_rot_2->setRotation(30.0f, 0.0f, 0.0f);
-	tower_rot_2->setScale(2.0f, 10.0f, 2.0f);	
+	tower_rot_2->setScale(2.0f, 10.0f, 2.0f);
 	tower_rot_2->setPosition(10.0f, 0.0f, 13.0f);
 	sceneObjects.push_back(tower_rot_2);
 
 	SceneObject *tower_rot_3 = new SceneObject(std::vector<int>{cubeID}, 2);
 	tower_rot_3->setRotation(30.0f, 0.0f, 0.0f);
-	tower_rot_3->setScale(2.0f, 10.0f, 2.0f);	
+	tower_rot_3->setScale(2.0f, 10.0f, 2.0f);
 	tower_rot_3->setPosition(8.0f, 0.0f, 13.0f);
 	sceneObjects.push_back(tower_rot_3);
 
 	SceneObject *tower_rot_4 = new SceneObject(std::vector<int>{cubeID}, 2);
 	tower_rot_4->setRotation(30.0f, 0.0f, 0.0f);
-	tower_rot_4->setScale(2.0f, 6.0f, 2.0f);	
+	tower_rot_4->setScale(2.0f, 6.0f, 2.0f);
 	tower_rot_4->setPosition(6.0f, 0.0f, 13.0f);
 	sceneObjects.push_back(tower_rot_4);
-
-	// create geometry and VAO of the cylinder
-	amesh = createCylinder(1.0f, 1.0f, 20);
-	memcpy(amesh.mat.ambient, amb1, 4 * sizeof(float));
-	memcpy(amesh.mat.diffuse, diff1, 4 * sizeof(float));
-	memcpy(amesh.mat.specular, spec1, 4 * sizeof(float));
-	memcpy(amesh.mat.emissive, nonemissive, 4 * sizeof(float));
-	amesh.mat.shininess = shininess;
-	amesh.mat.texCount = texcount;
-	renderer.myMeshes.push_back(amesh);
-	int cylinderID = renderer.addMesh(amesh);
-
 
 	SceneObject *cyl_tower_1 = new SceneObject(std::vector<int>{cylinderID}, 2);
 	cyl_tower_1->setScale(1.4f, 8.0f, 1.4f);
@@ -486,7 +482,7 @@ void buildCity(MyMesh amesh, float amb1[], float diff1[], float spec1[], float n
 	sceneObjects.push_back(cyl_tower_1);
 
 	SceneObject *cyl_tower_2 = new SceneObject(std::vector<int>{cylinderID}, 2);
-	cyl_tower_2->setScale(2.0f, 3.0f, 2.0f);	
+	cyl_tower_2->setScale(2.0f, 3.0f, 2.0f);
 	cyl_tower_2->setPosition(.0f, 1.5f, 12.f);
 	sceneObjects.push_back(cyl_tower_2);
 
@@ -510,31 +506,10 @@ void buildCity(MyMesh amesh, float amb1[], float diff1[], float spec1[], float n
 	cyl_tower_6->setPosition(-12.0f, 5.0f, 3.4f);
 	sceneObjects.push_back(cyl_tower_6);
 
-	amesh = createTorus(0.5f, 2.0f, 20, 20);
-	memcpy(amesh.mat.ambient, amb1, 4 * sizeof(float));
-	memcpy(amesh.mat.diffuse, diff1, 4 * sizeof(float));
-	memcpy(amesh.mat.specular, spec1, 4 * sizeof(float));
-	memcpy(amesh.mat.emissive, nonemissive, 4 * sizeof(float));
-	amesh.mat.shininess = shininess;
-	amesh.mat.texCount = texcount;
-	renderer.myMeshes.push_back(amesh);
-	int torusID = renderer.addMesh(amesh);
-
-
 	SceneObject *torus = new SceneObject(std::vector<int>{torusID}, 2);
-	torus->setScale(3.0f, 2.0f, 3.0f);
+	torus->setScale(3.0f, 3.0f, 3.0f);
 	torus->setPosition(-7.5f, 1.50f, -7.5f);
 	sceneObjects.push_back(torus);
-
-	amesh = createCone(1.0f, 1.0f, 5);
-	memcpy(amesh.mat.ambient, amb1, 4 * sizeof(float));
-	memcpy(amesh.mat.diffuse, diff1, 4 * sizeof(float));
-	memcpy(amesh.mat.specular, spec1, 4 * sizeof(float));
-	memcpy(amesh.mat.emissive, nonemissive, 4 * sizeof(float));
-	amesh.mat.shininess = shininess;
-	amesh.mat.texCount = texcount;
-	renderer.myMeshes.push_back(amesh);
-	int coneID = renderer.addMesh(amesh);
 
 	SceneObject *piramid_1 = new SceneObject(std::vector<int>{coneID}, 2);
 	piramid_1->setScale(2.5f, 5.0f, 2.5f);
@@ -562,19 +537,23 @@ void buildCity(MyMesh amesh, float amb1[], float diff1[], float spec1[], float n
 
 	// Lambda function to reduce code repetition
 	auto addBox = [&](SceneObject *obj,
-					float minX, float minY, float minZ,
-					float maxX, float maxY, float maxZ) {
+					  float minX, float minY, float minZ,
+					  float maxX, float maxY, float maxZ)
+	{
 		obj->getCollider()->setBox(minX, minY, minZ, maxX, maxY, maxZ);
 		collisionSystem.addCollider(obj->getCollider());
 	};
 
+	// Floor
+	addBox(floor, -30.0f, -0.1f, -30.0f, 30.0f, 0.0f, 30.0f);
+
 	// Cube based buildings (scale.x/z span full width, centered at position)
-	addBox(tower_1, 10.0f , 0.0f, 5.0f , 10.0f + 2.0f, 10.0f, 5.0f + 2.0f);
-	addBox(tower_2, 6.0f , 0.0f, 5.0f , 6.0f + 2.0f, 10.0f, 5.0f + 2.0f);
-	addBox(tower_rot_1, 12.0f , 0.0f, 13.0f , 12.0f + 2.0f, 6.0f, 13.0f + 2.0f);
-	addBox(tower_rot_2, 10.0f , 0.0f, 13.0f , 10.0f + 2.0f, 10.0f, 13.0f + 2.0f);
-	addBox(tower_rot_3, 8.0f , 0.0f, 13.0f , 8.0f + 2.0f, 10.0f, 13.0f + 2.0f);
-	addBox(tower_rot_4, 6.0f , 0.0f, 13.0f , 6.0f + 2.0f, 6.0f, 13.0f + 2.0f);
+	addBox(tower_1, 10.0f, 0.0f, 5.0f, 10.0f + 2.0f, 10.0f, 5.0f + 2.0f);
+	addBox(tower_2, 6.0f, 0.0f, 5.0f, 6.0f + 2.0f, 10.0f, 5.0f + 2.0f);
+	addBox(tower_rot_1, 12.0f, 0.0f, 13.0f, 12.0f + 2.0f, 6.0f, 13.0f + 2.0f);
+	addBox(tower_rot_2, 10.0f, 0.0f, 13.0f, 10.0f + 2.0f, 10.0f, 13.0f + 2.0f);
+	addBox(tower_rot_3, 8.0f, 0.0f, 13.0f, 8.0f + 2.0f, 10.0f, 13.0f + 2.0f);
+	addBox(tower_rot_4, 6.0f, 0.0f, 13.0f, 6.0f + 2.0f, 6.0f, 13.0f + 2.0f);
 
 	// Cylinders (approximated as boxes)
 	addBox(cyl_tower_1, -5.0f - 0.7f, 0.0f, 12.0f - 0.7f, -5.0f + 0.7f, 8.0f, 12.0f + 0.7f);
@@ -585,26 +564,19 @@ void buildCity(MyMesh amesh, float amb1[], float diff1[], float spec1[], float n
 	addBox(cyl_tower_6, -12.0f - 1.0f, 0.0f, 3.4f - 0.75f, -12.0f + 1.0f, 10.0f, 3.4f + 0.75f);
 
 	// Torus (broad bounding box; torus center elevated at y=1.5 with scale.y = 2)
-	addBox(torus, -7.5f - 1.5f, 0.5f, -7.5f - 1.5f,-7.5f + 1.5f, 2.5f, -7.5f + 1.5f);
+	addBox(torus, -7.5f - 1.5f, 0.5f, -7.5f - 1.5f, -7.5f + 1.5f, 2.5f, -7.5f + 1.5f);
 
 	// Cones (centered, base on ground)
 	addBox(piramid_1, 7.5f - 1.25f, 0.0f, -11.25f - 1.25f, 7.5f + 1.25f, 5.0f, -11.25f + 1.25f);
 	addBox(piramid_2, 11.25f - 1.25f, 0.0f, -7.5f - 1.25f, 11.25f + 1.25f, 5.0f, -7.5f + 1.25f);
 	addBox(piramid_3, 7.5f - 1.25f, 0.0f, -3.75f - 1.25f, 7.5f + 1.25f, 5.0f, -3.75f + 1.25f);
 	addBox(piramid_4, 3.75f - 1.25f, 0.0f, -7.5f - 1.25f, 3.75f + 1.25f, 5.0f, -7.5f + 1.25f);
-
 }
 
 // Create the scene objects, cameras and lights
 void buildScene()
 {
-	// Texture Object definition
-	renderer.TexObjArray.texture2D_Loader(FILEPATH.Stone_Tex);
-	renderer.TexObjArray.texture2D_Loader(FILEPATH.Checker_Tex);
-	renderer.TexObjArray.texture2D_Loader(FILEPATH.Lightwood_Tex);
-
 	// Cameras
-	// Create 3 cameras
 	for (int i = 0; i < 3; i++)
 		cams[i] = new Camera();
 
@@ -625,9 +597,15 @@ void buildScene()
 	cams[2]->setUp(0.0f, 1.0f, 0.0f);
 	cams[2]->setProjectionType(ProjectionType::Perspective);
 
+	// Texture Object definition
+	renderer.TexObjArray.texture2D_Loader(FILEPATH.Stone_Tex);
+	renderer.TexObjArray.texture2D_Loader(FILEPATH.Checker_Tex);
+	renderer.TexObjArray.texture2D_Loader(FILEPATH.Lightwood_Tex);
+
 	// Scene geometry with triangle meshes
 	MyMesh amesh;
 
+	// Material properties for the meshes
 	float amb1[] = {1.f, 1.f, 1.f, 1.f};
 	float diff1[] = {1.f, 1.f, 1.f, 1.f};
 	float spec[] = {0.8f, 0.8f, 0.8f, 1.0f};
@@ -636,6 +614,23 @@ void buildScene()
 	float nonemissive[] = {0.0f, 0.0f, 0.0f, 1.0f};
 	float shininess = 100.0f;
 	int texcount = 0;
+
+	// Light properties
+	float ambient = 0.01f;
+	float diffuse = 0.5f;
+	float whiteLight[4] = {1.f, 1.f, 1.f, 1.f};
+	float fortyfive[4] = {-1.f, -1.f, -1.f, 0.f};
+	float blueLight[4] = {0.f, 0.f, 1.f, 1.f};
+	float bLightPos[4] = {4.f, 2.f, 2.f, 1.f};
+	float redLight[4] = {1.f, 0.f, 0.f, 1.f};
+	float rLightPos[4] = {0.f, 2.f, 2.f, 1.f};
+	float greenLight[4] = {0.f, 1.f, 0.f, 1.f};
+	float yellowLight[4] = {1.f, 1.f, 0.f, 1.f};
+	float yLightPos[4] = {2.5f, 4.f, 1.5f, 1.f};
+	float yLightDir[4] = {0.f, -1.f, 0.f, 0.f};
+	float cyanLight[4] = {0.f, 1.f, 1.f, 1.f};
+	float cLightPos[4] = {2.f, 0.2f, -2.f, 1.f};
+	float cLightDir[4] = {0.f, 0.f, -1.f, 0.f};
 
 	// create geometry and VAO of the quad
 	amesh = createQuad(1.0f, 1.0f);
@@ -647,15 +642,6 @@ void buildScene()
 	amesh.mat.texCount = texcount;
 	int quadID = renderer.addMesh(amesh);
 
-	// create geometry and VAO of the sphere
-	amesh = createSphere(0.1f, 20);
-	memcpy(amesh.mat.ambient, amb1, 4 * sizeof(float));
-	memcpy(amesh.mat.diffuse, diff1, 4 * sizeof(float));
-	memcpy(amesh.mat.specular, spec, 4 * sizeof(float));
-	memcpy(amesh.mat.emissive, nonemissive, 4 * sizeof(float));
-	amesh.mat.shininess = shininess;
-	amesh.mat.texCount = texcount;
-
 	// create geometry and VAO of the cube
 	amesh = createCube();
 	memcpy(amesh.mat.ambient, amb1, 4 * sizeof(float));
@@ -665,6 +651,108 @@ void buildScene()
 	amesh.mat.shininess = shininess;
 	amesh.mat.texCount = texcount;
 	int cubeID = renderer.addMesh(amesh);
+
+	// create geometry and VAO of the cylinder
+	amesh = createCylinder(1.0f, 1.0f, 20);
+	memcpy(amesh.mat.ambient, amb1, 4 * sizeof(float));
+	memcpy(amesh.mat.diffuse, diff1, 4 * sizeof(float));
+	memcpy(amesh.mat.specular, spec1, 4 * sizeof(float));
+	memcpy(amesh.mat.emissive, nonemissive, 4 * sizeof(float));
+	amesh.mat.shininess = shininess;
+	amesh.mat.texCount = texcount;
+	int cylinderID = renderer.addMesh(amesh);
+
+	// create geometry and VAO of the torus
+	amesh = createTorus(0.5f, 1.0f, 40, 20);
+	memcpy(amesh.mat.ambient, amb1, 4 * sizeof(float));
+	memcpy(amesh.mat.diffuse, diff1, 4 * sizeof(float));
+	memcpy(amesh.mat.specular, spec1, 4 * sizeof(float));
+	memcpy(amesh.mat.emissive, nonemissive, 4 * sizeof(float));
+	amesh.mat.shininess = shininess;
+	amesh.mat.texCount = texcount;
+	int torusID = renderer.addMesh(amesh);
+
+	// create geometry and VAO of the cone
+	amesh = createCone(1.0f, 1.0f, 5);
+	memcpy(amesh.mat.ambient, amb1, 4 * sizeof(float));
+	memcpy(amesh.mat.diffuse, diff1, 4 * sizeof(float));
+	memcpy(amesh.mat.specular, spec1, 4 * sizeof(float));
+	memcpy(amesh.mat.emissive, nonemissive, 4 * sizeof(float));
+	amesh.mat.shininess = shininess;
+	amesh.mat.texCount = texcount;
+	int coneID = renderer.addMesh(amesh);
+
+	// create geometry and VAO of the blue light marker sphere
+	amesh = createSphere(0.1f, 20);
+	memcpy(amesh.mat.ambient, black, 4 * sizeof(float));
+	memcpy(amesh.mat.diffuse, black, 4 * sizeof(float));
+	memcpy(amesh.mat.specular, black, 4 * sizeof(float));
+	memcpy(amesh.mat.emissive, blueLight, 4 * sizeof(float));
+	amesh.mat.shininess = 0.0f;
+	int blueLightID = renderer.addMesh(amesh);
+
+	// create geometry and VAO of the red light marker sphere
+	amesh = createSphere(0.1f, 20);
+	memcpy(amesh.mat.ambient, black, 4 * sizeof(float));
+	memcpy(amesh.mat.diffuse, black, 4 * sizeof(float));
+	memcpy(amesh.mat.specular, black, 4 * sizeof(float));
+	memcpy(amesh.mat.emissive, redLight, 4 * sizeof(float));
+	amesh.mat.shininess = 0.0f;
+	int redLightID = renderer.addMesh(amesh);
+
+	// create geometry and VAO of the yellow light marker cone
+	amesh = createCone(0.2f, 0.1f, 10);
+	memcpy(amesh.mat.ambient, black, 4 * sizeof(float));
+	memcpy(amesh.mat.diffuse, black, 4 * sizeof(float));
+	memcpy(amesh.mat.specular, black, 4 * sizeof(float));
+	memcpy(amesh.mat.emissive, yellowLight, 4 * sizeof(float));
+	amesh.mat.shininess = 0.0f;
+	int yellowLightID = renderer.addMesh(amesh);
+
+	// create geometry and VAO of the cyan light marker cone
+	amesh = createCone(0.2f, 0.1f, 10);
+	memcpy(amesh.mat.ambient, black, 4 * sizeof(float));
+	memcpy(amesh.mat.diffuse, black, 4 * sizeof(float));
+	memcpy(amesh.mat.specular, black, 4 * sizeof(float));
+	memcpy(amesh.mat.emissive, cyanLight, 4 * sizeof(float));
+	amesh.mat.shininess = 0.0f;
+	int cyanLightID = renderer.addMesh(amesh);
+
+	// create geometry and VAO of the white light marker sphere (origin)
+	amesh = createSphere(0.1f, 20);
+	memcpy(amesh.mat.ambient, black, 4 * sizeof(float));
+	memcpy(amesh.mat.diffuse, black, 4 * sizeof(float));
+	memcpy(amesh.mat.specular, black, 4 * sizeof(float));
+	memcpy(amesh.mat.emissive, whiteLight, 4 * sizeof(float));
+	amesh.mat.shininess = 0.0f;
+	int whiteLightID = renderer.addMesh(amesh);
+
+	// create geometry and VAO of the red X axis marker cone
+	amesh = createCone(1.f, 0.05f, 4);
+	memcpy(amesh.mat.ambient, black, 4 * sizeof(float));
+	memcpy(amesh.mat.diffuse, black, 4 * sizeof(float));
+	memcpy(amesh.mat.specular, black, 4 * sizeof(float));
+	memcpy(amesh.mat.emissive, redLight, 4 * sizeof(float));
+	amesh.mat.shininess = 0.0f;
+	int redXunitID = renderer.addMesh(amesh);
+
+	// create geometry and VAO of the green Y axis marker cone
+	amesh = createCone(1.f, 0.05f, 4);
+	memcpy(amesh.mat.ambient, black, 4 * sizeof(float));
+	memcpy(amesh.mat.diffuse, black, 4 * sizeof(float));
+	memcpy(amesh.mat.specular, black, 4 * sizeof(float));
+	memcpy(amesh.mat.emissive, greenLight, 4 * sizeof(float));
+	amesh.mat.shininess = 0.0f;
+	int greenYunitID = renderer.addMesh(amesh);
+
+	// create geometry and VAO of the blue Z axis marker cone
+	amesh = createCone(1.f, 0.05f, 4);
+	memcpy(amesh.mat.ambient, black, 4 * sizeof(float));
+	memcpy(amesh.mat.diffuse, black, 4 * sizeof(float));
+	memcpy(amesh.mat.specular, black, 4 * sizeof(float));
+	memcpy(amesh.mat.emissive, blueLight, 4 * sizeof(float));
+	amesh.mat.shininess = 0.0f;
+	int blueZunitID = renderer.addMesh(amesh);
 
 	// Load drone model from file
 	std::vector<MyMesh> droneMeshs = createFromFile(FILEPATH.Drone_OBJ);
@@ -682,168 +770,17 @@ void buildScene()
 		droneMeshIDs.push_back(meshID);
 	}
 
-	// Scene Lights
-	float ambient = 0.01f;
-	float diffuse = 0.5f;
-
-	float whiteLight[4] = {1.f, 1.f, 1.f, 1.f};
-	float fortyfive[4] = {-1.f, -1.f, -1.f, 0.f};
-	Light *sun = new Light(whiteLight, 0.1f, diffuse, fortyfive);
-	sceneLights.push_back(sun);
-
-	float blueLight[4] = {0.f, 0.f, 1.f, 1.f};
-	float bLightPos[4] = {4.f, 2.f, 2.f, 1.f};
-	Light *bluePoint = new Light(blueLight, ambient, diffuse, bLightPos, 1.f, 0.1f, 0.01f);
-	sceneLights.push_back(bluePoint);
-
-	float redLight[4] = {1.f, 0.f, 0.f, 1.f};
-	float rLightPos[4] = {0.f, 2.f, 2.f, 1.f};
-	Light *redPoint = new Light(redLight, ambient, diffuse, rLightPos, 1.f, 0.1f, 0.01f);
-	sceneLights.push_back(redPoint);
-
-	float greenLight[4] = {0.f, 1.f, 0.f, 1.f};
-	float yellowLight[4] = {1.f, 1.f, 0.f, 1.f};
-	float yLightPos[4] = {2.5f, 4.f, 1.5f, 1.f};
-	float yLightDir[4] = {0.f, -1.f, 0.f, 0.f};
-	Light *yellowSpot = new Light(yellowLight, ambient, diffuse, yLightPos, yLightDir, 0.93f, 1.f, 0.1f, 0.01f);
-	sceneLights.push_back(yellowSpot);
-
-	float cyanLight[4] = {0.f, 1.f, 1.f, 1.f};
-	float cLightPos[4] = {2.f, 0.2f, -2.f, 1.f};
-	float cLightDir[4] = {0.f, 0.f, -1.f, 0.f};
-	Light *cyanSpot = new Light(cyanLight, ambient, diffuse, cLightPos, cLightDir, 0.93f, 1.f, 0.1f, 0.01f);
-	sceneLights.push_back(cyanSpot);
-
-	// Scene objects
-	// Floor
-	SceneObject *floor = new SceneObject(std::vector<int>{quadID}, 2);
-	floor->setRotation(0.0f, -90.0f, 0.0f);
-	floor->setScale(30.0f, 30.0f, 1.0f);
-	sceneObjects.push_back(floor);
+	// Build the city
+	buildCity(quadID, cubeID, coneID, cylinderID, torusID);
 
 	// Drone
 	Drone *drone = new Drone(cams[2], droneMeshIDs, 1);
 	drone->setPosition(5.0f, 5.0f, 1.0f);
 	drone->setScale(2.f, 2.f, 2.f);
-	// drone->setScale(0.05f, 0.05f, 0.05f);
 	sceneObjects.push_back(drone);
-
-	// Light markers
-	amesh = createSphere(0.1f, 20);
-	memcpy(amesh.mat.ambient, black, 4 * sizeof(float));
-	memcpy(amesh.mat.diffuse, black, 4 * sizeof(float));
-	memcpy(amesh.mat.specular, black, 4 * sizeof(float));
-	memcpy(amesh.mat.emissive, blueLight, 4 * sizeof(float));
-	amesh.mat.shininess = 0.f;
-	int blueLightID = renderer.addMesh(amesh);
-	SceneObject *bluePointLight = new SceneObject({blueLightID}, 0);
-	bluePointLight->setPosition(4.f, 2.f, 2.f);
-	sceneObjects.push_back(bluePointLight);
-
-	amesh = createSphere(0.1f, 20);
-	memcpy(amesh.mat.ambient, black, 4 * sizeof(float));
-	memcpy(amesh.mat.diffuse, black, 4 * sizeof(float));
-	memcpy(amesh.mat.specular, black, 4 * sizeof(float));
-	memcpy(amesh.mat.emissive, redLight, 4 * sizeof(float));
-	amesh.mat.shininess = 0.f;
-	int redLightID = renderer.addMesh(amesh);
-	SceneObject *redPointLight = new SceneObject({redLightID}, 0);
-	redPointLight->setPosition(0.f, 2.f, 2.f);
-	sceneObjects.push_back(redPointLight);
-
-	amesh = createCone(0.2f, 0.1f, 10);
-	memcpy(amesh.mat.ambient, black, 4 * sizeof(float));
-	memcpy(amesh.mat.diffuse, black, 4 * sizeof(float));
-	memcpy(amesh.mat.specular, black, 4 * sizeof(float));
-	memcpy(amesh.mat.emissive, yellowLight, 4 * sizeof(float));
-	amesh.mat.shininess = 0.f;
-	int yellowLightID = renderer.addMesh(amesh);
-	SceneObject *yellowSpotLight = new SceneObject({yellowLightID}, 0);
-	yellowSpotLight->setPosition(2.5f, 4.f, 1.5f);
-	sceneObjects.push_back(yellowSpotLight);
-
-	amesh = createCone(0.2f, 0.1f, 10);
-	memcpy(amesh.mat.ambient, black, 4 * sizeof(float));
-	memcpy(amesh.mat.diffuse, black, 4 * sizeof(float));
-	memcpy(amesh.mat.specular, black, 4 * sizeof(float));
-	memcpy(amesh.mat.emissive, cyanLight, 4 * sizeof(float));
-	amesh.mat.shininess = 0.f;
-	int cyanLightID = renderer.addMesh(amesh);
-	SceneObject *cyanSpotLight = new SceneObject({cyanLightID}, 0);
-	cyanSpotLight->setPosition(2.f, 0.2f, -2.f);
-	cyanSpotLight->setRotation(0.f, 90.f, 0.f);
-	sceneObjects.push_back(cyanSpotLight);
-
-	// === ORIGIN MARKER ===
-	amesh = createSphere(0.1f, 20);
-	memcpy(amesh.mat.ambient, black, 4 * sizeof(float));
-	memcpy(amesh.mat.diffuse, black, 4 * sizeof(float));
-	memcpy(amesh.mat.specular, black, 4 * sizeof(float));
-	memcpy(amesh.mat.emissive, whiteLight, 4 * sizeof(float));
-	amesh.mat.shininess = 0.f;
-	int whiteLightID = renderer.addMesh(amesh);
-	SceneObject *whiteSpot = new SceneObject({whiteLightID}, 0);
-	whiteSpot->setPosition(0.f, 0.f, 0.f);
-	sceneObjects.push_back(whiteSpot);
-
-	amesh = createCone(1.f, 0.05f, 4);
-	memcpy(amesh.mat.ambient, black, 4 * sizeof(float));
-	memcpy(amesh.mat.diffuse, black, 4 * sizeof(float));
-	memcpy(amesh.mat.specular, black, 4 * sizeof(float));
-	memcpy(amesh.mat.emissive, redLight, 4 * sizeof(float));
-	amesh.mat.shininess = 0.f;
-	int redXunitID = renderer.addMesh(amesh);
-	SceneObject *redXunit = new SceneObject({redXunitID}, 0);
-	redXunit->setPosition(0.f, 0.f, 0.f);
-	redXunit->setRotation(90.f, 90.f, 0.f);
-	sceneObjects.push_back(redXunit);
-
-	amesh = createCone(1.f, 0.05f, 4);
-	memcpy(amesh.mat.ambient, black, 4 * sizeof(float));
-	memcpy(amesh.mat.diffuse, black, 4 * sizeof(float));
-	memcpy(amesh.mat.specular, black, 4 * sizeof(float));
-	memcpy(amesh.mat.emissive, greenLight, 4 * sizeof(float));
-	amesh.mat.shininess = 0.f;
-	int greenYunitID = renderer.addMesh(amesh);
-	SceneObject *greenYunit = new SceneObject({greenYunitID}, 0);
-	greenYunit->setPosition(0.f, 0.f, 0.f);
-	greenYunit->setRotation(0.f, 0.f, 0.f);
-	sceneObjects.push_back(greenYunit);
-
-	amesh = createCone(1.f, 0.05f, 4);
-	memcpy(amesh.mat.ambient, black, 4 * sizeof(float));
-	memcpy(amesh.mat.diffuse, black, 4 * sizeof(float));
-	memcpy(amesh.mat.specular, black, 4 * sizeof(float));
-	memcpy(amesh.mat.emissive, blueLight, 4 * sizeof(float));
-	amesh.mat.shininess = 0.f;
-	int blueZunitID = renderer.addMesh(amesh);
-	SceneObject *blueZunit = new SceneObject({blueZunitID}, 0);
-	blueZunit->setPosition(0.f, 0.f, 0.f);
-	blueZunit->setRotation(0.f, 90.f, 0.f);
-	sceneObjects.push_back(blueZunit);
-
-	// Collision System
-	collisionSystem.setDebugCubeMesh(cubeID);
-
-	floor->getCollider()->setBox(-30.0f, -0.1f, -30.0f,
-								 30.0f, 0.0f, 30.0f);
 	collisionSystem.addCollider(drone->getCollider());
-	collisionSystem.addCollider(floor->getCollider());
-	
-	buildCity(amesh, amb1, diff1, spec1, nonemissive, shininess, texcount, cubeID);
 
-	// Moving object
-	// Texture not working	
-	MyMesh moverMesh = createSphere(2.0f, 16);
-	memcpy(moverMesh.mat.ambient, amb1, 4 * sizeof(float));
-	memcpy(moverMesh.mat.diffuse, amb1, 4 * sizeof(float));
-	memcpy(moverMesh.mat.specular, spec1, 4 * sizeof(float));
-	memcpy(moverMesh.mat.emissive, nonemissive, 4 * sizeof(float));
-	moverMesh.mat.shininess = 50.0f;
-	moverMesh.mat.texCount = 0;
-	int moverID = renderer.addMesh(moverMesh);
-
-
+	// Moving obstacles
 	AutoMover *mover_1 = new AutoMover({cubeID}, 1, 20.0f, 4.0f);
 	mover_1->setPosition(0.f, 5.0f, 0.f);
 	mover_1->setScale(1.0f, 1.0f, 1.0f);
@@ -867,6 +804,64 @@ void buildScene()
 	mover_4->setScale(1.5f, 1.5f, 1.5f);
 	sceneObjects.push_back(mover_4);
 	collisionSystem.addCollider(mover_4->getCollider());
+
+	// Lights
+	Light *sun = new Light(whiteLight, 0.1f, diffuse, fortyfive);
+	sceneLights.push_back(sun);
+
+	Light *bluePoint = new Light(blueLight, ambient, diffuse, bLightPos, 1.f, 0.1f, 0.01f);
+	sceneLights.push_back(bluePoint);
+
+	Light *redPoint = new Light(redLight, ambient, diffuse, rLightPos, 1.f, 0.1f, 0.01f);
+	sceneLights.push_back(redPoint);
+
+	Light *yellowSpot = new Light(yellowLight, ambient, diffuse, yLightPos, yLightDir, 0.93f, 1.f, 0.1f, 0.01f);
+	sceneLights.push_back(yellowSpot);
+
+	Light *cyanSpot = new Light(cyanLight, ambient, diffuse, cLightPos, cLightDir, 0.93f, 1.f, 0.1f, 0.01f);
+	sceneLights.push_back(cyanSpot);
+
+	// Light markers
+	SceneObject *bluePointLight = new SceneObject({blueLightID}, 0);
+	bluePointLight->setPosition(4.f, 2.f, 2.f);
+	sceneObjects.push_back(bluePointLight);
+
+	SceneObject *redPointLight = new SceneObject({redLightID}, 0);
+	redPointLight->setPosition(0.f, 2.f, 2.f);
+	sceneObjects.push_back(redPointLight);
+
+	SceneObject *yellowSpotLight = new SceneObject({yellowLightID}, 0);
+	yellowSpotLight->setPosition(2.5f, 4.f, 1.5f);
+	sceneObjects.push_back(yellowSpotLight);
+
+	SceneObject *cyanSpotLight = new SceneObject({cyanLightID}, 0);
+	cyanSpotLight->setPosition(2.f, 0.2f, -2.f);
+	cyanSpotLight->setRotation(0.f, 90.f, 0.f);
+	sceneObjects.push_back(cyanSpotLight);
+
+	// Origin and axis markers
+	SceneObject *whiteSpot = new SceneObject({whiteLightID}, 0);
+	whiteSpot->setPosition(0.f, 0.f, 0.f);
+	whiteSpot->setScale(0.5f, 0.5f, 0.5f);
+	sceneObjects.push_back(whiteSpot);
+
+	SceneObject *redXunit = new SceneObject({redXunitID}, 0);
+	redXunit->setPosition(0.f, 0.f, 0.f);
+	redXunit->setRotation(90.f, 90.f, 0.f);
+	sceneObjects.push_back(redXunit);
+
+	SceneObject *greenYunit = new SceneObject({greenYunitID}, 0);
+	greenYunit->setPosition(0.f, 0.f, 0.f);
+	greenYunit->setRotation(0.f, 0.f, 0.f);
+	sceneObjects.push_back(greenYunit);
+
+	SceneObject *blueZunit = new SceneObject({blueZunitID}, 0);
+	blueZunit->setPosition(0.f, 0.f, 0.f);
+	blueZunit->setRotation(0.f, 90.f, 0.f);
+	sceneObjects.push_back(blueZunit);
+
+	// Collider debug mesh (cube)
+	collisionSystem.setDebugCubeMesh(cubeID);
 
 	// The truetypeInit creates a texture object in TexObjArray for storing the fontAtlasTexture
 	GLOBAL.fontLoaded = renderer.truetypeInit(FILEPATH.Font_File);
