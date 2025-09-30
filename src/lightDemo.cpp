@@ -650,6 +650,12 @@ void buildScene()
 
 	// create geometry and VAO of the cube
 	amesh = createCube();
+	memcpy(amesh.mat.ambient, amb1, 4 * sizeof(float));
+	memcpy(amesh.mat.diffuse, diff1, 4 * sizeof(float));
+	memcpy(amesh.mat.specular, spec, 4 * sizeof(float));
+	memcpy(amesh.mat.emissive, blk, 4 * sizeof(float));
+	amesh.mat.shininess = 10.0f;
+	amesh.mat.texCount = texcount;
 	int cubeID = renderer.addMesh(amesh);
 
 	SceneObject* window = new SceneObject(std::vector<int>{cubeID}, TexMode::TEXTURE_WINDOW);
