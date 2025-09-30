@@ -123,8 +123,8 @@ private:
 		SphericalCoords sc = cam->getSpherical();
 
 		// Convert spherical to Cartesian offset
-		float alpha = sc.alpha * M_PI / 180.0f;
-		float beta = sc.beta * M_PI / 180.0f;
+		float alpha = sc.alpha * PI_F / 180.0f;
+		float beta = sc.beta * PI_F / 180.0f;
 
 		float x = sc.r * sin(alpha) * cos(beta);
 		float y = sc.r * sin(beta);
@@ -214,39 +214,35 @@ public:
 		const auto &droneBox = collider.getBox();
 
 		// Compute overlap on each axis
-		float overlapX = std::min(droneBox.max[0], box.max[0]) - std::max(droneBox.min[0], box.min[0]);
-		float overlapY = std::min(droneBox.max[1], box.max[1]) - std::max(droneBox.min[1], box.min[1]);
-		float overlapZ = std::min(droneBox.max[2], box.max[2]) - std::max(droneBox.min[2], box.min[2]);
+		float overlapX = std::max(0.0f, std::min(droneBox.max[0], box.max[0]) - std::max(droneBox.min[0], box.min[0]));
+		float overlapY = std::max(0.0f, std::min(droneBox.max[1], box.max[1]) - std::max(droneBox.min[1], box.min[1]));
+		float overlapZ = std::max(0.0f, std::min(droneBox.max[2], box.max[2]) - std::max(droneBox.min[2], box.min[2]));
 
 		// Find the smallest overlap axis (simplest way to resolve collision)
-		if (overlapY < overlapX && overlapY < overlapZ)
+		if (overlapX < overlapY && overlapX < overlapZ)
 		{
-			// Drone hit from above or below, stop vertical movement
-			if (velocity[1] < 0)
-			{						 // falling
-				pos[1] = box.max[1]; // place on top of floor
-			}
-			else
-			{ // hitting ceiling
-				pos[1] = box.min[1] - (droneBox.max[1] - droneBox.min[1]);
-			}
-			velocity[1] = 0;
-		}
-		else if (overlapX < overlapZ)
-		{
-			// Collision on X axis
+			// X axis resolution
 			if (velocity[0] > 0)
 				pos[0] -= overlapX;
-			else
+			else if (velocity[0] < 0)
 				pos[0] += overlapX;
 			velocity[0] = 0;
 		}
+		else if (overlapY < overlapZ)
+		{
+			// Y axis resolution
+			if (velocity[1] > 0)
+				pos[1] -= overlapY;
+			else if (velocity[1] < 0)
+				pos[1] += overlapY;
+			velocity[1] = 0;
+		}
 		else
 		{
-			// Collision on Z axis
+			// Z axis resolution
 			if (velocity[2] > 0)
 				pos[2] -= overlapZ;
-			else
+			else if (velocity[2] < 0)
 				pos[2] += overlapZ;
 			velocity[2] = 0;
 		}

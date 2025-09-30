@@ -214,7 +214,6 @@ MyMesh createCube()
 	glBufferSubData(GL_ARRAY_BUFFER, sizeof(vertices), sizeof(normals), normals);
 	glBufferSubData(GL_ARRAY_BUFFER, sizeof(vertices) + sizeof(normals), sizeof(texCoords), texCoords);
 
-
 	glEnableVertexAttribArray(Shader::VERTEX_COORD_ATTRIB);
 	glVertexAttribPointer(Shader::VERTEX_COORD_ATTRIB, 4, GL_FLOAT, 0, 0, 0);
 	glEnableVertexAttribArray(Shader::NORMAL_ATTRIB);
@@ -235,6 +234,7 @@ MyMesh createCube()
 
 MyMesh createSphere(float radius, int divisions)
 {
+
 	float *p = circularProfile(-3.14159f / 2.0f, 3.14159f / 2.0f, radius, divisions);
 	return (computeVAO(divisions + 1, p + 2, p, divisions * 2, 0.0f));
 }
@@ -262,9 +262,10 @@ MyMesh createCylinder(float height, float radius, int sides)
 
 MyMesh createCone(float height, float baseRadius, int sides)
 {
-	//float v[2];
-	//v[0] = -baseRadius;
-	//v[1] = height;
+
+	float v[2];
+	v[0] = -baseRadius;
+	v[1] = height;
 
 	std::vector<float> p;
 
@@ -402,7 +403,7 @@ MyMesh computeVAO(int numP, float *p, float *points, int sides, float smoothCos)
 	// Compute and store vertices
 
 	int numSides = sides;
-	// int numPoints = numP + 2;
+	int numPoints = numP + 2;
 
 	int numVertices = numP * 2 * (numSides + 1);
 
@@ -476,8 +477,7 @@ MyMesh computeVAO(int numP, float *p, float *points, int sides, float smoothCos)
 		}
 	}
 
-	std::vector<unsigned int> faceIndex((numP - 1) * (numSides + 1) * 6);
-	// unsigned int *faceIndex = (unsigned int *)malloc(sizeof(unsigned int) * (numP - 1) * (numSides + 1) * 6);
+	unsigned int *faceIndex = (unsigned int *)malloc(sizeof(unsigned int) * (numP - 1) * (numSides + 1) * 6);
 	unsigned int count = 0;
 	k = 0;
 	for (int i = 0; i < numP - 1; ++i)
@@ -504,7 +504,7 @@ MyMesh computeVAO(int numP, float *p, float *points, int sides, float smoothCos)
 	amesh.numIndexes = count;
 
 	/* Calculate the tangent array*/
-	ComputeTangentArray(numVertices, vertex, normal, textco, amesh.numIndexes, faceIndex.data(), tangent);
+	ComputeTangentArray(numVertices, vertex, normal, textco, amesh.numIndexes, faceIndex, tangent);
 
 	glGenVertexArrays(1, &(amesh.vao));
 	glBindVertexArray(amesh.vao);
@@ -528,7 +528,7 @@ MyMesh computeVAO(int numP, float *p, float *points, int sides, float smoothCos)
 
 	// index buffer
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, VboId[1]);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int) * amesh.numIndexes, faceIndex.data(), GL_STATIC_DRAW);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int) * amesh.numIndexes, faceIndex, GL_STATIC_DRAW);
 
 	// unbind the VAO
 	glBindVertexArray(0);

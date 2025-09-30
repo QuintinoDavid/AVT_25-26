@@ -36,6 +36,8 @@
 #include "sceneObject.h"
 #include "light.h"
 #include "drone.cpp"
+#include "autoMover.cpp"
+
 
 #define RESOURCE_BASE "resources/"
 #define FONT_FOLDER   RESOURCE_BASE "fonts/"
@@ -105,6 +107,7 @@ CollisionSystem collisionSystem;
 Camera *cams[3];
 int activeCam = 0;
 
+
 /// ::::::::::::::::::::::: CALLBACK FUNCTIONS ::::::::::::::::::::::: ///
 
 void timer(int value)
@@ -127,7 +130,7 @@ void refresh(int value)
 {
 	(void)value;
 	glutPostRedisplay();
-	glutTimerFunc(1000 / 100, refresh, 0);
+	glutTimerFunc(1000 / 60, refresh, 0);
 }
 
 void gameloop(void)
@@ -234,7 +237,7 @@ void renderSim(void)
 	*/
 
 	for (auto& light: sceneLights) light.render(renderer, mu);
-	for (auto obj: sceneObjects) obj->render(renderer, mu);
+	for (auto& obj: sceneObjects) obj->render(renderer, mu);
 
 	// Render skybox
 	mu.pushMatrix(gmu::MODEL);
@@ -314,10 +317,7 @@ void processKeys(unsigned char key, int xx, int yy)
 	(void)xx;
 	(void)yy;
 
-	for (size_t i = 0; i < sceneObjects.size(); i++)
-	{
-		sceneObjects[i]->handleKeyInput(key);
-	}
+	for (auto obj : sceneObjects) obj->handleKeyInput(key);
 
 	switch (key)
 	{
@@ -376,10 +376,7 @@ void processKeysUp(unsigned char key, int xx, int yy)
 	(void)xx;
 	(void)yy;
 
-	for (size_t i = 0; i < sceneObjects.size(); i++)
-	{
-		sceneObjects[i]->handleKeyRelease(key);
-	}
+	for (auto obj : sceneObjects) obj->handleKeyRelease(key);
 }
 
 void processSpecialKeys(int key, int xx, int yy)
@@ -387,10 +384,7 @@ void processSpecialKeys(int key, int xx, int yy)
 	(void)xx;
 	(void)yy;
 
-	for (size_t i = 0; i < sceneObjects.size(); i++)
-	{
-		sceneObjects[i]->handleSpecialKeyInput(key);
-	}
+	for (auto obj : sceneObjects) obj->handleSpecialKeyInput(key);
 }
 
 void processSpecialKeysUp(int key, int xx, int yy)
@@ -398,10 +392,7 @@ void processSpecialKeysUp(int key, int xx, int yy)
 	(void)xx;
 	(void)yy;
 
-	for (size_t i = 0; i < sceneObjects.size(); i++)
-	{
-		sceneObjects[i]->handleSpecialKeyRelease(key);
-	}
+	for (auto obj : sceneObjects) obj->handleSpecialKeyRelease(key);
 }
 
 // ------------------------------------------------------------
@@ -482,19 +473,148 @@ void mouseWheel(int wheel, int direction, int x, int y)
 // Scene building with basic geometry
 //
 
+// Build a simple city with buildings primitives
+void buildCity(int quadID, int cubeID, int coneID, int cylinderID, int torusID)
+{
+	// Scene objects
+	SceneObject* floor = new SceneObject(std::vector<int>{quadID}, 2);
+	floor->setRotation(0.0f, -90.0f, 0.0f);
+	floor->setScale(1000.0f, 1.0f, 1000.0f);
+	sceneObjects.push_back(floor);
+
+	SceneObject* tower_1 = new SceneObject(std::vector<int>{cubeID}, 2);
+	tower_1->setScale(2.0f, 10.0f, 2.0f);
+	tower_1->setPosition(10.0f, 0.f, 5.f);
+	sceneObjects.push_back(tower_1);
+
+	SceneObject* tower_2 = new SceneObject(std::vector<int>{cubeID}, 2);
+	tower_2->setScale(2.0f, 10.0f, 2.0f);
+	tower_2->setPosition(6.0f, 0.f, 5.f);
+	sceneObjects.push_back(tower_2);
+
+	SceneObject* tower_rot_1 = new SceneObject(std::vector<int>{cubeID}, 2);
+	tower_rot_1->setRotation(30.0f, 0.0f, 0.0f);
+	tower_rot_1->setScale(2.0f, 6.0f, 2.0f);
+	tower_rot_1->setPosition(12.0f, 0.f, 13.f);
+	sceneObjects.push_back(tower_rot_1);
+
+	SceneObject* tower_rot_2 = new SceneObject(std::vector<int>{cubeID}, 2);
+	tower_rot_2->setRotation(30.0f, 0.0f, 0.0f);
+	tower_rot_2->setScale(2.0f, 10.0f, 2.0f);
+	tower_rot_2->setPosition(10.0f, 0.0f, 13.0f);
+	sceneObjects.push_back(tower_rot_2);
+
+	SceneObject* tower_rot_3 = new SceneObject(std::vector<int>{cubeID}, 2);
+	tower_rot_3->setRotation(30.0f, 0.0f, 0.0f);
+	tower_rot_3->setScale(2.0f, 10.0f, 2.0f);
+	tower_rot_3->setPosition(8.0f, 0.0f, 13.0f);
+	sceneObjects.push_back(tower_rot_3);
+
+	SceneObject* tower_rot_4 = new SceneObject(std::vector<int>{cubeID}, 2);
+	tower_rot_4->setRotation(30.0f, 0.0f, 0.0f);
+	tower_rot_4->setScale(2.0f, 6.0f, 2.0f);
+	tower_rot_4->setPosition(6.0f, 0.0f, 13.0f);
+	sceneObjects.push_back(tower_rot_4);
+
+	SceneObject* cyl_tower_1 = new SceneObject(std::vector<int>{cylinderID}, 2);
+	cyl_tower_1->setScale(1.4f, 8.0f, 1.4f);
+	cyl_tower_1->setPosition(-5.0f, 4.f, 12.f);
+	sceneObjects.push_back(cyl_tower_1);
+
+	SceneObject* cyl_tower_2 = new SceneObject(std::vector<int>{cylinderID}, 2);
+	cyl_tower_2->setScale(2.0f, 3.0f, 2.0f);
+	cyl_tower_2->setPosition(.0f, 1.5f, 12.f);
+	sceneObjects.push_back(cyl_tower_2);
+
+	SceneObject* cyl_tower_3 = new SceneObject(std::vector<int>{cylinderID}, 2);
+	cyl_tower_3->setScale(1.0f, 12.0f, 1.0f);
+	cyl_tower_3->setPosition(-3.0f, 6.0f, 3.f);
+	sceneObjects.push_back(cyl_tower_3);
+
+	SceneObject* cyl_tower_4 = new SceneObject(std::vector<int>{cylinderID}, 2);
+	cyl_tower_4->setScale(2.0f, 10.0f, 1.5f);
+	cyl_tower_4->setPosition(-12.0f, 5.0f, 10.f);
+	sceneObjects.push_back(cyl_tower_4);
+
+	SceneObject* cyl_tower_5 = new SceneObject(std::vector<int>{cylinderID}, 2);
+	cyl_tower_5->setScale(2.0f, 10.0f, 1.5f);
+	cyl_tower_5->setPosition(-12.0f, 5.0f, 6.5f);
+	sceneObjects.push_back(cyl_tower_5);
+
+	SceneObject* cyl_tower_6 = new SceneObject(std::vector<int>{cylinderID}, 2);
+	cyl_tower_6->setScale(2.0f, 10.0f, 1.5f);
+	cyl_tower_6->setPosition(-12.0f, 5.0f, 3.4f);
+	sceneObjects.push_back(cyl_tower_6);
+
+	SceneObject* torus = new SceneObject(std::vector<int>{torusID}, 2);
+	torus->setScale(3.0f, 3.0f, 3.0f);
+	torus->setPosition(-7.5f, 1.50f, -7.5f);
+	sceneObjects.push_back(torus);
+
+	SceneObject* piramid_1 = new SceneObject(std::vector<int>{coneID}, 2);
+	piramid_1->setScale(2.5f, 5.0f, 2.5f);
+	piramid_1->setPosition(7.5f, 0.0f, -11.25f);
+	sceneObjects.push_back(piramid_1);
+
+	SceneObject* piramid_2 = new SceneObject(std::vector<int>{coneID}, 2);
+	piramid_2->setScale(2.5f, 5.0f, 2.5f);
+	piramid_2->setPosition(11.25f, 0.0f, -7.5f);
+	sceneObjects.push_back(piramid_2);
+
+	SceneObject* piramid_3 = new SceneObject(std::vector<int>{coneID}, 2);
+	piramid_3->setScale(2.5f, 5.0f, 2.5f);
+	piramid_3->setPosition(7.5f, 0.0f, -3.75f);
+	sceneObjects.push_back(piramid_3);
+
+	SceneObject* piramid_4 = new SceneObject(std::vector<int>{coneID}, 2);
+	piramid_4->setScale(2.5f, 5.0f, 2.5f);
+	piramid_4->setPosition(3.75f, 0.0f, -7.5f);
+	sceneObjects.push_back(piramid_4);
+
+	// --------------------------------------------------------------------
+	// Collider registration for city buildings (AABB approximations)
+	// Ignore rotation of buildings for simplicity
+
+	// Lambda function to reduce code repetition
+	auto addBox = [&](SceneObject* obj,
+		float minX, float minY, float minZ,
+		float maxX, float maxY, float maxZ)
+		{
+			obj->getCollider()->setBox(minX, minY, minZ, maxX, maxY, maxZ);
+			collisionSystem.addCollider(obj->getCollider());
+		};
+
+	// Floor
+	addBox(floor, -1000.0f, -0.1f, -1000.0f, 1000.0f, 0.0f, 1000.0f);
+
+	// Cube based buildings (scale.x/z span full width, centered at position)
+	addBox(tower_1, 10.0f, 0.0f, 5.0f, 10.0f + 2.0f, 10.0f, 5.0f + 2.0f);
+	addBox(tower_2, 6.0f, 0.0f, 5.0f, 6.0f + 2.0f, 10.0f, 5.0f + 2.0f);
+	addBox(tower_rot_1, 12.0f, 0.0f, 13.0f, 12.0f + 2.0f, 6.0f, 13.0f + 2.0f);
+	addBox(tower_rot_2, 10.0f, 0.0f, 13.0f, 10.0f + 2.0f, 10.0f, 13.0f + 2.0f);
+	addBox(tower_rot_3, 8.0f, 0.0f, 13.0f, 8.0f + 2.0f, 10.0f, 13.0f + 2.0f);
+	addBox(tower_rot_4, 6.0f, 0.0f, 13.0f, 6.0f + 2.0f, 6.0f, 13.0f + 2.0f);
+
+	// Cylinders (approximated as boxes)
+	addBox(cyl_tower_1, -5.0f - 0.7f, 0.0f, 12.0f - 0.7f, -5.0f + 0.7f, 8.0f, 12.0f + 0.7f);
+	addBox(cyl_tower_2, 0.0f - 1.0f, 0.0f, 12.0f - 1.0f, 0.0f + 1.0f, 3.0f, 12.0f + 1.0f);
+	addBox(cyl_tower_3, -3.0f - 0.5f, 0.0f, 3.0f - 0.5f, -3.0f + 0.5f, 12.0f, 3.0f + 0.5f);
+	addBox(cyl_tower_4, -12.0f - 1.0f, 0.0f, 10.0f - 0.75f, -12.0f + 1.0f, 10.0f, 10.0f + 0.75f);
+	addBox(cyl_tower_5, -12.0f - 1.0f, 0.0f, 6.5f - 0.75f, -12.0f + 1.0f, 10.0f, 6.5f + 0.75f);
+	addBox(cyl_tower_6, -12.0f - 1.0f, 0.0f, 3.4f - 0.75f, -12.0f + 1.0f, 10.0f, 3.4f + 0.75f);
+
+	// Torus (broad bounding box; torus center elevated at y=1.5 with scale.y = 2)
+	addBox(torus, -7.5f - 1.5f, 0.5f, -7.5f - 1.5f, -7.5f + 1.5f, 2.5f, -7.5f + 1.5f);
+
+	// Cones (centered, base on ground)
+	addBox(piramid_1, 7.5f - 1.25f, 0.0f, -11.25f - 1.25f, 7.5f + 1.25f, 5.0f, -11.25f + 1.25f);
+	addBox(piramid_2, 11.25f - 1.25f, 0.0f, -7.5f - 1.25f, 11.25f + 1.25f, 5.0f, -7.5f + 1.25f);
+	addBox(piramid_3, 7.5f - 1.25f, 0.0f, -3.75f - 1.25f, 7.5f + 1.25f, 5.0f, -3.75f + 1.25f);
+	addBox(piramid_4, 3.75f - 1.25f, 0.0f, -7.5f - 1.25f, 3.75f + 1.25f, 5.0f, -7.5f + 1.25f);
+}
+
 void buildScene()
 {
-	// Texture Object definition
-	renderer.TexObjArray.texture2D_Loader(FILEPATH.Stone_Tex);
-	renderer.TexObjArray.texture2D_Loader(FILEPATH.Floor_Tex);
-	renderer.TexObjArray.texture2D_Loader(FILEPATH.Window_Tex);
-	renderer.TexObjArray.texture2D_Loader(FILEPATH.BBGrass_Tex, false);
-	renderer.TexObjArray.texture2D_Loader(FILEPATH.Lightwood_Tex);
-	GLOBAL.cubemap_dayID = renderer.TexObjArray.getNumTextureObjects();
-	renderer.TexObjArray.textureCubeMap_Loader(FILEPATH.Skybox_Cubemap_Day);
-	GLOBAL.cubemap_nightID = renderer.TexObjArray.getNumTextureObjects();
-	renderer.TexObjArray.textureCubeMap_Loader(FILEPATH.Skybox_Cubemap_Night);
-
 	// Top Orthogonal Camera
 	cams[0] = new Camera();
 	cams[0]->setPosition(0.0f, 30.0f, 0.0f);
@@ -515,6 +635,17 @@ void buildScene()
 	cams[2]->setUp(0.0f, 1.0f, 0.0f);
 	cams[2]->setProjectionType(ProjectionType::Perspective);
 
+	// Texture Object definition
+	renderer.TexObjArray.texture2D_Loader(FILEPATH.Stone_Tex);
+	renderer.TexObjArray.texture2D_Loader(FILEPATH.Floor_Tex);
+	renderer.TexObjArray.texture2D_Loader(FILEPATH.Window_Tex);
+	renderer.TexObjArray.texture2D_Loader(FILEPATH.BBGrass_Tex, false);
+	renderer.TexObjArray.texture2D_Loader(FILEPATH.Lightwood_Tex);
+	GLOBAL.cubemap_dayID = renderer.TexObjArray.getNumTextureObjects();
+	renderer.TexObjArray.textureCubeMap_Loader(FILEPATH.Skybox_Cubemap_Day);
+	GLOBAL.cubemap_nightID = renderer.TexObjArray.getNumTextureObjects();
+	renderer.TexObjArray.textureCubeMap_Loader(FILEPATH.Skybox_Cubemap_Night);
+
 	// Scene geometry with triangle meshes
 	MyMesh amesh;
 
@@ -526,15 +657,6 @@ void buildScene()
 	float shininess = 100.0f;
 	int texcount = 0;
 
-	// create geometry and VAO of the floor quad
-	amesh = createQuad(1.0f, 1.0f);
-	memcpy(amesh.mat.ambient, amb1, 4 * sizeof(float));
-	memcpy(amesh.mat.diffuse, diff1, 4 * sizeof(float));
-	memcpy(amesh.mat.specular, spec, 4 * sizeof(float));
-	memcpy(amesh.mat.emissive, nonemissive, 4 * sizeof(float));
-	amesh.mat.shininess = 1.f;
-	amesh.mat.texCount = texcount;
-	int quadID = renderer.addMesh(amesh);
 
 	// create geometry and VAO of the cube
 	amesh = createCube();
@@ -547,7 +669,7 @@ void buildScene()
 	transparentObjects.push_back(window);
 	collisionSystem.addCollider(window->getCollider());
 
-	// Load drone model from file
+	// Load grass model from file
 	std::vector<MyMesh> grassMesh = createFromFile(FILEPATH.Grass_OBJ);
 	std::vector<int> grassMeshIDs;
 	for (size_t i = 0; i < grassMesh.size(); i++)
@@ -562,12 +684,13 @@ void buildScene()
 		int meshID = renderer.addMesh(grassMesh[i]);
 		grassMeshIDs.push_back(meshID);
 	}
-
+	// random grass
 	const int grassCount = 100;
+	const float rangeRadius = 10.f;
 	for (int i = 1; i < grassCount; i++) {
 		SceneObject* grass = new SceneObject(grassMeshIDs, TexMode::TEXTURE_BBGRASS);
 		const float goldRatio = PI_F * (3 - std::sqrt(5));
-		const float radius = std::sqrt(i / (float)grassCount) * 10.f;
+		const float radius = std::sqrt(i / (float)grassCount) * rangeRadius;
 		const float angle = i * goldRatio;
 
 		grass->setPosition(std::cos(angle) * radius, 0.f, 30 + std::sin(angle) * radius);
@@ -590,6 +713,24 @@ void buildScene()
 		sceneObjects.push_back(torus);
 	}
 
+
+	// Scene objects
+
+	// create geometry and VAO of the floor quad
+	amesh = createQuad(1.0f, 1.0f);
+	memcpy(amesh.mat.ambient, amb1, 4 * sizeof(float));
+	memcpy(amesh.mat.diffuse, diff1, 4 * sizeof(float));
+	memcpy(amesh.mat.specular, spec, 4 * sizeof(float));
+	memcpy(amesh.mat.emissive, nonemissive, 4 * sizeof(float));
+	amesh.mat.shininess = 1.f;
+	amesh.mat.texCount = texcount;
+	int quadID = renderer.addMesh(amesh);
+	// Floor
+	SceneObject *floor = new SceneObject(std::vector<int>{quadID}, TexMode::TEXTURE_FLOOR);
+	floor->setRotation(0.0f, -90.0f, 0.0f);
+	floor->setScale(1000.0f, 1000.0f, 1.0f);
+	sceneObjects.push_back(floor);
+
 	// Load drone model from file
 	std::vector<MyMesh> droneMeshs = createFromFile(FILEPATH.Drone_OBJ);
 	std::vector<int> droneMeshIDs;
@@ -605,24 +746,64 @@ void buildScene()
 		int meshID = renderer.addMesh(droneMeshs[i]);
 		droneMeshIDs.push_back(meshID);
 	}
-
-	// Scene objects
-	// Floor
-	SceneObject *floor = new SceneObject(std::vector<int>{quadID}, TexMode::TEXTURE_FLOOR);
-	floor->setRotation(0.0f, -90.0f, 0.0f);
-	floor->setScale(1000.0f, 1000.0f, 1.0f);
-	sceneObjects.push_back(floor);
-
 	// Drone
 	Drone *drone = new Drone(cams[2], droneMeshIDs, TexMode::TEXTURE_LIGHTWOOD);
 	drone->setPosition(0.0f, 5.0f, 0.0f);
 	drone->setScale(1.6f, 2.f, 1.4f);
-	// drone->setScale(0.05f, 0.05f, 0.05f);
 	sceneObjects.push_back(drone);
+	collisionSystem.addCollider(drone->getCollider());
+
+	// create geometry and VAO of the cone
+	amesh = createCone(1.0f, 1.0f, 5);
+	memcpy(amesh.mat.ambient, amb1, 4 * sizeof(float));
+	memcpy(amesh.mat.diffuse, diff1, 4 * sizeof(float));
+	memcpy(amesh.mat.specular, spec1, 4 * sizeof(float));
+	memcpy(amesh.mat.emissive, nonemissive, 4 * sizeof(float));
+	amesh.mat.shininess = shininess;
+	amesh.mat.texCount = texcount;
+	int coneID = renderer.addMesh(amesh);
+
+	// create geometry and VAO of the cylinder
+	amesh = createCylinder(1.0f, 1.0f, 20);
+	memcpy(amesh.mat.ambient, amb1, 4 * sizeof(float));
+	memcpy(amesh.mat.diffuse, diff1, 4 * sizeof(float));
+	memcpy(amesh.mat.specular, spec1, 4 * sizeof(float));
+	memcpy(amesh.mat.emissive, nonemissive, 4 * sizeof(float));
+	amesh.mat.shininess = shininess;
+	amesh.mat.texCount = texcount;
+	int cylinderID = renderer.addMesh(amesh);
+
+	buildCity(quadID, cubeID, coneID, cylinderID, torusID);
+
+	// Moving obstacles
+	AutoMover* mover_1 = new AutoMover({ cubeID }, 1, 20.0f, 4.0f);
+	mover_1->setPosition(0.f, 5.0f, 0.f);
+	mover_1->setScale(1.0f, 1.0f, 1.0f);
+	sceneObjects.push_back(mover_1);
+	collisionSystem.addCollider(mover_1->getCollider());
+
+	AutoMover* mover_2 = new AutoMover({ cubeID }, 0, 20.0f, 6.0f);
+	mover_2->setPosition(0.f, 5.0f, 0.f);
+	mover_2->setScale(0.7f, 0.7f, 0.7f);
+	sceneObjects.push_back(mover_2);
+	collisionSystem.addCollider(mover_2->getCollider());
+
+	AutoMover* mover_3 = new AutoMover({ cubeID }, 1, 20.0f, 8.0f);
+	mover_3->setPosition(0.f, 5.0f, 0.f);
+	mover_3->setScale(1.5f, 1.5f, 1.5f);
+	sceneObjects.push_back(mover_3);
+	collisionSystem.addCollider(mover_3->getCollider());
+
+	AutoMover* mover_4 = new AutoMover({ cubeID }, 0, 20.0f, 8.0f);
+	mover_4->setPosition(0.f, 5.0f, 0.f);
+	mover_4->setScale(1.5f, 1.5f, 1.5f);
+	sceneObjects.push_back(mover_4);
+	collisionSystem.addCollider(mover_4->getCollider());
 
 	
 	// === SCENE LIGHTS === //
 	sceneLights.reserve(50);
+
 	float whiteLight[4] = {1.f, 1.f, 1.f, 1.f};
 	float sunDirection[4] = {-1.f, -1.f, 0.001f, 0.f};
 	sceneLights.emplace_back(LightType::DIRECTIONAL, whiteLight)
@@ -638,10 +819,9 @@ void buildScene()
 	sceneLights.emplace_back(LightType::POINTLIGHT, redLight)
 		.setPosition(rLightPos).createObject(renderer, sceneObjects);
 
-
-	float magLight[4] = {1.f, 0.f, 1.f, 1.f};
-	float yellowLight[4] = {1.f, 1.f, 0.f, 1.f};
-	float hlightDir[4] = {0.f, 0.f, -1.f, 0.f};
+	float magLight[4] = { 1.f, 0.f, 1.f, 1.f };
+	float yellowLight[4] = { 1.f, 1.f, 0.f, 1.f };
+	float hlightDir[4] = { 0.f, 0.f, -1.f, 0.f };
 	sceneLights.emplace_back(LightType::SPOTLIGHT, yellowLight)
 		.setDirection(hlightDir).createObject(renderer, sceneObjects);
 	Light& headlight_l = sceneLights.back();
@@ -682,11 +862,6 @@ void buildScene()
 
 	// Collision System
 	collisionSystem.setDebugCubeMesh(cubeID);
-
-	floor->getCollider()->setBox(-30.0f, -0.1f, -30.0f,
-								 30.0f, 0.0f, 30.0f);
-	collisionSystem.addCollider(drone->getCollider());
-	collisionSystem.addCollider(floor->getCollider());
 
 	// The truetypeInit creates a texture object in TexObjArray for storing the fontAtlasTexture
 	GLOBAL.fontLoaded = renderer.truetypeInit(FILEPATH.Font_File);
