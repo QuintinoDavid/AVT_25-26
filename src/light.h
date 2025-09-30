@@ -29,7 +29,7 @@ private:
     float attLinear = 0.1f;
     float attExp = 0.01f;
 
-    float yaw, pitch;
+    float yaw = 0.f, pitch = 0.f;
     bool rotated = false;
 
     SceneObject* object = nullptr;
@@ -106,8 +106,8 @@ public:
             int objectId = renderer.addMesh(std::move(cone));
             object = new SceneObject(std::vector<int>{objectId}, TexMode::TEXTURE_NONE);
             object->setPosition(position[0], position[1], position[2]);
-            float yaw = std::atan2(direction[0], direction[2]) * (180.f / M_PI);
-            float pitch = std::asin(-direction[1]) * (180.f / M_PI);
+            float yaw = std::atan2(direction[0], direction[2]) * (180.f / PI_F);
+            float pitch = std::asin(-direction[1]) * (180.f / PI_F);
             object->setRotation(yaw, pitch - 90.f, 0.f);
             if (debug) object->setScale(0.5f, 5.f, 0.5f);
             scene.push_back(object);

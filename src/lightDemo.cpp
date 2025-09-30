@@ -83,7 +83,7 @@ struct {
 	const char* WinTitle = "AVT Project 2025 G13";
 
 	// Mouse Tracking Variables
-	int startX, startY, tracking = 0;
+	int startX = 0, startY = 0, tracking = 0;
 	float mouseSensitivity = 0.3f;
 
 	float lastTime = glutGet(GLUT_ELAPSED_TIME);
@@ -214,7 +214,7 @@ void renderSim(void)
 	else
 	{
 		float ratio = (1.0f * GLOBAL.WinX) / GLOBAL.WinY;
-		mu.perspective(53.13f, ratio, 0.1f, 1000.0f);
+		mu.perspective(53.13f, ratio, 0.1f, 800.0f);
 	}
 
 	float fogColor[] = { 0.f, 0.f, 0.f, 0.f };
@@ -263,8 +263,7 @@ void renderSim(void)
 	collisionSystem.checkCollisions();
 
 	// Render debug information
-	if (GLOBAL.showDebug)
-		collisionSystem.showDebug(renderer, mu);
+	if (GLOBAL.showDebug) collisionSystem.showDebug(renderer, mu);
 
 	// Render text (bitmap fonts) in screen coordinates. So use ortoghonal projection with viewport coordinates.
 	// Each glyph quad texture needs just one byte color channel: 0 in background and 1 for the actual character pixels. Use it for alpha blending
@@ -477,96 +476,91 @@ void mouseWheel(int wheel, int direction, int x, int y)
 void buildCity(int quadID, int cubeID, int coneID, int cylinderID, int torusID)
 {
 	// Scene objects
-	SceneObject* floor = new SceneObject(std::vector<int>{quadID}, 2);
+	SceneObject* floor = new SceneObject(std::vector<int>{quadID}, TexMode::TEXTURE_FLOOR);
 	floor->setRotation(0.0f, -90.0f, 0.0f);
-	floor->setScale(1000.0f, 1.0f, 1000.0f);
+	floor->setScale(2000.0f, 2000.0f, 10.0f);
 	sceneObjects.push_back(floor);
 
-	SceneObject* tower_1 = new SceneObject(std::vector<int>{cubeID}, 2);
+	SceneObject* tower_1 = new SceneObject(std::vector<int>{cubeID}, TexMode::TEXTURE_STONE);
 	tower_1->setScale(2.0f, 10.0f, 2.0f);
 	tower_1->setPosition(10.0f, 0.f, 5.f);
 	sceneObjects.push_back(tower_1);
 
-	SceneObject* tower_2 = new SceneObject(std::vector<int>{cubeID}, 2);
+	SceneObject* tower_2 = new SceneObject(std::vector<int>{cubeID}, TexMode::TEXTURE_STONE);
 	tower_2->setScale(2.0f, 10.0f, 2.0f);
 	tower_2->setPosition(6.0f, 0.f, 5.f);
 	sceneObjects.push_back(tower_2);
 
-	SceneObject* tower_rot_1 = new SceneObject(std::vector<int>{cubeID}, 2);
+	SceneObject* tower_rot_1 = new SceneObject(std::vector<int>{cubeID}, TexMode::TEXTURE_STONE);
 	tower_rot_1->setRotation(30.0f, 0.0f, 0.0f);
 	tower_rot_1->setScale(2.0f, 6.0f, 2.0f);
 	tower_rot_1->setPosition(12.0f, 0.f, 13.f);
 	sceneObjects.push_back(tower_rot_1);
 
-	SceneObject* tower_rot_2 = new SceneObject(std::vector<int>{cubeID}, 2);
+	SceneObject* tower_rot_2 = new SceneObject(std::vector<int>{cubeID}, TexMode::TEXTURE_STONE);
 	tower_rot_2->setRotation(30.0f, 0.0f, 0.0f);
 	tower_rot_2->setScale(2.0f, 10.0f, 2.0f);
 	tower_rot_2->setPosition(10.0f, 0.0f, 13.0f);
 	sceneObjects.push_back(tower_rot_2);
 
-	SceneObject* tower_rot_3 = new SceneObject(std::vector<int>{cubeID}, 2);
+	SceneObject* tower_rot_3 = new SceneObject(std::vector<int>{cubeID}, TexMode::TEXTURE_STONE);
 	tower_rot_3->setRotation(30.0f, 0.0f, 0.0f);
 	tower_rot_3->setScale(2.0f, 10.0f, 2.0f);
 	tower_rot_3->setPosition(8.0f, 0.0f, 13.0f);
 	sceneObjects.push_back(tower_rot_3);
 
-	SceneObject* tower_rot_4 = new SceneObject(std::vector<int>{cubeID}, 2);
+	SceneObject* tower_rot_4 = new SceneObject(std::vector<int>{cubeID}, TexMode::TEXTURE_STONE);
 	tower_rot_4->setRotation(30.0f, 0.0f, 0.0f);
 	tower_rot_4->setScale(2.0f, 6.0f, 2.0f);
 	tower_rot_4->setPosition(6.0f, 0.0f, 13.0f);
 	sceneObjects.push_back(tower_rot_4);
 
-	SceneObject* cyl_tower_1 = new SceneObject(std::vector<int>{cylinderID}, 2);
+	SceneObject* cyl_tower_1 = new SceneObject(std::vector<int>{cylinderID}, TexMode::TEXTURE_STONE);
 	cyl_tower_1->setScale(1.4f, 8.0f, 1.4f);
 	cyl_tower_1->setPosition(-5.0f, 4.f, 12.f);
 	sceneObjects.push_back(cyl_tower_1);
 
-	SceneObject* cyl_tower_2 = new SceneObject(std::vector<int>{cylinderID}, 2);
+	SceneObject* cyl_tower_2 = new SceneObject(std::vector<int>{cylinderID}, TexMode::TEXTURE_STONE);
 	cyl_tower_2->setScale(2.0f, 3.0f, 2.0f);
 	cyl_tower_2->setPosition(.0f, 1.5f, 12.f);
 	sceneObjects.push_back(cyl_tower_2);
 
-	SceneObject* cyl_tower_3 = new SceneObject(std::vector<int>{cylinderID}, 2);
+	SceneObject* cyl_tower_3 = new SceneObject(std::vector<int>{cylinderID}, TexMode::TEXTURE_STONE);
 	cyl_tower_3->setScale(1.0f, 12.0f, 1.0f);
 	cyl_tower_3->setPosition(-3.0f, 6.0f, 3.f);
 	sceneObjects.push_back(cyl_tower_3);
 
-	SceneObject* cyl_tower_4 = new SceneObject(std::vector<int>{cylinderID}, 2);
+	SceneObject* cyl_tower_4 = new SceneObject(std::vector<int>{cylinderID}, TexMode::TEXTURE_STONE);
 	cyl_tower_4->setScale(2.0f, 10.0f, 1.5f);
 	cyl_tower_4->setPosition(-12.0f, 5.0f, 10.f);
 	sceneObjects.push_back(cyl_tower_4);
 
-	SceneObject* cyl_tower_5 = new SceneObject(std::vector<int>{cylinderID}, 2);
+	SceneObject* cyl_tower_5 = new SceneObject(std::vector<int>{cylinderID}, TexMode::TEXTURE_STONE);
 	cyl_tower_5->setScale(2.0f, 10.0f, 1.5f);
 	cyl_tower_5->setPosition(-12.0f, 5.0f, 6.5f);
 	sceneObjects.push_back(cyl_tower_5);
 
-	SceneObject* cyl_tower_6 = new SceneObject(std::vector<int>{cylinderID}, 2);
+	SceneObject* cyl_tower_6 = new SceneObject(std::vector<int>{cylinderID}, TexMode::TEXTURE_STONE);
 	cyl_tower_6->setScale(2.0f, 10.0f, 1.5f);
 	cyl_tower_6->setPosition(-12.0f, 5.0f, 3.4f);
 	sceneObjects.push_back(cyl_tower_6);
 
-	SceneObject* torus = new SceneObject(std::vector<int>{torusID}, 2);
-	torus->setScale(3.0f, 3.0f, 3.0f);
-	torus->setPosition(-7.5f, 1.50f, -7.5f);
-	sceneObjects.push_back(torus);
-
-	SceneObject* piramid_1 = new SceneObject(std::vector<int>{coneID}, 2);
+	SceneObject* piramid_1 = new SceneObject(std::vector<int>{coneID}, TexMode::TEXTURE_STONE);
 	piramid_1->setScale(2.5f, 5.0f, 2.5f);
 	piramid_1->setPosition(7.5f, 0.0f, -11.25f);
 	sceneObjects.push_back(piramid_1);
 
-	SceneObject* piramid_2 = new SceneObject(std::vector<int>{coneID}, 2);
+	SceneObject* piramid_2 = new SceneObject(std::vector<int>{coneID}, TexMode::TEXTURE_STONE);
 	piramid_2->setScale(2.5f, 5.0f, 2.5f);
 	piramid_2->setPosition(11.25f, 0.0f, -7.5f);
 	sceneObjects.push_back(piramid_2);
 
-	SceneObject* piramid_3 = new SceneObject(std::vector<int>{coneID}, 2);
+	SceneObject* piramid_3 = new SceneObject(std::vector<int>{coneID}, TexMode::TEXTURE_STONE);
 	piramid_3->setScale(2.5f, 5.0f, 2.5f);
 	piramid_3->setPosition(7.5f, 0.0f, -3.75f);
 	sceneObjects.push_back(piramid_3);
 
-	SceneObject* piramid_4 = new SceneObject(std::vector<int>{coneID}, 2);
+	SceneObject* piramid_4 = new SceneObject(std::vector<int>{coneID}, TexMode::TEXTURE_STONE);
 	piramid_4->setScale(2.5f, 5.0f, 2.5f);
 	piramid_4->setPosition(3.75f, 0.0f, -7.5f);
 	sceneObjects.push_back(piramid_4);
@@ -585,7 +579,7 @@ void buildCity(int quadID, int cubeID, int coneID, int cylinderID, int torusID)
 		};
 
 	// Floor
-	addBox(floor, -1000.0f, -0.1f, -1000.0f, 1000.0f, 0.0f, 1000.0f);
+	addBox(floor, -2000.0f, -0.1f, -1000.0f, 1000.0f, 0.0f, 2000.0f);
 
 	// Cube based buildings (scale.x/z span full width, centered at position)
 	addBox(tower_1, 10.0f, 0.0f, 5.0f, 10.0f + 2.0f, 10.0f, 5.0f + 2.0f);
@@ -602,9 +596,6 @@ void buildCity(int quadID, int cubeID, int coneID, int cylinderID, int torusID)
 	addBox(cyl_tower_4, -12.0f - 1.0f, 0.0f, 10.0f - 0.75f, -12.0f + 1.0f, 10.0f, 10.0f + 0.75f);
 	addBox(cyl_tower_5, -12.0f - 1.0f, 0.0f, 6.5f - 0.75f, -12.0f + 1.0f, 10.0f, 6.5f + 0.75f);
 	addBox(cyl_tower_6, -12.0f - 1.0f, 0.0f, 3.4f - 0.75f, -12.0f + 1.0f, 10.0f, 3.4f + 0.75f);
-
-	// Torus (broad bounding box; torus center elevated at y=1.5 with scale.y = 2)
-	addBox(torus, -7.5f - 1.5f, 0.5f, -7.5f - 1.5f, -7.5f + 1.5f, 2.5f, -7.5f + 1.5f);
 
 	// Cones (centered, base on ground)
 	addBox(piramid_1, 7.5f - 1.25f, 0.0f, -11.25f - 1.25f, 7.5f + 1.25f, 5.0f, -11.25f + 1.25f);
@@ -649,14 +640,13 @@ void buildScene()
 	// Scene geometry with triangle meshes
 	MyMesh amesh;
 
-	float amb1[] = {1.f, 1.f, 1.f, 1.f};
-	float diff1[] = {1.f, 1.f, 1.f, 1.f};
-	float spec[] = {0.8f, 0.8f, 0.8f, 1.0f};
-	float spec1[] = {0.3f, 0.3f, 0.3f, 1.0f};
-	float nonemissive[] = {0.0f, 0.0f, 0.0f, 1.0f};
+	float amb1[] = { 1.f, 1.f, 1.f, 1.f };
+	float diff1[] = { 1.f, 1.f, 1.f, 1.f };
+	float spec[] = { 0.8f, 0.8f, 0.8f, 1.f };
+	float spec1[] = { 0.3f, 0.3f, 0.3f, 1.f };
+	float blk[] = { 0.f, 0.f, 0.f, 1.f };
 	float shininess = 100.0f;
 	int texcount = 0;
-
 
 	// create geometry and VAO of the cube
 	amesh = createCube();
@@ -674,12 +664,11 @@ void buildScene()
 	std::vector<int> grassMeshIDs;
 	for (size_t i = 0; i < grassMesh.size(); i++)
 	{
-		float amb[] = {10.f, 10.f, 10.f, 1.f};
-		float blk[] = {0.f, 0.f, 0.f, 1.f};
+		float amb[] = { 10.f, 10.f, 10.f, 1.f };
 		// set material properties
-		memcpy(grassMesh[i].mat.ambient, amb, 4 * sizeof(float));
-		memcpy(grassMesh[i].mat.diffuse, blk, 4 * sizeof(float));
-		memcpy(grassMesh[i].mat.specular, blk, 4 * sizeof(float));
+		memcpy(grassMesh[i].mat.ambient, amb1, 4 * sizeof(float));
+		memcpy(grassMesh[i].mat.diffuse, amb1, 4 * sizeof(float));
+		memcpy(grassMesh[i].mat.specular, amb1, 4 * sizeof(float));
 		memcpy(grassMesh[i].mat.emissive, blk, 4 * sizeof(float));
 		int meshID = renderer.addMesh(grassMesh[i]);
 		grassMeshIDs.push_back(meshID);
@@ -703,7 +692,7 @@ void buildScene()
 	memcpy(amesh.mat.ambient, amb1, 4 * sizeof(float));
 	memcpy(amesh.mat.diffuse, diff1, 4 * sizeof(float));
 	memcpy(amesh.mat.specular, spec, 4 * sizeof(float));
-	memcpy(amesh.mat.emissive, nonemissive, 4 * sizeof(float));
+	memcpy(amesh.mat.emissive, blk, 4 * sizeof(float));
 	amesh.mat.shininess = shininess * 2;
 	int torusID = renderer.addMesh(amesh);
 	for (int i = 1; i < 10; i++) {
@@ -713,7 +702,6 @@ void buildScene()
 		sceneObjects.push_back(torus);
 	}
 
-
 	// Scene objects
 
 	// create geometry and VAO of the floor quad
@@ -721,15 +709,10 @@ void buildScene()
 	memcpy(amesh.mat.ambient, amb1, 4 * sizeof(float));
 	memcpy(amesh.mat.diffuse, diff1, 4 * sizeof(float));
 	memcpy(amesh.mat.specular, spec, 4 * sizeof(float));
-	memcpy(amesh.mat.emissive, nonemissive, 4 * sizeof(float));
+	memcpy(amesh.mat.emissive, blk, 4 * sizeof(float));
 	amesh.mat.shininess = 1.f;
 	amesh.mat.texCount = texcount;
 	int quadID = renderer.addMesh(amesh);
-	// Floor
-	SceneObject *floor = new SceneObject(std::vector<int>{quadID}, TexMode::TEXTURE_FLOOR);
-	floor->setRotation(0.0f, -90.0f, 0.0f);
-	floor->setScale(1000.0f, 1000.0f, 1.0f);
-	sceneObjects.push_back(floor);
 
 	// Load drone model from file
 	std::vector<MyMesh> droneMeshs = createFromFile(FILEPATH.Drone_OBJ);
@@ -740,14 +723,14 @@ void buildScene()
 		memcpy(droneMeshs[i].mat.ambient, amb1, 4 * sizeof(float));
 		memcpy(droneMeshs[i].mat.diffuse, diff1, 4 * sizeof(float));
 		memcpy(droneMeshs[i].mat.specular, spec1, 4 * sizeof(float));
-		memcpy(droneMeshs[i].mat.emissive, nonemissive, 4 * sizeof(float));
+		memcpy(droneMeshs[i].mat.emissive, blk, 4 * sizeof(float));
 		droneMeshs[i].mat.shininess = shininess;
 		droneMeshs[i].mat.texCount = texcount;
 		int meshID = renderer.addMesh(droneMeshs[i]);
 		droneMeshIDs.push_back(meshID);
 	}
 	// Drone
-	Drone *drone = new Drone(cams[2], droneMeshIDs, TexMode::TEXTURE_LIGHTWOOD);
+	Drone* drone = new Drone(cams[2], droneMeshIDs, TexMode::TEXTURE_LIGHTWOOD);
 	drone->setPosition(0.0f, 5.0f, 0.0f);
 	drone->setScale(1.6f, 2.f, 1.4f);
 	sceneObjects.push_back(drone);
@@ -758,7 +741,7 @@ void buildScene()
 	memcpy(amesh.mat.ambient, amb1, 4 * sizeof(float));
 	memcpy(amesh.mat.diffuse, diff1, 4 * sizeof(float));
 	memcpy(amesh.mat.specular, spec1, 4 * sizeof(float));
-	memcpy(amesh.mat.emissive, nonemissive, 4 * sizeof(float));
+	memcpy(amesh.mat.emissive, blk, 4 * sizeof(float));
 	amesh.mat.shininess = shininess;
 	amesh.mat.texCount = texcount;
 	int coneID = renderer.addMesh(amesh);
@@ -768,7 +751,7 @@ void buildScene()
 	memcpy(amesh.mat.ambient, amb1, 4 * sizeof(float));
 	memcpy(amesh.mat.diffuse, diff1, 4 * sizeof(float));
 	memcpy(amesh.mat.specular, spec1, 4 * sizeof(float));
-	memcpy(amesh.mat.emissive, nonemissive, 4 * sizeof(float));
+	memcpy(amesh.mat.emissive, blk, 4 * sizeof(float));
 	amesh.mat.shininess = shininess;
 	amesh.mat.texCount = texcount;
 	int cylinderID = renderer.addMesh(amesh);
@@ -776,89 +759,89 @@ void buildScene()
 	buildCity(quadID, cubeID, coneID, cylinderID, torusID);
 
 	// Moving obstacles
-	AutoMover* mover_1 = new AutoMover({ cubeID }, 1, 20.0f, 4.0f);
+	AutoMover* mover_1 = new AutoMover({ cubeID }, TexMode::TEXTURE_LIGHTWOOD, 20.0f, 4.0f);
 	mover_1->setPosition(0.f, 5.0f, 0.f);
 	mover_1->setScale(1.0f, 1.0f, 1.0f);
 	sceneObjects.push_back(mover_1);
 	collisionSystem.addCollider(mover_1->getCollider());
 
-	AutoMover* mover_2 = new AutoMover({ cubeID }, 0, 20.0f, 6.0f);
+	AutoMover* mover_2 = new AutoMover({ cubeID }, TexMode::TEXTURE_LIGHTWOOD, 20.0f, 6.0f);
 	mover_2->setPosition(0.f, 5.0f, 0.f);
 	mover_2->setScale(0.7f, 0.7f, 0.7f);
 	sceneObjects.push_back(mover_2);
 	collisionSystem.addCollider(mover_2->getCollider());
 
-	AutoMover* mover_3 = new AutoMover({ cubeID }, 1, 20.0f, 8.0f);
+	AutoMover* mover_3 = new AutoMover({ cubeID }, TexMode::TEXTURE_LIGHTWOOD, 20.0f, 8.0f);
 	mover_3->setPosition(0.f, 5.0f, 0.f);
 	mover_3->setScale(1.5f, 1.5f, 1.5f);
 	sceneObjects.push_back(mover_3);
 	collisionSystem.addCollider(mover_3->getCollider());
 
-	AutoMover* mover_4 = new AutoMover({ cubeID }, 0, 20.0f, 8.0f);
+	AutoMover* mover_4 = new AutoMover({ cubeID }, TexMode::TEXTURE_LIGHTWOOD, 20.0f, 8.0f);
 	mover_4->setPosition(0.f, 5.0f, 0.f);
 	mover_4->setScale(1.5f, 1.5f, 1.5f);
 	sceneObjects.push_back(mover_4);
 	collisionSystem.addCollider(mover_4->getCollider());
 
-	
+
 	// === SCENE LIGHTS === //
 	sceneLights.reserve(50);
 
-	float whiteLight[4] = {1.f, 1.f, 1.f, 1.f};
-	float sunDirection[4] = {-1.f, -1.f, 0.001f, 0.f};
-	sceneLights.emplace_back(LightType::DIRECTIONAL, whiteLight)
-		.setDirection(sunDirection);
+	float whiteLight[4] = { 1.f, 1.f, 1.f, 1.f };
+	float sunDirection[4] = { -1.f, -1.f, 0.001f, 0.f };
+	sceneLights.emplace_back(LightType::DIRECTIONAL, whiteLight);
+	sceneLights.back().setDirection(sunDirection);
 
 	float blueLight[4] = {0.f, 0.f, 1.f, 1.f};
 	float bLightPos[4] = {4.f, 2.f, 2.f, 1.f};
-	sceneLights.emplace_back(LightType::POINTLIGHT, blueLight)
-		.setPosition(bLightPos).createObject(renderer, sceneObjects);
+	sceneLights.emplace_back(LightType::POINTLIGHT, blueLight);
+	sceneLights.back().setPosition(bLightPos).createObject(renderer, sceneObjects);
 
 	float redLight[4] = {1.f, 0.f, 0.f, 1.f};
 	float rLightPos[4] = {0.f, 2.f, 2.f, 1.f};
-	sceneLights.emplace_back(LightType::POINTLIGHT, redLight)
-		.setPosition(rLightPos).createObject(renderer, sceneObjects);
+	sceneLights.emplace_back(LightType::POINTLIGHT, redLight);
+	sceneLights.back().setPosition(rLightPos).createObject(renderer, sceneObjects);
 
 	float magLight[4] = { 1.f, 0.f, 1.f, 1.f };
 	float yellowLight[4] = { 1.f, 1.f, 0.f, 1.f };
 	float hlightDir[4] = { 0.f, 0.f, -1.f, 0.f };
-	sceneLights.emplace_back(LightType::SPOTLIGHT, yellowLight)
-		.setDirection(hlightDir).createObject(renderer, sceneObjects);
+	sceneLights.emplace_back(LightType::SPOTLIGHT, yellowLight);
+	sceneLights.back().setDirection(hlightDir).createObject(renderer, sceneObjects);
 	Light& headlight_l = sceneLights.back();
 
-	sceneLights.emplace_back(LightType::SPOTLIGHT, magLight)
-		.setDirection(hlightDir).createObject(renderer, sceneObjects);
+	sceneLights.emplace_back(LightType::SPOTLIGHT, magLight);
+	sceneLights.back().setDirection(hlightDir).createObject(renderer, sceneObjects);
 	drone->addHeadlight(headlight_l, sceneLights.back());
 
 	float cyanLight[4] = {0.f, 1.f, 1.f, 1.f};
 	float cLightPos[4] = {1.f, 25.f, 0.f, 1.f};
 	float cLightDir[4] = {1.f, 0.f, 0.f, 0.f};
-	sceneLights.emplace_back(LightType::SPOTLIGHT, cyanLight)
-		.setPosition(cLightPos).setDirection(cLightDir)
+	sceneLights.emplace_back(LightType::SPOTLIGHT, cyanLight);
+	sceneLights.back().setPosition(cLightPos).setDirection(cLightDir)
 		.setDiffuse(2.f).setAttenuation(1.f, 0.f, 0.0005f)
 		.createObject(renderer, sceneObjects);
 
 	// === ORIGIN MARKER === //
 	float origin[] = { 0.f, 0.f, 0.f, 1.f };
-	sceneLights.emplace_back(LightType::POINTLIGHT, whiteLight).setDebug()
-		.setPosition(origin).setAmbient(0.f).setDiffuse(0.f)
-		.createObject(renderer, sceneObjects);
+	sceneLights.emplace_back(LightType::POINTLIGHT, whiteLight);
+	sceneLights.back().setPosition(origin).setDebug()
+		.setAmbient(0.f).setDiffuse(0.f).createObject(renderer, sceneObjects);
 
 	float axisXdir[] = { -1.f, 0.f, 0.f, 0.f };
-	sceneLights.emplace_back(LightType::SPOTLIGHT, redLight).setDebug()
-		.setPosition(origin).setDirection(axisXdir).setAmbient(0.f).setDiffuse(0.f)
-		.createObject(renderer, sceneObjects);
+	sceneLights.emplace_back(LightType::SPOTLIGHT, redLight);
+	sceneLights.back().setDebug().setPosition(origin).setDirection(axisXdir)
+		.setAmbient(0.f).setDiffuse(0.f).createObject(renderer, sceneObjects);
 
 	float greenLight[] = {0.f, 1.f, 0.f, 1.f};
 	float axisYdir[] = { 0.f, -1.f, 0.f, 0.f };
-	sceneLights.emplace_back(LightType::SPOTLIGHT, greenLight).setDebug()
-		.setPosition(origin).setDirection(axisYdir).setAmbient(0.f).setDiffuse(0.f)
-		.createObject(renderer, sceneObjects);
+	sceneLights.emplace_back(LightType::SPOTLIGHT, greenLight);
+	sceneLights.back().setDebug().setPosition(origin).setDirection(axisYdir)
+		.setAmbient(0.f).setDiffuse(0.f).createObject(renderer, sceneObjects); 
 
 	float axisZdir[] = { 0.f, 0.f, -1.f, 0.f };
-	sceneLights.emplace_back(LightType::SPOTLIGHT, blueLight).setDebug()
-		.setPosition(origin).setDirection(axisZdir).setAmbient(0.f).setDiffuse(0.f)
-		.createObject(renderer, sceneObjects);
+	sceneLights.emplace_back(LightType::SPOTLIGHT, blueLight);
+	sceneLights.back().setDebug().setPosition(origin).setDirection(axisZdir)
+		.setAmbient(0.f).setDiffuse(0.f).createObject(renderer, sceneObjects);
 
 	// Collision System
 	collisionSystem.setDebugCubeMesh(cubeID);

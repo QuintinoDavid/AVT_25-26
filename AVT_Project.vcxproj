@@ -101,6 +101,9 @@
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="src\autoMover.cpp" />
+    <ClCompile Include="src\camera.cpp" />
+    <ClCompile Include="src\drone.cpp" />
     <ClCompile Include="src\model.cpp" />
     <ClCompile Include="src\lightDemo.cpp" />
     <ClCompile Include="src\mathUtility.cpp" />
@@ -113,21 +116,20 @@
   <ItemGroup>
     <None Include="resources\shaders\mesh.frag" />
     <None Include="resources\shaders\mesh.vert" />
-    <None Include="resources\shaders\mesh_gouraud.frag" />
-    <None Include="resources\shaders\mesh_gouraud.vert" />
-    <None Include="resources\shaders\mesh_phong.frag" />
-    <None Include="resources\shaders\mesh_phong.vert" />
+    <None Include="resources\shaders\skybox.frag" />
+    <None Include="resources\shaders\skybox.vert" />
     <None Include="resources\shaders\ttf.frag" />
     <None Include="resources\shaders\ttf.vert" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\collision.h" />
     <ClInclude Include="src\cube.h" />
+    <ClInclude Include="src\light.h" />
     <ClInclude Include="src\mathUtility.h" />
     <ClInclude Include="src\model.h" />
     <ClInclude Include="src\renderer.h" />
+    <ClInclude Include="src\sceneObject.h" />
     <ClInclude Include="src\shader.h" />
-    <ClInclude Include="src\stb_rect_pack.h" />
-    <ClInclude Include="src\stb_truetype.h" />
     <ClInclude Include="src\texture.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
