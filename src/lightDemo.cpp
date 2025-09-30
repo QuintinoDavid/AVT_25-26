@@ -694,9 +694,9 @@ void buildScene()
 	memcpy(amesh.mat.specular, spec, 4 * sizeof(float));
 	memcpy(amesh.mat.emissive, blk, 4 * sizeof(float));
 	amesh.mat.shininess = shininess * 2;
-	int torusID = renderer.addMesh(amesh);
+	int donutID = renderer.addMesh(amesh);
 	for (int i = 1; i < 10; i++) {
-		SceneObject* torus = new SceneObject(std::vector<int>{torusID}, TexMode::TEXTURE_STONE);
+		SceneObject* torus = new SceneObject(std::vector<int>{donutID}, TexMode::TEXTURE_STONE);
 		torus->setPosition(50.0f * i, 0.0f, -1.f * 2.0f * i * i);
 		torus->setRotation(10.f * i, 0.0f, 0.0f);
 		sceneObjects.push_back(torus);
@@ -755,6 +755,15 @@ void buildScene()
 	amesh.mat.shininess = shininess;
 	amesh.mat.texCount = texcount;
 	int cylinderID = renderer.addMesh(amesh);
+
+	amesh = createTorus(0.5f, 1.0f, 40, 20);
+	memcpy(amesh.mat.ambient, amb1, 4 * sizeof(float));
+	memcpy(amesh.mat.diffuse, diff1, 4 * sizeof(float));
+	memcpy(amesh.mat.specular, spec1, 4 * sizeof(float));
+	memcpy(amesh.mat.emissive, blk, 4 * sizeof(float));
+	amesh.mat.shininess = shininess;
+	amesh.mat.texCount = texcount;
+	int torusID = renderer.addMesh(amesh);
 
 	buildCity(quadID, cubeID, coneID, cylinderID, torusID);
 
