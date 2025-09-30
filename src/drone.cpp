@@ -1,6 +1,7 @@
 #include "sceneObject.h"
 #include "camera.cpp"
 #include "mathUtility.h"
+#include "autoMover.cpp"
 #include "light.h"
 #include <cmath>
 #include <algorithm>
@@ -118,7 +119,8 @@ private:
 
 	void updateCamera()
 	{
-		if (!cam) return;
+		if (!cam)
+			return;
 
 		SphericalCoords sc = cam->getSpherical();
 
@@ -143,19 +145,21 @@ private:
 		float cosPitch = std::cos(pitch * PI_F / 180.0f);
 		float sinPitch = std::sin(pitch * PI_F / 180.0f);
 
-		if (headlight_l != nullptr) {
-			float x =  -0.25f * cosYaw - 1.21f * sinYaw;
+		if (headlight_l != nullptr)
+		{
+			float x = -0.25f * cosYaw - 1.21f * sinYaw;
 			float y = (-0.25f * sinYaw + 1.21f * cosYaw) * sinPitch;
 			float z = (-0.25f * sinYaw + 1.21f * cosYaw) * cosPitch;
-			float position[4] = { pos[0] + x, pos[1] + yawDir*y, pos[2] - z, 1.f };
+			float position[4] = {pos[0] + x, pos[1] + yawDir * y, pos[2] - z, 1.f};
 			headlight_l->setRotation(yaw, pitch);
 			headlight_l->setPosition(position);
 		}
-		if (headlight_r != nullptr) {
-			float x =  0.25f * cosYaw - 1.21f * sinYaw;
+		if (headlight_r != nullptr)
+		{
+			float x = 0.25f * cosYaw - 1.21f * sinYaw;
 			float y = (0.25f * sinYaw + 1.21f * cosYaw) * sinPitch;
 			float z = (0.25f * sinYaw + 1.21f * cosYaw) * cosPitch;
-			float position[4] = { pos[0] + x, pos[1] + yawDir*y, pos[2] - z, 1.f };
+			float position[4] = {pos[0] + x, pos[1] + yawDir * y, pos[2] - z, 1.f};
 			headlight_r->setRotation(yaw, pitch);
 			headlight_r->setPosition(position);
 		}
@@ -170,7 +174,7 @@ private:
 		// Since we want the bottom of the box at drone position,
 		// we offset the box vertically by half of its height
 		collider.setBox(
-			pos[0] - halfSizeX, pos[1], pos[2] - halfSizeZ, // min corner
+			pos[0] - halfSizeX, pos[1], pos[2] - halfSizeZ,			   // min corner
 			pos[0] + halfSizeX, pos[1] + halfSizeY, pos[2] + halfSizeZ // max corner
 		);
 	}
@@ -194,10 +198,11 @@ public:
 		// std::cout << "-------------------------\n";
 	}
 
-	void addHeadlight(Light& light_left, Light& light_right) {
-		float position_l[4] = { pos[0] - 0.25f, pos[1], pos[2] - 1.21f, 1.f };
+	void addHeadlight(Light &light_left, Light &light_right)
+	{
+		float position_l[4] = {pos[0] - 0.25f, pos[1], pos[2] - 1.21f, 1.f};
 		light_left.setPosition(position_l);
-		float position_r[4] = { pos[0] + 0.25f, pos[1], pos[2] - 1.21f, 1.f };
+		float position_r[4] = {pos[0] + 0.25f, pos[1], pos[2] - 1.21f, 1.f};
 		light_right.setPosition(position_r);
 
 		headlight_l = &light_left;
@@ -207,6 +212,20 @@ public:
 	// --- Collision handling ---
 	void onCollision(Collider *other) override
 	{
+		ICollidable *collidableOwner = other->getOwner();
+		if (auto *autoMover = dynamic_cast<AutoMover *>(collidableOwner))
+		{
+			// reset drone position & velocity
+			pos[0] = 0.0f;
+			pos[1] = 5.0f; // start a bit above ground
+			pos[2] = 0.0f;
+			velocity[0] = velocity[1] = velocity[2] = 0.0f;
+			verticalSpeed = 0.0f;
+			currentYawSpeed = 0.0f;
+			pitch = roll = yaw = 0.0f;
+			return;
+		}
+
 		// Get the collided object's AABB
 		const auto &box = other->getBox();
 
