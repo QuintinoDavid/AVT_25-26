@@ -50,9 +50,10 @@ private:
     }
 
     void updateCollider() {
-        float r = std::max(scale[0], std::max(scale[1], scale[2])) * 0.5f;
-        collider.setBox(pos[0] - r, pos[1] - r, pos[2] - r,
-                        pos[0] + r, pos[1] + r, pos[2] + r);
+        float r = std::max(scale[0], std::max(scale[1], scale[2])) * 2.f;
+        float ry = std::max(scale[0], std::max(scale[1], scale[2])) * 0.5f;
+        collider.setBox(pos[0] - r, pos[1] - ry, pos[2] - r,
+                        pos[0] + r, pos[1] + ry, pos[2] + r);
     }
 
     float calcDistFromXZ0() {

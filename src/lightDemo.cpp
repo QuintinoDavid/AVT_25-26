@@ -753,18 +753,19 @@ void buildCity(int quadID, int cubeID, int coneID, int cylinderID)
 	// Cube based buildings (scale.x/z span full width, centered at position)
 	addBox(tower_1, 10.0f, 0.0f, 5.0f, 10.0f + 2.0f, 10.0f, 5.0f + 2.0f);
 	addBox(tower_2, 6.0f, 0.0f, 5.0f, 6.0f + 2.0f, 10.0f, 5.0f + 2.0f);
-	addBox(tower_rot_1, 12.0f, 0.0f, 13.0f, 12.0f + 2.0f, 6.0f, 13.0f + 2.0f);
-	addBox(tower_rot_2, 10.0f, 0.0f, 13.0f, 10.0f + 2.0f, 10.0f, 13.0f + 2.0f);
-	addBox(tower_rot_3, 8.0f, 0.0f, 13.0f, 8.0f + 2.0f, 10.0f, 13.0f + 2.0f);
-	addBox(tower_rot_4, 6.0f, 0.0f, 13.0f, 6.0f + 2.0f, 6.0f, 13.0f + 2.0f);
+
+	addBox(tower_rot_1, 12.0f, 0.0f, 13.0f - 2.0f * std::sin(float(PI_F) / 6.0f), 12.0f + 2.0f * (std::sin(float(PI_F) / 6.0f) + std::cos(float(PI_F) / 6.0f)), 6.0f, 13.0f + 2.0f * std::cos(float(PI_F) / 6.0f));
+	addBox(tower_rot_2, 10.0f, 0.0f, 13.0f - 2.0f * std::sin(float(PI_F) / 6.0f), 10.0f + 2.0f * (std::sin(float(PI_F) / 6.0f) + std::cos(float(PI_F) / 6.0f)), 10.0f, 13.0f + 2.0f * std::cos(float(PI_F) / 6.0f));
+	addBox(tower_rot_3, 8.0f, 0.0f, 13.0f - 2.0f * std::sin(float(PI_F) / 6.0f), 8.0f + 2.0f * (std::sin(float(PI_F) / 6.0f) + std::cos(float(PI_F) / 6.0f)), 10.0f, 13.0f + 2.0f * std::cos(float(PI_F) / 6.0f));
+	addBox(tower_rot_4, 6.0f, 0.0f, 13.0f - 2.0f * std::sin(float(PI_F) / 6.0f), 6.0f + 2.0f * (std::sin(float(PI_F) / 6.0f) + std::cos(float(PI_F) / 6.0f)), 6.0f, 13.0f + 2.0f * std::cos(float(PI_F) / 6.0f));
 
 	// Cylinders (approximated as boxes)
-	addBox(cyl_tower_1, -5.0f - 0.7f, 0.0f, 12.0f - 0.7f, -5.0f + 0.7f, 8.0f, 12.0f + 0.7f);
-	addBox(cyl_tower_2, 0.0f - 1.0f, 0.0f, 12.0f - 1.0f, 0.0f + 1.0f, 3.0f, 12.0f + 1.0f);
-	addBox(cyl_tower_3, -3.0f - 0.5f, 0.0f, 3.0f - 0.5f, -3.0f + 0.5f, 12.0f, 3.0f + 0.5f);
-	addBox(cyl_tower_4, -12.0f - 1.0f, 0.0f, 10.0f - 0.75f, -12.0f + 1.0f, 10.0f, 10.0f + 0.75f);
-	addBox(cyl_tower_5, -12.0f - 1.0f, 0.0f, 6.5f - 0.75f, -12.0f + 1.0f, 10.0f, 6.5f + 0.75f);
-	addBox(cyl_tower_6, -12.0f - 1.0f, 0.0f, 3.4f - 0.75f, -12.0f + 1.0f, 10.0f, 3.4f + 0.75f);
+	addBox(cyl_tower_1, -5.0f - 1.1f, 0.0f, 12.0f - 1.1f, -5.0f + 1.1f, 8.0f, 12.0f + 1.1f);
+	addBox(cyl_tower_2, 0.0f - 1.5f, 0.0f, 12.0f - 1.5f, 0.0f + 1.5f, 3.0f, 12.0f + 1.5f);
+	addBox(cyl_tower_3, -3.0f - 0.75f, 0.0f, 3.0f - 0.75f, -3.0f + 0.75f, 12.0f, 3.0f + 0.75f);
+	addBox(cyl_tower_4, -12.0f - 1.5f, 0.0f, 10.0f - 0.75f, -12.0f + 1.5f, 10.0f, 10.0f + 0.75f);
+	addBox(cyl_tower_5, -12.0f - 1.5f, 0.0f, 6.5f - 1.f, -12.0f + 1.5f, 10.0f, 6.5f + 1.f);
+	addBox(cyl_tower_6, -12.0f - 1.5f, 0.0f, 3.4f - 1.f, -12.0f + 1.5f, 10.0f, 3.4f + 1.f);
 
 	// Cones (centered, base on ground)
 	addBox(piramid_1, 7.5f - 1.25f, 0.0f, -11.25f - 1.25f, 7.5f + 1.25f, 5.0f, -11.25f + 1.25f);
@@ -930,7 +931,7 @@ void buildScene()
 	amesh.mat.texCount = texcount;
 	int cylinderID = renderer.addMesh(amesh);
 
-	amesh = createTorus(0.5f, 1.0f, 40, 20);
+	amesh = createTorus(1.f, 2.0f, 40, 20);
 	memcpy(amesh.mat.ambient, amb1, 4 * sizeof(float));
 	memcpy(amesh.mat.diffuse, diff1, 4 * sizeof(float));
 	memcpy(amesh.mat.specular, spec1, 4 * sizeof(float));
@@ -946,12 +947,12 @@ void buildScene()
 	std::uniform_real_distribution<float> velocity{4.0f, 8.0f};
 	std::uniform_real_distribution<float> position{-100.f, 100.0f};
 	std::uniform_real_distribution<float> size{0.5f, 2.0f};
-	float spawningRadius = 100.f;
-	for (int i = 0; i < 20; i++)
+	float spawningRadius = 50.f;
+	for (int i = 0; i < 10; i++)
 	{
 		AutoMover *mover = new AutoMover({torusID}, TexMode::TEXTURE_LIGHTWOOD, spawningRadius, velocity(gen));
 		mover->setPosition(position(gen), 5.0f, position(gen));
-		mover->setScale(size(gen), size(gen), size(gen));
+		mover->setScale(0.75f, 0.75f, 0.75f);
 		sceneObjects.push_back(mover);
 		collisionSystem.addCollider(mover->getCollider());
 	}
