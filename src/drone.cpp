@@ -139,8 +139,8 @@ private:
 
 	void updateLights()
 	{
-		float yawDir = yaw / std::abs(yaw);
 		float cosYaw = std::cos(yaw * PI_F / 180.0f);
+		float yawDir = cosYaw / std::abs(cosYaw);
 		float sinYaw = std::sin(yaw * PI_F / 180.0f);
 		float cosPitch = std::cos(pitch * PI_F / 180.0f);
 		float sinPitch = std::sin(pitch * PI_F / 180.0f);
@@ -157,7 +157,7 @@ private:
 		if (headlight_r != nullptr)
 		{
 			float x = 0.25f * cosYaw - 1.21f * sinYaw;
-			float y = (0.25f * sinYaw + 1.21f * cosYaw) * sinPitch;
+			float y = (0.25f * yawDir * sinYaw + 1.21f * cosYaw) * sinPitch;
 			float z = (0.25f * sinYaw + 1.21f * cosYaw) * cosPitch;
 			float position[4] = {pos[0] + x, pos[1] + yawDir * y, pos[2] - z, 1.f};
 			headlight_r->setRotation(yaw, pitch);

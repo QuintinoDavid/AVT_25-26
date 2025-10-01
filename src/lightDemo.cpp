@@ -682,13 +682,14 @@ void buildScene()
 	{
 		float amb[] = { 10.f, 10.f, 10.f, 1.f };
 		// set material properties
-		memcpy(grassMesh[i].mat.ambient, amb1, 4 * sizeof(float));
-		memcpy(grassMesh[i].mat.diffuse, amb1, 4 * sizeof(float));
-		memcpy(grassMesh[i].mat.specular, amb1, 4 * sizeof(float));
+		memcpy(grassMesh[i].mat.ambient, amb, 4 * sizeof(float));
+		memcpy(grassMesh[i].mat.diffuse, diff1, 4 * sizeof(float));
+		memcpy(grassMesh[i].mat.specular, blk, 4 * sizeof(float));
 		memcpy(grassMesh[i].mat.emissive, blk, 4 * sizeof(float));
 		int meshID = renderer.addMesh(grassMesh[i]);
 		grassMeshIDs.push_back(meshID);
 	}
+
 	// random grass
 	const int grassCount = 100;
 	const float rangeRadius = 10.f;
@@ -786,30 +787,16 @@ void buildScene()
 	// Moving obstacles	
 	std::mt19937 gen{ std::random_device{}() }; // random engine 
 	std::uniform_real_distribution<float> velocity{ 4.0f, 8.0f };
-	AutoMover *mover_1 = new AutoMover({torusID}, TexMode::TEXTURE_LIGHTWOOD, 15.0f, velocity(gen));
-	mover_1->setPosition(0.f, 5.0f, 0.f);
-	mover_1->setScale(0.35f, 0.7f, 0.7f);
-	sceneObjects.push_back(mover_1);
-	collisionSystem.addCollider(mover_1->getCollider());
-
-	AutoMover *mover_2 = new AutoMover({torusID}, TexMode::TEXTURE_LIGHTWOOD, 15.0f, velocity(gen));
-	mover_2->setPosition(0.f, 5.0f, 0.f);
-	mover_2->setScale(0.35f, 0.7f, 0.7f);
-	sceneObjects.push_back(mover_2);
-	collisionSystem.addCollider(mover_2->getCollider());
-
-	AutoMover *mover_3 = new AutoMover({torusID}, TexMode::TEXTURE_LIGHTWOOD, 15.0f, velocity(gen));
-	mover_3->setPosition(0.f, 5.0f, 0.f);
-	mover_3->setScale(1.5f, 1.5f, 1.0f);
-	sceneObjects.push_back(mover_3);
-	collisionSystem.addCollider(mover_3->getCollider());
-
-	AutoMover *mover_4 = new AutoMover({torusID}, TexMode::TEXTURE_LIGHTWOOD, 15.0f, velocity(gen));
-	mover_4->setPosition(0.f, 5.0f, 0.f);
-	mover_4->setScale(1.5f, 1.2f, 1.0f);
-	sceneObjects.push_back(mover_4);
-	collisionSystem.addCollider(mover_4->getCollider());
-
+	std::uniform_real_distribution<float> position{ -100.f, 100.0f };
+	std::uniform_real_distribution<float> size{ 0.5f, 2.0f };
+	float spawningRadius = 100.f;
+	for (int i = 0; i < 20; i++) {
+		AutoMover *mover = new AutoMover({torusID}, TexMode::TEXTURE_LIGHTWOOD, spawningRadius, velocity(gen));
+		mover->setPosition(position(gen), 5.0f, position(gen));
+		mover->setScale(size(gen), size(gen), size(gen));
+		sceneObjects.push_back(mover);
+		collisionSystem.addCollider(mover->getCollider());
+	}
 
 	// === SCENE LIGHTS === //
 	sceneLights.reserve(50);
