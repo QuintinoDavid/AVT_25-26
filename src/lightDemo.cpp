@@ -88,9 +88,13 @@ struct {
 
 	float lastTime = glutGet(GLUT_ELAPSED_TIME);
 	bool fontLoaded = false;
+
 	bool daytime = true;
+	bool showPointlights = true;
+	bool showSpotlights = true;
 	bool showFog = true;
 	bool showDebug = false;
+	bool showKeybinds = false;
 
 	unsigned int cubemap_dayID = 0;
 	unsigned int cubemap_nightID = 0;
@@ -274,9 +278,72 @@ void renderSim(void)
 
 		std::vector<TextCommand> texts;
 		float size = 0.3f;
-		texts.push_back(TextCommand{"X", { 0.f, 0.f}, size, {1.f, 0.f, 0.f, 1.f}});
-		texts.push_back(TextCommand{"Y", {20.f, 0.f}, size, {0.f, 1.f, 0.f, 1.f}});
-		texts.push_back(TextCommand{"Z", {35.f, 0.f}, size, {0.f, 0.f, 1.f, 1.f}});
+		float Ypos = 0.f, Yoff = 80.f;
+		if (GLOBAL.showKeybinds) {
+			// push_back the keybind gui
+			texts.push_back(TextCommand{
+				"Press 'i' to hide keybinds",
+				{ 0.f, Ypos }, size, {.9f, 0.9f, 0.9f, 1.f}});
+
+			Ypos += Yoff;
+			if (GLOBAL.showFog) {
+				texts.push_back(TextCommand{
+					"Press 'f' to hide fog",
+					{ 0.f, Ypos }, size, {.9f, 0.9f, 0.9f, 1.f}});
+			} else {
+				texts.push_back(TextCommand{
+					"Press 'f' to show fog",
+					{ 0.f, Ypos }, size, {.9f, 0.9f, 0.9f, 1.f}});
+			}
+
+			Ypos += Yoff;
+			if (GLOBAL.showDebug) {
+				texts.push_back(TextCommand{
+					"Press 'k' to hide debug",
+					{ 0.f, Ypos }, size, {.9f, 0.9f, 0.9f, 1.f}});
+			} else {
+				texts.push_back(TextCommand{
+					"Press 'k' to show debug",
+					{ 0.f, Ypos }, size, {.9f, 0.9f, 0.9f, 1.f}});
+			}
+
+			Ypos += Yoff;
+			if (GLOBAL.daytime) {
+				texts.push_back(TextCommand{
+					"Press 'n' to hide directional lights",
+					{ 0.f, Ypos }, size, {.9f, 0.9f, 0.9f, 1.f}});
+			} else {
+				texts.push_back(TextCommand{
+					"Press 'n' to show directional lights",
+					{ 0.f, Ypos }, size, {.9f, 0.9f, 0.9f, 1.f}});
+			}
+
+			Ypos += Yoff;
+			if (GLOBAL.showPointlights) {
+				texts.push_back(TextCommand{
+					"Press 'c' to hide pointlights",
+					{ 0.f, Ypos }, size, {.9f, 0.9f, 0.9f, 1.f}});
+			} else {
+				texts.push_back(TextCommand{
+					"Press 'c' to show pointlights",
+					{ 0.f, Ypos }, size, {.9f, 0.9f, 0.9f, 1.f}});
+			}
+
+			Ypos += Yoff;
+			if (GLOBAL.showSpotlights) {
+				texts.push_back(TextCommand{
+					"Press 'h' to hide spotlights",
+					{ 0.f, Ypos }, size, {.9f, 0.9f, 0.9f, 1.f}});
+			} else {
+				texts.push_back(TextCommand{
+					"Press 'h' to show spotlights",
+					{ 0.f, Ypos }, size, {.9f, 0.9f, 0.9f, 1.f}});
+			}
+		} else {
+			texts.push_back(TextCommand{
+				"Press 'i' to show keybinds",
+				{ 0.f, 0.f }, size, {.9f, 0.9f, 0.9f, 1.f}});
+		}
 
 		// the glyph contains transparent background colors and non-transparent for the actual character pixels. So we use the blending
 		glEnable(GL_BLEND);
@@ -333,12 +400,14 @@ void processKeys(unsigned char key, int xx, int yy)
 		break;
 
 	case 'c': // toggle point lights
+		GLOBAL.showPointlights = !GLOBAL.showPointlights;
 		for (auto& light : sceneLights)
 			if (light.isType(LightType::POINTLIGHT))
 				light.toggleLight();
 		break;
 
 	case 'h': // toggle spotlights
+		GLOBAL.showSpotlights = !GLOBAL.showSpotlights;
 		for (auto& light : sceneLights)
 			if (light.isType(LightType::SPOTLIGHT))
 				light.toggleLight();
@@ -353,6 +422,10 @@ void processKeys(unsigned char key, int xx, int yy)
 
 	case 'f': // toggle fog
 		GLOBAL.showFog = !GLOBAL.showFog;
+		break;
+
+	case 'i':
+		GLOBAL.showKeybinds = !GLOBAL.showKeybinds;
 		break;
 
 	case '1':
