@@ -14,6 +14,8 @@ private:
 	Light *headlight_l = nullptr;
 	Light *headlight_r = nullptr;
 
+	float cameraAlphaOffset = 0.0f;
+
 	// Drone physics state
 	float velocity[3] = {0.0f, 0.0f, 0.0f}; // world-space velocity
 	float verticalSpeed = 0.0f;				// current vertical speed
@@ -124,8 +126,11 @@ private:
 
 		SphericalCoords sc = cam->getSpherical();
 
+		// Calculate what the new alpha should be (drone yaw + offset)
+		float newAlpha = yaw + cameraAlphaOffset;
+
 		// Convert spherical to Cartesian offset
-		float alpha = sc.alpha * PI_F / 180.0f;
+		float alpha = newAlpha * PI_F / 180.0f;
 		float beta = sc.beta * PI_F / 180.0f;
 
 		float x = sc.r * sin(alpha) * cos(beta);
@@ -135,6 +140,9 @@ private:
 		// Camera follows drone's corrected pos
 		cam->setPosition(pos[0] + x, pos[1] + y, pos[2] + z);
 		cam->setTarget(pos[0], pos[1], pos[2]);
+
+		// Update the spherical coordinates with the new alpha
+		cam->setSpherical(newAlpha, sc.beta, sc.r);
 	}
 
 	void updateLights()
@@ -207,6 +215,14 @@ public:
 
 		headlight_l = &light_left;
 		headlight_r = &light_right;
+	}
+
+	void updateCameraOffset()
+	{
+		if (!cam)
+			return;
+		SphericalCoords sc = cam->getSpherical();
+		cameraAlphaOffset = sc.alpha - yaw;
 	}
 
 	// --- Collision handling ---
