@@ -253,18 +253,114 @@ bool Renderer::setSkyboxShaderProg(const std::string &vertShaderPath, const std:
     cubemap_loc = glGetUniformLocation(skyboxProgram, "skybox");
 
     float skyboxVert[] = {
-        -1.f, 1.f, -1.f,  -1.f, -1.f, -1.f,  1.f, -1.f, -1.f,
-        1.f, -1.f, -1.f,  1.f, 1.f, -1.f,  -1.f, 1.f, -1.f,
-        -1.f, -1.f, 1.f,  -1.f, -1.f, -1.f,  -1.f, 1.f, -1.f,
-        -1.f, 1.f, -1.f,  -1.f, 1.f, 1.f,  -1.f, -1.f, 1.f,
-        1.f, -1.f, -1.f,  1.f, -1.f, 1.f,  1.f, 1.f, 1.f,
-        1.f, 1.f, 1.f,  1.f, 1.f, -1.f,  1.f, -1.f, -1.f,
-        -1.f, -1.f, 1.f,  -1.f, 1.f, 1.f,  1.f, 1.f, 1.f,
-        1.f, 1.f, 1.f,  1.f, -1.f, 1.f,  -1.f, -1.f, 1.f,
-        -1.f, 1.f, -1.f,  1.f, 1.f, -1.f,  1.f, 1.f, 1.f,
-        1.f, 1.f, 1.f,  -1.f, 1.f, 1.f,  -1.f, 1.f, -1.f,
-        -1.f, -1.f, -1.f,  -1.f, -1.f, 1.f,  1.f, -1.f, -1.f,
-        1.f, -1.f, -1.f,  -1.f, -1.f, 1.f,  1.f, -1.f, 1.f,
+        -1.f,
+        1.f,
+        -1.f,
+        -1.f,
+        -1.f,
+        -1.f,
+        1.f,
+        -1.f,
+        -1.f,
+        1.f,
+        -1.f,
+        -1.f,
+        1.f,
+        1.f,
+        -1.f,
+        -1.f,
+        1.f,
+        -1.f,
+        -1.f,
+        -1.f,
+        1.f,
+        -1.f,
+        -1.f,
+        -1.f,
+        -1.f,
+        1.f,
+        -1.f,
+        -1.f,
+        1.f,
+        -1.f,
+        -1.f,
+        1.f,
+        1.f,
+        -1.f,
+        -1.f,
+        1.f,
+        1.f,
+        -1.f,
+        -1.f,
+        1.f,
+        -1.f,
+        1.f,
+        1.f,
+        1.f,
+        1.f,
+        1.f,
+        1.f,
+        1.f,
+        1.f,
+        1.f,
+        -1.f,
+        1.f,
+        -1.f,
+        -1.f,
+        -1.f,
+        -1.f,
+        1.f,
+        -1.f,
+        1.f,
+        1.f,
+        1.f,
+        1.f,
+        1.f,
+        1.f,
+        1.f,
+        1.f,
+        1.f,
+        -1.f,
+        1.f,
+        -1.f,
+        -1.f,
+        1.f,
+        -1.f,
+        1.f,
+        -1.f,
+        1.f,
+        1.f,
+        -1.f,
+        1.f,
+        1.f,
+        1.f,
+        1.f,
+        1.f,
+        1.f,
+        -1.f,
+        1.f,
+        1.f,
+        -1.f,
+        1.f,
+        -1.f,
+        -1.f,
+        -1.f,
+        -1.f,
+        -1.f,
+        -1.f,
+        1.f,
+        1.f,
+        -1.f,
+        -1.f,
+        1.f,
+        -1.f,
+        -1.f,
+        -1.f,
+        -1.f,
+        1.f,
+        1.f,
+        -1.f,
+        1.f,
     };
 
     glGenVertexArrays(1, &skyboxVAO);
@@ -322,22 +418,22 @@ void Renderer::activateRenderMeshesShaderProg()
     glUseProgram(program);
 }
 
-void Renderer::activateSkyboxShaderProg(float* projview, unsigned int cubemap, float* fogColor)
+void Renderer::activateSkyboxShaderProg(float *projview, unsigned int cubemap, float *fogColor)
 {
     // GLSL program to draw the skybox
-	glDepthFunc(GL_LEQUAL);
+    glDepthFunc(GL_LEQUAL);
     glUseProgram(skyboxProgram);
     glUniformMatrix4fv(skyboxprojview_loc, 1, GL_FALSE, projview);
 
     glUniform4fv(fogColor_skyloc, 1, fogColor);
     glBindVertexArray(skyboxVAO);
     glActiveTexture(GL_TEXTURE0 + cubemap);
-	glBindTexture(GL_TEXTURE_CUBE_MAP, cubemap);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, cubemap);
     glUniform1i(cubemap_loc, cubemap);
 
-	glDrawArrays(GL_TRIANGLES, 0, 36);
+    glDrawArrays(GL_TRIANGLES, 0, 36);
     glBindVertexArray(0);
-	glDepthFunc(GL_LESS);
+    glDepthFunc(GL_LESS);
 }
 
 void Renderer::resetLights()
@@ -349,7 +445,7 @@ void Renderer::resetLights()
     glUniform1i(spotLightNum_loc, spotLightCount);
 }
 
-void Renderer::setFogColor(float* color)
+void Renderer::setFogColor(float *color)
 {
     glUniform4fv(fogColor_loc, 1, color);
 }
@@ -411,23 +507,30 @@ void Renderer::renderMesh(const dataMesh &data)
     glUniformMatrix4fv(pvm_loc, 1, GL_FALSE, data.pvm);
     glUniformMatrix3fv(normal_loc, 1, GL_FALSE, data.normal);
 
+    const auto &mesh = getMesh(data.meshID);
+
     // send the material
     loc = glGetUniformLocation(program, "mat.ambient");
-    glUniform4fv(loc, 1, getMesh(data.meshID).mat.ambient);
+    glUniform4fv(loc, 1, mesh.mat.ambient);
     loc = glGetUniformLocation(program, "mat.diffuse");
-    glUniform4fv(loc, 1, getMesh(data.meshID).mat.diffuse);
+    glUniform4fv(loc, 1, mesh.mat.diffuse);
     loc = glGetUniformLocation(program, "mat.specular");
-    glUniform4fv(loc, 1, getMesh(data.meshID).mat.specular);
+    glUniform4fv(loc, 1, mesh.mat.specular);
     loc = glGetUniformLocation(program, "mat.emissive");
-    glUniform4fv(loc, 1, getMesh(data.meshID).mat.emissive);
+    glUniform4fv(loc, 1, mesh.mat.emissive);
     loc = glGetUniformLocation(program, "mat.shininess");
-    glUniform1f(loc, getMesh(data.meshID).mat.shininess);
+    glUniform1f(loc, mesh.mat.shininess);
 
     // Render mesh
-    glUniform1i(texMode_loc, data.texMode);
+    int finalTexMode = data.texMode;
+    if (finalTexMode < 0)
+    {
+        finalTexMode = mesh.mat.texCount;
+    }
+    glUniform1i(texMode_loc, finalTexMode);
 
-    glBindVertexArray(getMesh(data.meshID).vao);
-    glDrawElements(getMesh(data.meshID).type, getMesh(data.meshID).numIndexes, GL_UNSIGNED_INT, nullptr);
+    glBindVertexArray(mesh.vao);
+    glDrawElements(mesh.type, mesh.numIndexes, GL_UNSIGNED_INT, nullptr);
     glBindVertexArray(0);
 }
 
