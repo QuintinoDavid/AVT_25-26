@@ -260,6 +260,26 @@ void renderSim(void)
 
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+	auto cmp = [&](SceneObject* a,SceneObject* b) {
+		float camX = cams[activeCam]->getX();
+		float camY = cams[activeCam]->getY();
+		float camZ = cams[activeCam]->getZ();
+
+		float lenA_X = (a->pos[0] - camX);
+		float lenA_Y = (a->pos[1] - camY);
+		float lenA_Z = (a->pos[2] - camZ);
+		float lenA = (lenA_X*lenA_X) + (lenA_Y*lenA_Y) + (lenA_Z*lenA_Z);
+
+		float lenB_X = (b->pos[0] - camX);
+		float lenB_Y = (b->pos[1] - camY);
+		float lenB_Z = (b->pos[2] - camZ);
+		float lenB = (lenB_X*lenB_X) + (lenB_Y*lenB_Y) + (lenB_Z*lenB_Z);
+
+		return (lenA > lenB);
+	};
+
+	std::sort(transparentObjects.begin(), transparentObjects.end(), cmp);
 	for (auto obj: transparentObjects) obj->render(renderer, mu);
 	glDisable(GL_BLEND);
 
