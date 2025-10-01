@@ -566,7 +566,7 @@ void mouseWheel(int wheel, int direction, int x, int y)
 //
 
 // Build a simple city with buildings primitives
-void buildCity(int quadID, int cubeID, int coneID, int cylinderID, int torusID)
+void buildCity(int quadID, int cubeID, int coneID, int cylinderID)
 {
 	// Scene objects
 	SceneObject* floor = new SceneObject(std::vector<int>{quadID}, TexMode::TEXTURE_FLOOR);
@@ -875,7 +875,7 @@ void buildScene()
 	amesh.mat.texCount = texcount;
 	int torusID = renderer.addMesh(amesh);
 
-	buildCity(quadID, cubeID, coneID, cylinderID, torusID);
+	buildCity(quadID, cubeID, coneID, cylinderID);
 
 	// Moving obstacles	
 	std::mt19937 gen{ std::random_device{}() }; // random engine 
@@ -908,6 +908,15 @@ void buildScene()
 	float rLightPos[4] = {0.f, 2.f, 2.f, 1.f};
 	sceneLights.emplace_back(LightType::POINTLIGHT, redLight);
 	sceneLights.back().setPosition(rLightPos).createObject(renderer, sceneObjects);
+
+	std::uniform_real_distribution<float> lightPos{ -20.f, 20.0f };
+	std::uniform_real_distribution<float> lightCol{ 0.f, 1.0f };
+	for (int i = 0; i < 0; i++) {
+		float lightColor[4] = { lightCol(gen), lightCol(gen), lightCol(gen), 1.f};
+		float lightPosition[4] = { lightPos(gen), 5.f, lightPos(gen), 1.f};
+		sceneLights.emplace_back(LightType::POINTLIGHT, lightColor);
+		sceneLights.back().setPosition(lightPosition).createObject(renderer, sceneObjects);
+	}
 
 	float magLight[4] = { 1.f, 0.f, 1.f, 1.f };
 	float yellowLight[4] = { 1.f, 1.f, 0.f, 1.f };
