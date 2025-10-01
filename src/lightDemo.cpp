@@ -565,6 +565,20 @@ void buildCity(int quadID, int cubeID, int coneID, int cylinderID, int torusID)
 	piramid_4->setPosition(3.75f, 0.0f, -7.5f);
 	sceneObjects.push_back(piramid_4);
 
+	SceneObject* window_1 = new SceneObject(std::vector<int>{cubeID}, TexMode::TEXTURE_WINDOW);
+	window_1->setPosition(-10.f, 0.f, -10.f);
+	window_1->setScale(3.f, 10.f, 3.f);
+	transparentObjects.push_back(window_1);
+	collisionSystem.addCollider(window_1->getCollider());
+
+	SceneObject* window_2 = new SceneObject(std::vector<int>{cubeID}, TexMode::TEXTURE_WINDOW);
+	window_2->setPosition(-10.f, 0.f, -6.f);
+	window_2->setScale(3.f, 10.f, 3.f);
+	transparentObjects.push_back(window_2);
+	collisionSystem.addCollider(window_2->getCollider());
+
+	
+
 	// --------------------------------------------------------------------
 	// Collider registration for city buildings (AABB approximations)
 	// Ignore rotation of buildings for simplicity
@@ -602,6 +616,9 @@ void buildCity(int quadID, int cubeID, int coneID, int cylinderID, int torusID)
 	addBox(piramid_2, 11.25f - 1.25f, 0.0f, -7.5f - 1.25f, 11.25f + 1.25f, 5.0f, -7.5f + 1.25f);
 	addBox(piramid_3, 7.5f - 1.25f, 0.0f, -3.75f - 1.25f, 7.5f + 1.25f, 5.0f, -3.75f + 1.25f);
 	addBox(piramid_4, 3.75f - 1.25f, 0.0f, -7.5f - 1.25f, 3.75f + 1.25f, 5.0f, -7.5f + 1.25f);
+
+	addBox(window_1, -10.f , 0.f, -10.f , -10.f + 3.0f, 10.f, -10.f + 3.0f);
+	addBox(window_2, -10.f , 0.f, -6.f , -10.f + 3.0f, 10.f, -6.f + 3.0f);
 }
 
 void buildScene()
@@ -657,13 +674,6 @@ void buildScene()
 	amesh.mat.shininess = 10.0f;
 	amesh.mat.texCount = texcount;
 	int cubeID = renderer.addMesh(amesh);
-
-	SceneObject* window = new SceneObject(std::vector<int>{cubeID}, TexMode::TEXTURE_WINDOW);
-	window->setPosition(-1.f, 5.f, 10.f);
-	window->setScale(10.f, 5.f, 2.f);
-	window->getCollider()->setBox(-1.f, 5.f, 10.f, 9.0f, 10.0f, 12.0f);
-	transparentObjects.push_back(window);
-	collisionSystem.addCollider(window->getCollider());
 
 	// Load grass model from file
 	std::vector<MyMesh> grassMesh = createFromFile(FILEPATH.Grass_OBJ);
@@ -859,9 +869,6 @@ void buildScene()
 	sceneLights.emplace_back(LightType::SPOTLIGHT, blueLight);
 	sceneLights.back().setDebug().setPosition(origin).setDirection(axisZdir)
 		.setAmbient(0.f).setDiffuse(0.f).createObject(renderer, sceneObjects);
-
-	// Collision System
-	collisionSystem.setDebugCubeMesh(cubeID);
 
 	// The truetypeInit creates a texture object in TexObjArray for storing the fontAtlasTexture
 	GLOBAL.fontLoaded = renderer.truetypeInit(FILEPATH.Font_File);
