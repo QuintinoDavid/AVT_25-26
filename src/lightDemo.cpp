@@ -836,7 +836,7 @@ void buildScene()
 	std::vector<int> grassMeshIDs;
 	for (size_t i = 0; i < grassMesh.size(); i++)
 	{
-		float amb[] = {10.f, 10.f, 10.f, 1.f};
+		float amb[] = {10.f, 10.f, 10.f, 10.f};
 		// set material properties
 		memcpy(grassMesh[i].mat.ambient, amb, 4 * sizeof(float));
 		memcpy(grassMesh[i].mat.diffuse, diff1, 4 * sizeof(float));
