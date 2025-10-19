@@ -37,6 +37,7 @@
 #include "light.h"
 #include "drone.cpp"
 #include "autoMover.cpp"
+#include "particle.cpp"
 
 #ifndef RESOURCE_BASE
 #define RESOURCE_BASE "resources/"
@@ -44,6 +45,9 @@
 #define FONT_FOLDER RESOURCE_BASE "fonts/"
 #define ASSET_FOLDER RESOURCE_BASE "assets/"
 #define SHADER_FOLDER RESOURCE_BASE "shaders/"
+
+#define MAX_PARTICLES  1500
+#define frand()			((float)rand()/RAND_MAX)
 
 struct
 {
@@ -55,6 +59,7 @@ struct
 	const char *Window_Tex = ASSET_FOLDER "window.png";
 	const char *BBGrass_Tex = ASSET_FOLDER "billboard_grass.png";
 	const char *Lightwood_Tex = ASSET_FOLDER "lightwood.tga";
+	const char *Particle_Tex = ASSET_FOLDER "particle.tga";
 
 	const char *Skybox_Cubemap_Day[6] = {
 		ASSET_FOLDER "skybox/day_right.png", ASSET_FOLDER "skybox/day_left.png",
@@ -96,7 +101,7 @@ struct
 	bool showFog = true;
 	bool showDebug = false;
 	bool showKeybinds = false;
-
+	bool fireworksOn = false;
 	unsigned int cubemap_dayID = 0;
 	unsigned int cubemap_nightID = 0;
 } GLOBAL;
@@ -108,6 +113,7 @@ Drone *drone;
 std::vector<Light> sceneLights;
 std::vector<SceneObject *> sceneObjects;
 std::vector<SceneObject *> transparentObjects;
+std::vector<Particle *> particle_vector;	
 CollisionSystem collisionSystem;
 
 Camera *cams[3];
@@ -147,6 +153,18 @@ void gameloop(void)
 	// Update all scene objects with the elapsed time
 	for (auto obj : sceneObjects)
 		obj->update(deltaTime);
+	
+	if (GLOBAL.fireworksOn) {
+		glEnable(GL_BLEND);
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+		glDisable(GL_CULL_FACE);
+		glDepthMask(GL_FALSE);
+		for (auto &particle : particle_vector)
+			particle->update(deltaTime);
+		glDepthMask(GL_TRUE);
+		glEnable(GL_CULL_FACE);
+		glDisable(GL_BLEND);
+	}
 
 	glutPostRedisplay();
 }
@@ -181,7 +199,36 @@ void changeSize(int w, int h)
 	}
 }
 
-// ------------------------------------------------------------
+//
+// Particles
+//
+void buildParticles(int particleQuadID)
+{
+	GLfloat v, theta, phi;
+
+	for (int i = 0; i < MAX_PARTICLES; i++) {
+		v = frand() + 1;
+		phi = frand()*PI_F;
+		theta = 2.0*frand()*PI_F;
+
+		Particle *particle = new Particle({ particleQuadID }, TexMode::TEXTURE_PARTICLE, 1.0f, 0.007f,
+			0.0f, 10.0f, 0.0f,
+			v * cos(theta) * sin(phi),
+			v * cos(phi),
+			v * sin(theta) * sin(phi),
+			0.1f, -0.15f, 0.0f);
+		particle_vector.push_back(particle);
+	}
+}
+
+void reset_particles(void)
+{
+	for (int i = 0; i < MAX_PARTICLES; i++)
+	{
+		particle_vector[i]->reset();
+	}
+}
+
 //
 // Render stufff
 //
@@ -201,6 +248,7 @@ void renderSim(void)
 	renderer.setTexUnit(2, 2); // Window
 	renderer.setTexUnit(3, 3); // Billboard grass
 	renderer.setTexUnit(4, 4); // Lightwood
+	renderer.setTexUnit(5, 5); // Particle
 
 	// load identity matrices
 	mu.loadIdentity(gmu::VIEW);
@@ -245,14 +293,15 @@ void renderSim(void)
 	  1) setup the lights
 	  2) render opaque objects
 	  3) render skybox
-	  4) render transparent objects
+	  4) render particles (if any)
+	  5) render transparent objects
 	*/
 
 	for (auto &light : sceneLights)
 		light.render(renderer, mu);
 	for (auto &obj : sceneObjects)
 		obj->render(renderer, mu);
-
+	
 	// Render skybox
 	mu.pushMatrix(gmu::MODEL);
 	mu.translate(gmu::MODEL, cams[activeCam]->getX(), cams[activeCam]->getY(), cams[activeCam]->getZ());
@@ -270,6 +319,28 @@ void renderSim(void)
 	}
 	mu.popMatrix(gmu::MODEL);
 	renderer.activateRenderMeshesShaderProg();
+
+	if (GLOBAL.fireworksOn) {
+		glEnable(GL_BLEND);
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    	glDisable(GL_CULL_FACE);   // see both sides of the quad
+    	glDepthMask(GL_FALSE);     // don't write depth so particles don't kill each other
+		for (auto &particle : particle_vector)
+			particle->render(renderer, mu, cams[activeCam]);
+		glDepthMask(GL_TRUE);      // restore
+		glEnable(GL_CULL_FACE);
+		glDisable(GL_BLEND);
+
+		int dead_num_particles = 0;
+		for (int i = 0; i < MAX_PARTICLES; i++){
+			if (particle_vector[i]->curr_life <= 0.0f) dead_num_particles++;
+		}
+		if (dead_num_particles == MAX_PARTICLES) {
+			GLOBAL.fireworksOn = false;
+			reset_particles();
+			printf("All particles dead\n");
+		}
+	}
 
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -469,6 +540,15 @@ void processKeys(unsigned char key, int xx, int yy)
 
 	case 27:
 		glutLeaveMainLoop();
+		break;
+
+	//TEMPORARY KEYBING FOR PARTICLES
+	//TODO: REMOVE WHEN CONDITION FOR WINNING ADDED
+	case 'e':
+		if (!GLOBAL.fireworksOn) {
+			GLOBAL.fireworksOn = true;
+			printf("Fireworks started!\n");
+		}
 		break;
 
 	case 'n': // toggle directional light
@@ -805,6 +885,7 @@ void buildScene()
 	renderer.TexObjArray.texture2D_Loader(FILEPATH.Window_Tex);
 	renderer.TexObjArray.texture2D_Loader(FILEPATH.BBGrass_Tex, false);
 	renderer.TexObjArray.texture2D_Loader(FILEPATH.Lightwood_Tex);
+	renderer.TexObjArray.texture2D_Loader(FILEPATH.Particle_Tex);
 	GLOBAL.cubemap_dayID = renderer.TexObjArray.getNumTextureObjects();
 	renderer.TexObjArray.textureCubeMap_Loader(FILEPATH.Skybox_Cubemap_Day);
 	GLOBAL.cubemap_nightID = renderer.TexObjArray.getNumTextureObjects();
@@ -941,6 +1022,19 @@ void buildScene()
 	int torusID = renderer.addMesh(amesh);
 
 	buildCity(quadID, cubeID, coneID, cylinderID);
+
+	
+	// create geometry and VAO of the quad for particles
+	amesh = createQuad(1, 1);
+	memcpy(amesh.mat.ambient, amb1, 4 * sizeof(float));
+	memcpy(amesh.mat.diffuse, diff1, 4 * sizeof(float));
+	memcpy(amesh.mat.specular, spec1, 4 * sizeof(float));
+	memcpy(amesh.mat.emissive, blk, 4 * sizeof(float));
+	amesh.mat.texCount = texcount;
+	int particleQuadID = renderer.addMesh(amesh);
+	
+	// Fireworks particles
+	buildParticles(particleQuadID);
 
 	// Moving obstacles
 	std::mt19937 gen{std::random_device{}()}; // random engine

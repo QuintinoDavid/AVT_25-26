@@ -54,6 +54,7 @@ uniform sampler2D texmap_grass;
 uniform sampler2D texmap_window;
 uniform sampler2D texmap_bbgrass;
 uniform sampler2D texmap_lightwood;
+uniform sampler2D texmap_particle;
 
 const int MAX_POINT_LIGHTS = 10;
 const int MAX_SPOT_LIGHTS = 4;
@@ -171,7 +172,12 @@ void main()
     }  else if (texMode == 5) {
         // lightwood texture
         colorOut = texture(texmap_lightwood, DataIn.texCoord) * lightTotal;
-    } 
+    }  else if (texMode == 6) {
+        // particle texture
+        vec4 texel = texture(texmap_particle, DataIn.texCoord);
+        if (texel.a < 0.1f) discard; 
+        colorOut = texel;           
+    }
 
     if (fogColor != vec4(0)) {
         colorOut = mix(fogColor, colorOut, CalcFogFactor());
