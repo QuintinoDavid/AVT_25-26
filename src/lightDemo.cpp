@@ -52,12 +52,12 @@
 struct
 {
 	const char *Drone_OBJ = ASSET_FOLDER "drone.obj";
-	const char *Grass_OBJ = ASSET_FOLDER "grass_billboard.obj";
+	const char *Tree_OBJ = ASSET_FOLDER "Tree.obj";
 
 	const char *Stone_Tex = ASSET_FOLDER "stone.tga";
 	const char *Floor_Tex = ASSET_FOLDER "floor_grass.png";
 	const char *Window_Tex = ASSET_FOLDER "window.png";
-	const char *BBGrass_Tex = ASSET_FOLDER "billboard_grass.png";
+	const char *BBTree_Tex = ASSET_FOLDER "Tree_DM.png";
 	const char *Lightwood_Tex = ASSET_FOLDER "lightwood.tga";
 	const char *Particle_Tex = ASSET_FOLDER "particle.tga";
 
@@ -112,6 +112,7 @@ Renderer renderer;
 Drone *drone;
 std::vector<Light> sceneLights;
 std::vector<SceneObject *> sceneObjects;
+std::vector<SceneObject *> billboardObjects;
 std::vector<SceneObject *> transparentObjects;
 std::vector<Particle *> particle_vector;	
 CollisionSystem collisionSystem;
@@ -292,6 +293,7 @@ void renderSim(void)
 	/*  RENDER QUEUE
 	  1) setup the lights
 	  2) render opaque objects
+	  2) render billboard objects
 	  3) render skybox
 	  4) render particles (if any)
 	  5) render transparent objects
@@ -299,8 +301,19 @@ void renderSim(void)
 
 	for (auto &light : sceneLights)
 		light.render(renderer, mu);
+
 	for (auto &obj : sceneObjects)
 		obj->render(renderer, mu);
+
+
+	for (auto &obj : billboardObjects) {
+		float dirX = cams[activeCam]->getX() - obj->pos[0];
+		float dirZ = cams[activeCam]->getZ() - obj->pos[2];
+		float yaw = atan2(dirX, dirZ) * (180.0f / PI_F) + 180.f;
+		obj->setRotation(yaw, 0.f, 0.f);
+		obj->render(renderer, mu);
+	}
+		
 	
 	// Render skybox
 	mu.pushMatrix(gmu::MODEL);
@@ -891,13 +904,14 @@ void buildScene()
 	renderer.TexObjArray.texture2D_Loader(FILEPATH.Stone_Tex);
 	renderer.TexObjArray.texture2D_Loader(FILEPATH.Floor_Tex);
 	renderer.TexObjArray.texture2D_Loader(FILEPATH.Window_Tex);
-	renderer.TexObjArray.texture2D_Loader(FILEPATH.BBGrass_Tex, false);
+	renderer.TexObjArray.texture2D_Loader(FILEPATH.BBTree_Tex, false);
 	renderer.TexObjArray.texture2D_Loader(FILEPATH.Lightwood_Tex);
 	renderer.TexObjArray.texture2D_Loader(FILEPATH.Particle_Tex);
 	GLOBAL.cubemap_dayID = renderer.TexObjArray.getNumTextureObjects();
 	renderer.TexObjArray.textureCubeMap_Loader(FILEPATH.Skybox_Cubemap_Day);
 	GLOBAL.cubemap_nightID = renderer.TexObjArray.getNumTextureObjects();
 	renderer.TexObjArray.textureCubeMap_Loader(FILEPATH.Skybox_Cubemap_Night);
+
 
 	// Scene geometry with triangle meshes
 	MyMesh amesh;
@@ -921,34 +935,64 @@ void buildScene()
 	int cubeID = renderer.addMesh(amesh);
 
 	// Load grass model from file
-	std::vector<MyMesh> grassMesh = createFromFile(FILEPATH.Grass_OBJ);
-	std::vector<int> grassMeshIDs;
-	for (size_t i = 0; i < grassMesh.size(); i++)
+	std::vector<MyMesh> treeMesh = createFromFile(FILEPATH.Tree_OBJ);
+	std::vector<int> treeMeshID1;
+	for (size_t i = 0; i < treeMesh.size(); i++)
 	{
 		float amb[] = {10.f, 10.f, 10.f, 10.f};
 		// set material properties
-		memcpy(grassMesh[i].mat.ambient, amb, 4 * sizeof(float));
-		memcpy(grassMesh[i].mat.diffuse, diff1, 4 * sizeof(float));
-		memcpy(grassMesh[i].mat.specular, blk, 4 * sizeof(float));
-		memcpy(grassMesh[i].mat.emissive, blk, 4 * sizeof(float));
-		int meshID = renderer.addMesh(grassMesh[i]);
-		grassMeshIDs.push_back(meshID);
+		memcpy(treeMesh[i].mat.ambient, amb, 4 * sizeof(float));
+		memcpy(treeMesh[i].mat.diffuse, diff1, 4 * sizeof(float));
+		memcpy(treeMesh[i].mat.specular, blk, 4 * sizeof(float));
+		memcpy(treeMesh[i].mat.emissive, blk, 4 * sizeof(float));
+		int meshID = renderer.addMesh(treeMesh[i]);
+		treeMeshID1.push_back(meshID);
+	}
+	std::vector<int> treeMeshID2;
+	for (size_t i = 0; i < treeMesh.size(); i++)
+	{
+		float amb[] = {12.f, 10.f, 10.f, 10.f};
+		memcpy(treeMesh[i].mat.ambient, amb, 4 * sizeof(float));
+		treeMeshID2.push_back(renderer.addMesh(treeMesh[i]));
+	}
+	std::vector<int> treeMeshID3;
+	for (size_t i = 0; i < treeMesh.size(); i++)
+	{
+		float amb[] = {10.f, 8.f, 10.f, 10.f};
+		memcpy(treeMesh[i].mat.ambient, amb, 4 * sizeof(float));
+		treeMeshID3.push_back(renderer.addMesh(treeMesh[i]));
 	}
 
-	// random grass
-	const int grassCount = 1;
-	const float rangeRadius = 10.f;
-	for (int i = 1; i < grassCount; i++)
+	std::mt19937 gen{std::random_device{}()}; // random engine
+	std::uniform_real_distribution<float> pos{-10.f, 10.0f};
+	std::uniform_real_distribution<float> col{-2.f, 2.0f};
+	// tree billboards
+	const int treeCount = 2000;
+	const float maxRadius = 300.f;
+	const float minRadius = 200.f;
+	const float goldRatio = PI_F * (3 - std::sqrt(5));
+	for (int i = 1; i < treeCount; i++)
 	{
-		SceneObject *grass = new SceneObject(grassMeshIDs, TexMode::TEXTURE_BBGRASS);
-		const float goldRatio = PI_F * (3 - std::sqrt(5));
-		const float radius = std::sqrt(i / (float)grassCount) * rangeRadius;
+		SceneObject *tree;
+		if (i % 3 == 0) {
+			tree = new SceneObject(treeMeshID1, TexMode::TEXTURE_BBTREE);
+		}
+		if (i % 3 == 1) {
+			tree = new SceneObject(treeMeshID2, TexMode::TEXTURE_BBTREE);
+		}
+		if (i % 3 == 2) {
+			tree = new SceneObject(treeMeshID3, TexMode::TEXTURE_BBTREE);
+		}
+		const float t = std::sqrt(i / (float)treeCount);
+		const float radius = std::sqrt(t * (maxRadius*maxRadius - minRadius*minRadius) + minRadius*minRadius);
 		const float angle = i * goldRatio;
 
-		grass->setPosition(std::cos(angle) * radius, 0.f, 30 + std::sin(angle) * radius);
-		grass->setScale(2.f, 1.5f, 2.f);
-		grass->setRotation(10.f * i, 0.0f, 0.0f);
-		sceneObjects.push_back(grass);
+		float randX = pos(gen);
+		float randZ = pos(gen);
+
+		tree->setPosition(std::cos(angle) * radius + randX, 0.f, 30 + std::sin(angle) * radius + randZ);
+		tree->setScale(4.f, 10.f, 4.f);
+		billboardObjects.push_back(tree);
 	}
 
 	amesh = createTorus(1.f, 10.f, 20, 20);
@@ -1045,7 +1089,6 @@ void buildScene()
 	buildParticles(particleQuadID);
 
 	// Moving obstacles
-	std::mt19937 gen{std::random_device{}()}; // random engine
 	std::uniform_real_distribution<float> velocity{4.0f, 8.0f};
 	std::uniform_real_distribution<float> position{-100.f, 100.0f};
 	std::uniform_real_distribution<float> size{0.5f, 2.0f};

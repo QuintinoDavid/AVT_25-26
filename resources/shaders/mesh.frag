@@ -168,7 +168,7 @@ void main()
         // billboard grass texture
         vec4 texel = texture(texmap_bbgrass, DataIn.texCoord);
         if (texel.a < 0.1f) discard;
-        colorOut = texel * lightTotal;
+        colorOut = vec4(texel.rgb / texel.a, 1.f) * lightTotal;
     }  else if (texMode == 5) {
         // lightwood texture
         colorOut = texture(texmap_lightwood, DataIn.texCoord) * lightTotal;
