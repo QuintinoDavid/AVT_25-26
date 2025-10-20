@@ -325,8 +325,10 @@ void renderSim(void)
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     	glDisable(GL_CULL_FACE);   // see both sides of the quad
     	glDepthMask(GL_FALSE);     // don't write depth so particles don't kill each other
-		for (auto &particle : particle_vector)
-			particle->render(renderer, mu, cams[activeCam]);
+		for (auto &particle : particle_vector) {
+			particle->setCameraPos(cams[activeCam]->getX(), cams[activeCam]->getY(), cams[activeCam]->getZ());
+			particle->render(renderer, mu);
+		}
 		glDepthMask(GL_TRUE);      // restore
 		glEnable(GL_CULL_FACE);
 		glDisable(GL_BLEND);
@@ -484,6 +486,12 @@ void renderSim(void)
 					size,
 					{.9f, 0.9f, 0.9f, 1.f}});
 			}
+			Ypos += Yoff;
+			texts.push_back(TextCommand{
+				"Press 'e' to show fireworks",
+				{0.f, Ypos},
+				size,
+				{.9f, 0.9f, 0.9f, 1.f}});
 		}
 		else
 		{
@@ -928,7 +936,7 @@ void buildScene()
 	}
 
 	// random grass
-	const int grassCount = 100;
+	const int grassCount = 1;
 	const float rangeRadius = 10.f;
 	for (int i = 1; i < grassCount; i++)
 	{

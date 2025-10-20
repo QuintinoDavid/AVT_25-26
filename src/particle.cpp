@@ -13,6 +13,7 @@ private:
     GLfloat ovx, ovy, ovz; // original velocity
 	GLfloat vx, vy, vz; // velocity
 	GLfloat ax, ay, az; // acceleration 
+    float camX, camY, camZ; // camera
     public:
     
     float	curr_life;
@@ -46,16 +47,22 @@ private:
         curr_life = original_life; // reset current life
     }
 
-    void render(Renderer &renderer, gmu &mu, const Camera* cam) {
+    void setCameraPos(float x, float y, float z) {
+        camX = x;
+        camY = y;
+        camZ = z;
+    }
+
+    void render(Renderer &renderer, gmu &mu) {
         if (!active) return;
 
             mu.pushMatrix(gmu::MODEL);
             mu.translate(gmu::MODEL, pos[0], pos[1], pos[2]);
             
             // Face camera
-            float dirX = cam->getX() - pos[0];
-            float dirY = cam->getY() - pos[1];
-            float dirZ = cam->getZ() - pos[2];
+            float dirX = camX - pos[0];
+            float dirY = camY - pos[1];
+            float dirZ = camZ - pos[2];
             
             yaw   = atan2f(dirX, dirZ) * 180.0f / PI_F;
             float lenXZ = sqrtf(dirX*dirX + dirZ*dirZ);
