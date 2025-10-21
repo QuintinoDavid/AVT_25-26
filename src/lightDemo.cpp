@@ -820,6 +820,7 @@ void processKeys(unsigned char key, int xx, int yy)
 			drone->setScale(1.6f, 2.f, 1.4f);
 			drone->getCollider()->setBox(-2.24f, 5.0f, -2.52f, 2.24f, 6.2f, 2.52f);
 			drone->setBatteryLevel(Drone::MAX_BATTERY);
+			drone->setScore(0);
 			drone->enable();
 			resetDelivery();
 		}
