@@ -1,6 +1,7 @@
 #pragma once
 #include "sceneObject.h"
 #include <functional>
+#include <array>
 
 class Drone; // forward declaration
 class Collider;

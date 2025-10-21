@@ -4,6 +4,7 @@ in Data {
 	vec3 normal;
 	vec3 position;
 	vec2 texCoord;
+	mat3 m_tbn;
 } DataIn;
 
 out vec4 colorOut;
@@ -56,6 +57,9 @@ uniform sampler2D texmap_bbgrass;
 uniform sampler2D texmap_bbtree;
 uniform sampler2D texmap_lightwood;
 uniform sampler2D texmap_particle;
+
+uniform int hasNormalMap;
+uniform sampler2D texmap_normal;
 
 const int MAX_POINT_LIGHTS = 10;
 const int MAX_SPOT_LIGHTS = 4;
@@ -138,6 +142,10 @@ void main()
     vec3 normal = normalize(DataIn.normal);
     vec4 lightTotal = mat.emissive;
 
+    if (texMode == 2) {
+        normal = normalize(DataIn.m_tbn * (texture(texmap_normal, DataIn.texCoord) * 2.0 - 1.0).xyz);
+    }
+
     lightTotal += directionalLightToggle * CalcDirectionalLight(normal);
 
     for (int i = 0; i < pointLightNum; i++) {
@@ -153,8 +161,8 @@ void main()
         colorOut = lightTotal;
     } else if (texMode == 1) {
         // tiled grass
-        float tilingFactor1 = 23.f;
-        float tilingFactor2 = 121.f;
+        float tilingFactor1 = 11.f;
+        float tilingFactor2 = 23.f;
 
         vec4 texel1 = texture(texmap_grass, DataIn.texCoord * tilingFactor1);
         vec4 texel2 = texture(texmap_grass, DataIn.texCoord * tilingFactor2);
@@ -169,7 +177,7 @@ void main()
         // billboard grass texture
         vec4 texel = texture(texmap_bbgrass, DataIn.texCoord);
         if (texel.a < 0.1f) discard;
-        colorOut = vec4(texel.rgb / texel.a, 1.f) * lightTotal;
+        colorOut = vec4(texel.rgb, 1.f) * lightTotal;
     }else if (texMode == 5) {
         // billboard tree texture
         vec4 texel = texture(texmap_bbtree, DataIn.texCoord);

@@ -5,6 +5,8 @@
 #include "autoMover.h"
 #include "mathUtility.h"
 
+#include <algorithm>
+
 void Drone::updateDrone(float deltaTime)
 {
 	// --- Smooth vertical acceleration ---

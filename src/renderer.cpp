@@ -158,6 +158,7 @@ bool Renderer::setRenderMeshesShaderProg(const std::string &vertShaderPath, cons
     tex_loc[4] = glGetUniformLocation(program, "texmap_bbtree");
     tex_loc[5] = glGetUniformLocation(program, "texmap_lightwood");
     tex_loc[6] = glGetUniformLocation(program, "texmap_particle");
+    tex_loc[7] = glGetUniformLocation(program, "texmap_normal");
 
     fogColor_loc = glGetUniformLocation(program, "fogColor");
 

@@ -68,6 +68,7 @@ struct
 	const char *BBTree_Tex = ASSET_FOLDER "Tree_DM.png";
 	const char *Lightwood_Tex = ASSET_FOLDER "lightwood.tga";
 	const char *Particle_Tex = ASSET_FOLDER "particle.tga";
+	const char* Normalmap_Tex = ASSET_FOLDER "grassNormal.png";
 
 	const char *Skybox_Cubemap_Day[6] = {
 		ASSET_FOLDER "skybox/day_right.png", ASSET_FOLDER "skybox/day_left.png",
@@ -158,7 +159,7 @@ void refresh(int value)
 {
 	(void)value;
 	glutPostRedisplay();
-	glutTimerFunc(1000 / 60, refresh, 0);
+	glutTimerFunc(1000 / 600, refresh, 0);
 }
 
 void gameloop(void)
@@ -267,8 +268,10 @@ void renderSim(void)
 	renderer.setTexUnit(1, 1); // Floor grass
 	renderer.setTexUnit(2, 2); // Window
 	renderer.setTexUnit(3, 3); // Billboard grass
-	renderer.setTexUnit(4, 4); // Lightwood
-	renderer.setTexUnit(5, 5); // Particle
+	renderer.setTexUnit(4, 4); // Billboard tree
+	renderer.setTexUnit(5, 5); // Lightwood
+	renderer.setTexUnit(6, 6); // Particle
+	renderer.setTexUnit(7, 7); // Normalmap
 
 	// load identity matrices
 	mu.loadIdentity(gmu::VIEW);
@@ -351,37 +354,6 @@ void renderSim(void)
 	mu.popMatrix(gmu::MODEL);
 	renderer.activateRenderMeshesShaderProg();
 
-	if (GLOBAL.fireworksOn)
-	{
-		glEnable(GL_BLEND);
-		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-		glDisable(GL_CULL_FACE); // see both sides of the quad
-		glDepthMask(GL_FALSE);	 // don't write depth so particles don't kill each other
-		for (auto &particle : particle_vector)
-		{
-			particle->setCameraPos(cams[activeCam]->getX(), cams[activeCam]->getY(), cams[activeCam]->getZ());
-			particle->render(renderer, mu);
-		}
-		glDepthMask(GL_TRUE); // restore
-		glEnable(GL_CULL_FACE);
-		glDisable(GL_BLEND);
-
-		int dead_num_particles = 0;
-		for (int i = 0; i < MAX_PARTICLES; i++)
-		{
-			if (particle_vector[i]->curr_life <= 0.0f)
-				dead_num_particles++;
-		}
-		if (dead_num_particles == MAX_PARTICLES)
-		{
-			GLOBAL.fireworksOn = false;
-			reset_particles();
-			printf("All particles dead\n");
-		}
-	}
-
-	glEnable(GL_BLEND);
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 	auto cmp = [&](SceneObject *a, SceneObject *b)
 	{
@@ -401,6 +373,34 @@ void renderSim(void)
 
 		return (lenA > lenB);
 	};
+
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+	std::sort(particle_vector.begin(), particle_vector.end(), cmp);
+	if (GLOBAL.fireworksOn)
+	{
+		glDisable(GL_CULL_FACE); // see both sides of the quad
+		for (auto& particle : particle_vector)
+		{
+			particle->setCameraPos(cams[activeCam]->getX(), cams[activeCam]->getY(), cams[activeCam]->getZ());
+			particle->render(renderer, mu);
+		}
+		glEnable(GL_CULL_FACE);
+
+		int dead_num_particles = 0;
+		for (int i = 0; i < MAX_PARTICLES; i++)
+		{
+			if (particle_vector[i]->curr_life <= 0.0f)
+				dead_num_particles++;
+		}
+		if (dead_num_particles == MAX_PARTICLES)
+		{
+			GLOBAL.fireworksOn = false;
+			reset_particles();
+			printf("All particles dead\n");
+		}
+	}
 
 	std::sort(transparentObjects.begin(), transparentObjects.end(), cmp);
 	for (auto obj : transparentObjects)
@@ -444,7 +444,7 @@ void renderSim(void)
 		{
 			texts.push_back(TextCommand{
 				"PAUSED",
-				{GLOBAL.WinX / 2.0f, GLOBAL.WinY / 2.0f},
+				{GLOBAL.WinX / 2.0f - 140.f, GLOBAL.WinY / 2.0f},
 				1.0f,
 				{0.9f, 0.1f, 0.1f, 1.0f} // red
 			});
@@ -460,6 +460,12 @@ void renderSim(void)
 					1.0f,
 					{0.9f, 0.1f, 0.1f, 1.0f} // red
 				});
+				texts.push_back(TextCommand{
+					"Click 'R' to reset.",
+					{(GLOBAL.WinX / 2.0f) - 100.f, (GLOBAL.WinY / 2.0f)},
+					0.5f,
+					{0.9f, 0.1f, 0.1f, 1.0f} // red
+					});
 			}
 		}
 
@@ -1091,41 +1097,47 @@ void buildCityWithPackages(
 
 	// --------------------------------------------------------------------
 	// Grass outside the torus ring
-	const int grassCount = 500;
+	const int grassCount = 1000;// 500;
+	std::uniform_real_distribution<float> pos{ -5.f, 5.0f };
+	std::uniform_real_distribution<float> col{ -2.f, 2.0f };
 	for (int i = 0; i < grassCount; ++i)
 	{
-		SceneObject *grass = new SceneObject(grassMeshIDs, TexMode::TEXTURE_BBGRASS);
+		SceneObject* grass = new SceneObject(treeMeshID1, TexMode::TEXTURE_BBTREE);
+		if (i % 3 == 1)
+		{
+			grass->meshID = treeMeshID2;
+		}
+		if (i % 3 == 2)
+		{
+			grass->meshID = treeMeshID3;
+		}
 		const float goldRatio = PI_F * (3 - std::sqrt(5.0f));
-		const float radius = cityRadius + 10.0f + std::sqrt(i / (float)grassCount) * 50.0f;
+		const float radius = cityRadius + 20.0f + std::sqrt(i / (float)grassCount) * 50.0f;
 		const float angle = i * goldRatio;
 
-		grass->setPosition(std::cos(angle) * radius, 0.0f, std::sin(angle) * radius);
-		grass->setScale(2.f, 1.5f, 2.f);
-		grass->setRotation(10.f * i, 0.0f, 0.0f);
-		sceneObjects.push_back(grass);
+		float randX = pos(gen);
+		float randZ = pos(gen);
+
+		grass->setPosition(std::cos(angle) * radius + randX, 0.0f, std::sin(angle) * radius + randZ);
+		grass->setScale(4.f, 10.f, 4.f);
+		billboardObjects.push_back(grass);
 	}
 
-	std::uniform_real_distribution<float> pos{-10.f, 10.0f};
-	std::uniform_real_distribution<float> col{-2.f, 2.0f};
 	// tree billboards
-	const int treeCount = 2000;
+	const int treeCount = 0;//2000;
 	const float maxRadius = 300.f;
 	const float minRadius = 200.f;
 	const float goldRatio = PI_F * (3 - std::sqrt(5));
 	for (int i = 1; i < treeCount; i++)
 	{
-		SceneObject *tree;
-		if (i % 3 == 0)
-		{
-			tree = new SceneObject(treeMeshID1, TexMode::TEXTURE_BBTREE);
-		}
+		SceneObject *tree = new SceneObject(treeMeshID1, TexMode::TEXTURE_BBTREE);
 		if (i % 3 == 1)
 		{
-			tree = new SceneObject(treeMeshID2, TexMode::TEXTURE_BBTREE);
+			tree->meshID = treeMeshID2;
 		}
 		if (i % 3 == 2)
 		{
-			tree = new SceneObject(treeMeshID3, TexMode::TEXTURE_BBTREE);
+			tree->meshID = treeMeshID3;
 		}
 		const float t = std::sqrt(i / (float)treeCount);
 		const float radius = std::sqrt(t * (maxRadius * maxRadius - minRadius * minRadius) + minRadius * minRadius);
@@ -1170,6 +1182,7 @@ void buildScene()
 	renderer.TexObjArray.texture2D_Loader(FILEPATH.BBTree_Tex, false);
 	renderer.TexObjArray.texture2D_Loader(FILEPATH.Lightwood_Tex);
 	renderer.TexObjArray.texture2D_Loader(FILEPATH.Particle_Tex);
+	renderer.TexObjArray.texture2D_Loader(FILEPATH.Normalmap_Tex);
 	GLOBAL.cubemap_dayID = renderer.TexObjArray.getNumTextureObjects();
 	renderer.TexObjArray.textureCubeMap_Loader(FILEPATH.Skybox_Cubemap_Day);
 	GLOBAL.cubemap_nightID = renderer.TexObjArray.getNumTextureObjects();
