@@ -22,6 +22,7 @@
 #include <ctime>
 #include <array>
 #include <random>
+#include <iomanip>
 
 // include GLEW to access OpenGL 3.3 functions
 #include <GL/glew.h>
@@ -68,7 +69,7 @@ struct
 	const char *BBTree_Tex = ASSET_FOLDER "Tree_DM.png";
 	const char *Lightwood_Tex = ASSET_FOLDER "lightwood.tga";
 	const char *Particle_Tex = ASSET_FOLDER "particle.tga";
-	const char* Normalmap_Tex = ASSET_FOLDER "grassNormal.png";
+	const char *Normalmap_Tex = ASSET_FOLDER "grassNormal.png";
 
 	const char *Skybox_Cubemap_Day[6] = {
 		ASSET_FOLDER "skybox/day_right.png", ASSET_FOLDER "skybox/day_left.png",
@@ -136,6 +137,8 @@ std::mt19937 gen{std::random_device{}()}; // random engine
 
 Camera *cams[3];
 int activeCam = 0;
+SceneObject *stencilQuad = nullptr;
+int stencilQuadID = -1;
 
 /// ::::::::::::::::::::::: CALLBACK FUNCTIONS ::::::::::::::::::::::: ///
 
@@ -196,6 +199,7 @@ void gameloop(void)
 
 void changeSize(int w, int h)
 {
+	float ratio;
 	// Prevent a divide by zero, when window is too short
 	if (h == 0)
 		h = 1;
@@ -205,6 +209,8 @@ void changeSize(int w, int h)
 	GLOBAL.WinX = w;
 	GLOBAL.WinY = h;
 
+	// Set the perspective/orthographic matrix for main camera
+	ratio = (1.0f * w) / h;
 	mu.loadIdentity(gmu::PROJECTION);
 
 	if (cams[activeCam]->getProjectionType() == ProjectionType::Orthographic)
@@ -214,9 +220,19 @@ void changeSize(int w, int h)
 	}
 	else
 	{
-		float ratio = (1.0f * w) / h;
 		mu.perspective(53.13f, ratio, 0.1f, 1000.0f);
 	}
+
+	// Size of rear-view mirror
+	float quadWidth = 256.0f;
+	float quadHeight = 174.0f;
+
+	// Recompute center based on new window size
+	float posX = GLOBAL.WinX - quadWidth / 2.0f;
+	float posY = GLOBAL.WinY - quadHeight / 2.0f;
+
+	stencilQuad->setPosition(posX, posY, 0.0f);
+	stencilQuad->setScale(quadWidth, quadHeight, 1.f);
 }
 
 //
@@ -257,7 +273,170 @@ void reset_particles(void)
 void renderSim(void)
 {
 	GLOBAL.FrameCount++;
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+
+	// ===== STEP 1: CREATE STENCIL MASK =====
+	if (stencilQuad && activeCam == 2)
+	{
+		mu.pushMatrix(gmu::PROJECTION);
+		mu.loadIdentity(gmu::PROJECTION);
+
+		// Pixel-perfect ortho
+		mu.ortho(0.0f, (float)GLOBAL.WinX, 0.0f, (float)GLOBAL.WinY, -10.0f, 10.0f);
+
+		mu.loadIdentity(gmu::VIEW);
+		mu.loadIdentity(gmu::MODEL);
+
+		glStencilFunc(GL_NEVER, 0x1, 0x1);
+		glStencilOp(GL_REPLACE, GL_KEEP, GL_KEEP);
+		glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
+		glDepthMask(GL_FALSE);
+
+		renderer.activateRenderMeshesShaderProg();
+		stencilQuad->render(renderer, mu);
+
+		glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+		glDepthMask(GL_TRUE);
+
+		mu.popMatrix(gmu::PROJECTION);
+	}
+
+	// ===== STEP 2: RENDER REAR VIEW (where stencil == 1) =====
+	// ===== STEP 2: RENDER REAR VIEW (where stencil == 1) =====
+	if (stencilQuad && activeCam == 2)
+	{
+		glStencilFunc(GL_EQUAL, 0x1, 0x1);
+		glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
+
+		// Convert quad position/scale from pixels to viewport
+		int vpX = (int)(stencilQuad->pos[0] - stencilQuad->scale[0] / 2.0f);
+		int vpY = (int)(stencilQuad->pos[1] - stencilQuad->scale[1] / 2.0f);
+		int vpWidth = (int)stencilQuad->scale[0];
+		int vpHeight = (int)stencilQuad->scale[1];
+
+		glViewport(vpX, vpY, vpWidth, vpHeight);
+
+		// Setup rear-view camera (LOOKING BACKWARD!)
+		mu.loadIdentity(gmu::VIEW);
+		mu.loadIdentity(gmu::MODEL);
+
+		float droneYaw = ((drone->yaw) * PI_F / 180.0f) + PI_F; // Convert to radians
+		float distanceBehind = 5.0f;							// Camera distance behind drone
+
+		// Camera position: BEHIND the drone
+		float camX = drone->pos[0] - distanceBehind * sin(droneYaw);
+		float camY = drone->pos[1]; // Slightly above drone
+		float camZ = drone->pos[2] - distanceBehind * cos(droneYaw);
+
+		// Camera target: FURTHER behind the drone (looking backward!)
+		float targetX = drone->pos[0] - (distanceBehind + 10.0f) * sin(droneYaw);
+		float targetY = drone->pos[1];
+		float targetZ = drone->pos[2] - (distanceBehind + 10.0f) * cos(droneYaw);
+
+		mu.lookAt(camX, camY, camZ,
+				  targetX, targetY, targetZ,
+				  0.0f, 1.0f, 0.0f);
+
+		// Setup perspective projection with correct aspect ratio
+		mu.loadIdentity(gmu::PROJECTION);
+		float ratio = (float)vpWidth / (float)vpHeight;
+		mu.perspective(53.13f, ratio, 0.1f, 800.0f);
+
+		// Set fog for rear-view
+		float fogColor[] = {0.f, 0.f, 0.f, 0.f};
+		if (GLOBAL.showFog)
+		{
+			float lightgray[] = {.75f, 0.85f, 0.75f, 1.f};
+			float darkgray[] = {0.15f, 0.15f, 0.15f, 1.f};
+			if (GLOBAL.daytime)
+			{
+				for (int i = 0; i < 4; i++)
+					fogColor[i] = lightgray[i];
+			}
+			else
+			{
+				for (int i = 0; i < 4; i++)
+					fogColor[i] = darkgray[i];
+			}
+		}
+		renderer.setFogColor(fogColor);
+
+		// Render scene in rear-view mirror
+		renderer.activateRenderMeshesShaderProg();
+		renderer.resetLights();
+
+		// Setup lights
+		for (auto &light : sceneLights)
+			light.render(renderer, mu);
+
+		// Render opaque objects
+		for (auto &obj : sceneObjects)
+			obj->render(renderer, mu);
+
+		// Render billboard objects (grass, trees) oriented to rear camera
+		for (auto &obj : billboardObjects)
+		{
+			float dirX = camX - obj->pos[0];
+			float dirZ = camZ - obj->pos[2];
+			float yaw = atan2(dirX, dirZ) * (180.0f / PI_F) + 180.f;
+			obj->setRotation(yaw, 0.f, 0.f);
+			obj->render(renderer, mu);
+		}
+
+		// Render skybox centered on rear camera
+		mu.pushMatrix(gmu::MODEL);
+		mu.translate(gmu::MODEL, camX, camY, camZ);
+		mu.computeDerivedMatrix(gmu::PROJ_VIEW_MODEL);
+		float *m_VP = mu.get(gmu::PROJ_VIEW_MODEL);
+		if (GLOBAL.daytime)
+		{
+			unsigned int id = renderer.TexObjArray.getTextureId(GLOBAL.cubemap_dayID);
+			renderer.activateSkyboxShaderProg(m_VP, id, fogColor);
+		}
+		else
+		{
+			unsigned int id = renderer.TexObjArray.getTextureId(GLOBAL.cubemap_nightID);
+			renderer.activateSkyboxShaderProg(m_VP, id, fogColor);
+		}
+		mu.popMatrix(gmu::MODEL);
+
+		// Re-activate mesh shader for transparent objects
+		renderer.activateRenderMeshesShaderProg();
+
+		// Render transparent objects (windows) - sorted from rear camera position
+		glEnable(GL_BLEND);
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+		auto rearCmp = [&](SceneObject *a, SceneObject *b)
+		{
+			float lenA_X = (a->pos[0] - camX);
+			float lenA_Y = (a->pos[1] - camY);
+			float lenA_Z = (a->pos[2] - camZ);
+			float lenA = (lenA_X * lenA_X) + (lenA_Y * lenA_Y) + (lenA_Z * lenA_Z);
+
+			float lenB_X = (b->pos[0] - camX);
+			float lenB_Y = (b->pos[1] - camY);
+			float lenB_Z = (b->pos[2] - camZ);
+			float lenB = (lenB_X * lenB_X) + (lenB_Y * lenB_Y) + (lenB_Z * lenB_Z);
+
+			return (lenA > lenB);
+		};
+
+		std::vector<SceneObject *> rearTransparentObjects = transparentObjects; // Copy to avoid modifying main list
+		std::sort(rearTransparentObjects.begin(), rearTransparentObjects.end(), rearCmp);
+		for (auto obj : rearTransparentObjects)
+			obj->render(renderer, mu);
+
+		glDisable(GL_BLEND);
+
+		// Restore full viewport for main rendering
+		glViewport(0, 0, GLOBAL.WinX, GLOBAL.WinY);
+	}
+
+	// ===== STEP 3: RENDER MAIN VIEW (where stencil != 1) =====
+	// Configure stencil to render where stencil != 1
+	glStencilFunc(GL_NOTEQUAL, 0x1, 0x1);
+	glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
 
 	// use the required GLSL program to draw the meshes with illumination
 	renderer.activateRenderMeshesShaderProg();
@@ -354,7 +533,6 @@ void renderSim(void)
 	mu.popMatrix(gmu::MODEL);
 	renderer.activateRenderMeshesShaderProg();
 
-
 	auto cmp = [&](SceneObject *a, SceneObject *b)
 	{
 		float camX = cams[activeCam]->getX();
@@ -381,7 +559,7 @@ void renderSim(void)
 	if (GLOBAL.fireworksOn)
 	{
 		glDisable(GL_CULL_FACE); // see both sides of the quad
-		for (auto& particle : particle_vector)
+		for (auto &particle : particle_vector)
 		{
 			particle->setCameraPos(cams[activeCam]->getX(), cams[activeCam]->getY(), cams[activeCam]->getZ());
 			particle->render(renderer, mu);
@@ -465,7 +643,7 @@ void renderSim(void)
 					{(GLOBAL.WinX / 2.0f) - 100.f, (GLOBAL.WinY / 2.0f)},
 					0.5f,
 					{0.9f, 0.1f, 0.1f, 1.0f} // red
-					});
+				});
 			}
 		}
 
@@ -1097,12 +1275,12 @@ void buildCityWithPackages(
 
 	// --------------------------------------------------------------------
 	// Grass outside the torus ring
-	const int grassCount = 1000;// 500;
-	std::uniform_real_distribution<float> pos{ -5.f, 5.0f };
-	std::uniform_real_distribution<float> col{ -2.f, 2.0f };
+	const int grassCount = 1000; // 500;
+	std::uniform_real_distribution<float> pos{-5.f, 5.0f};
+	std::uniform_real_distribution<float> col{-2.f, 2.0f};
 	for (int i = 0; i < grassCount; ++i)
 	{
-		SceneObject* grass = new SceneObject(treeMeshID1, TexMode::TEXTURE_BBTREE);
+		SceneObject *grass = new SceneObject(treeMeshID1, TexMode::TEXTURE_BBTREE);
 		if (i % 3 == 1)
 		{
 			grass->meshID = treeMeshID2;
@@ -1124,7 +1302,7 @@ void buildCityWithPackages(
 	}
 
 	// tree billboards
-	const int treeCount = 0;//2000;
+	const int treeCount = 0; // 2000;
 	const float maxRadius = 300.f;
 	const float minRadius = 200.f;
 	const float goldRatio = PI_F * (3 - std::sqrt(5));
@@ -1355,6 +1533,31 @@ void buildScene()
 	// Fireworks particles
 	buildParticles(particleQuadID);
 
+	// create geometry and VAO of the stencil quad for rear-view mirror
+	amesh = createQuad(1.0f, 1.0f);
+	memcpy(amesh.mat.ambient, amb1, 4 * sizeof(float));
+	memcpy(amesh.mat.diffuse, diff1, 4 * sizeof(float));
+	memcpy(amesh.mat.specular, spec1, 4 * sizeof(float));
+	memcpy(amesh.mat.emissive, blk, 4 * sizeof(float));
+	amesh.mat.shininess = 1.f;
+	amesh.mat.texCount = texcount;
+	stencilQuadID = renderer.addMesh(amesh);
+
+	if (stencilQuadID)
+	{
+		stencilQuad = new SceneObject(std::vector<int>{stencilQuadID}, TexMode::TEXTURE_NONE);
+		// Size of the rear-view mirror in pixels
+		float quadWidth = 256.0f;  // half the previous width
+		float quadHeight = 174.0f; // half the previous height
+
+		// Position the center of the quad in the **top-right**
+		float posX = GLOBAL.WinX - quadWidth / 2.0f;  // center X
+		float posY = GLOBAL.WinY - quadHeight / 2.0f; // center Y
+
+		stencilQuad->setPosition(posX, posY, 0.0f);
+		stencilQuad->setScale(quadWidth, quadHeight, 1.f);
+	}
+
 	// Moving obstacles
 	std::uniform_real_distribution<float> velocity{4.0f, 8.0f};
 	std::uniform_real_distribution<float> position{-100.f, 100.0f};
@@ -1454,7 +1657,7 @@ int main(int argc, char **argv)
 {
 	//  GLUT initialization
 	glutInit(&argc, argv);
-	glutInitDisplayMode(GLUT_DEPTH | GLUT_DOUBLE | GLUT_RGBA | GLUT_MULTISAMPLE);
+	glutInitDisplayMode(GLUT_DEPTH | GLUT_DOUBLE | GLUT_RGBA | GLUT_STENCIL | GLUT_MULTISAMPLE);
 
 	glutInitContextVersion(4, 2);
 	glutInitContextProfile(GLUT_CORE_PROFILE);
@@ -1495,6 +1698,10 @@ int main(int argc, char **argv)
 	glEnable(GL_CULL_FACE);
 	glEnable(GL_MULTISAMPLE);
 	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+
+	// Enable stencil testing for rear-view mirror
+	glClearStencil(0x0);
+	glEnable(GL_STENCIL_TEST);
 
 	printf("Vendor: %s\n", glGetString(GL_VENDOR));
 	printf("Renderer: %s\n", glGetString(GL_RENDERER));
