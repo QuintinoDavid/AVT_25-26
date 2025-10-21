@@ -5,11 +5,13 @@
 #include <vector>
 #include <iostream>
 
-enum TexMode {
+enum TexMode
+{
 	TEXTURE_NONE, // ambient + diffuse + light colors only
 	TEXTURE_FLOOR,
 	TEXTURE_STONE,
 	TEXTURE_WINDOW,
+	TEXTURE_BBGRASS,
 	TEXTURE_BBTREE,
 	TEXTURE_LIGHTWOOD,
 	TEXTURE_PARTICLE
@@ -40,6 +42,9 @@ public:
 
 	Collider *getCollider();
 
+	float *getPosition();
+	float *getScale();
+	void setMeshes(const std::vector<int> &meshes);
 	void setPosition(float x, float y, float z);
 	void setRotation(float yaw_, float pitch_, float roll_);
 	void setScale(float x, float y, float z);

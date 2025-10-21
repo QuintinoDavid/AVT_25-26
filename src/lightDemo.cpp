@@ -19,6 +19,9 @@
 #include <string>
 #include <cstring>
 #include <vector>
+#include <ctime>
+#include <array>
+#include <random>
 
 // include GLEW to access OpenGL 3.3 functions
 #include <GL/glew.h>
@@ -35,8 +38,11 @@
 #include "texture.h"
 #include "sceneObject.h"
 #include "light.h"
-#include "drone.cpp"
-#include "autoMover.cpp"
+#include "drone.h"
+#include "autoMover.h"
+#include "package.h"
+#include "camera.h"
+#include "collision.h"
 #include "particle.cpp"
 
 #ifndef RESOURCE_BASE
@@ -46,17 +52,19 @@
 #define ASSET_FOLDER RESOURCE_BASE "assets/"
 #define SHADER_FOLDER RESOURCE_BASE "shaders/"
 
-#define MAX_PARTICLES  1500
-#define frand()			((float)rand()/RAND_MAX)
+#define MAX_PARTICLES 1500
+#define frand() ((float)rand() / RAND_MAX)
 
 struct
 {
 	const char *Drone_OBJ = ASSET_FOLDER "drone.obj";
+	const char *Grass_OBJ = ASSET_FOLDER "grass_billboard.obj";
 	const char *Tree_OBJ = ASSET_FOLDER "Tree.obj";
 
 	const char *Stone_Tex = ASSET_FOLDER "stone.tga";
 	const char *Floor_Tex = ASSET_FOLDER "floor_grass.png";
 	const char *Window_Tex = ASSET_FOLDER "window.png";
+	const char *BBGrass_Tex = ASSET_FOLDER "billboard_grass.png";
 	const char *BBTree_Tex = ASSET_FOLDER "Tree_DM.png";
 	const char *Lightwood_Tex = ASSET_FOLDER "lightwood.tga";
 	const char *Particle_Tex = ASSET_FOLDER "particle.tga";
@@ -104,6 +112,7 @@ struct
 	bool fireworksOn = false;
 	unsigned int cubemap_dayID = 0;
 	unsigned int cubemap_nightID = 0;
+	bool paused = false;
 } GLOBAL;
 
 gmu mu;
@@ -112,10 +121,17 @@ Renderer renderer;
 Drone *drone;
 std::vector<Light> sceneLights;
 std::vector<SceneObject *> sceneObjects;
-std::vector<SceneObject *> billboardObjects;
 std::vector<SceneObject *> transparentObjects;
-std::vector<Particle *> particle_vector;	
 CollisionSystem collisionSystem;
+Package *package = nullptr;
+SceneObject *destination = nullptr;
+std::vector<SceneObject *> billboardObjects;
+std::vector<Particle *> particle_vector;
+// Store building quadrants for package delivery
+std::vector<std::vector<SceneObject *>> cityQuadrants;
+int destinationMeshID = -1;
+// Random engine
+std::mt19937 gen{std::random_device{}()}; // random engine
 
 Camera *cams[3];
 int activeCam = 0;
@@ -153,9 +169,11 @@ void gameloop(void)
 
 	// Update all scene objects with the elapsed time
 	for (auto obj : sceneObjects)
-		obj->update(deltaTime);
-	
-	if (GLOBAL.fireworksOn) {
+		if (GLOBAL.paused == false)
+			obj->update(deltaTime);
+
+	if (GLOBAL.fireworksOn)
+	{
 		glEnable(GL_BLEND);
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 		glDisable(GL_CULL_FACE);
@@ -207,17 +225,18 @@ void buildParticles(int particleQuadID)
 {
 	GLfloat v, theta, phi;
 
-	for (int i = 0; i < MAX_PARTICLES; i++) {
+	for (int i = 0; i < MAX_PARTICLES; i++)
+	{
 		v = frand() + 1;
-		phi = frand()*PI_F;
-		theta = 2.0*frand()*PI_F;
+		phi = frand() * PI_F;
+		theta = 2.0 * frand() * PI_F;
 
-		Particle *particle = new Particle({ particleQuadID }, TexMode::TEXTURE_PARTICLE, 1.0f, 0.007f,
-			0.0f, 10.0f, 0.0f,
-			v * cos(theta) * sin(phi),
-			v * cos(phi),
-			v * sin(theta) * sin(phi),
-			0.1f, -0.15f, 0.0f);
+		Particle *particle = new Particle({particleQuadID}, TexMode::TEXTURE_PARTICLE, 1.0f, 0.007f,
+										  0.0f, 10.0f, 0.0f,
+										  v * cos(theta) * sin(phi),
+										  v * cos(phi),
+										  v * sin(theta) * sin(phi),
+										  0.1f, -0.15f, 0.0f);
 		particle_vector.push_back(particle);
 	}
 }
@@ -305,16 +324,15 @@ void renderSim(void)
 	for (auto &obj : sceneObjects)
 		obj->render(renderer, mu);
 
-
-	for (auto &obj : billboardObjects) {
+	for (auto &obj : billboardObjects)
+	{
 		float dirX = cams[activeCam]->getX() - obj->pos[0];
 		float dirZ = cams[activeCam]->getZ() - obj->pos[2];
 		float yaw = atan2(dirX, dirZ) * (180.0f / PI_F) + 180.f;
 		obj->setRotation(yaw, 0.f, 0.f);
 		obj->render(renderer, mu);
 	}
-		
-	
+
 	// Render skybox
 	mu.pushMatrix(gmu::MODEL);
 	mu.translate(gmu::MODEL, cams[activeCam]->getX(), cams[activeCam]->getY(), cams[activeCam]->getZ());
@@ -333,24 +351,29 @@ void renderSim(void)
 	mu.popMatrix(gmu::MODEL);
 	renderer.activateRenderMeshesShaderProg();
 
-	if (GLOBAL.fireworksOn) {
+	if (GLOBAL.fireworksOn)
+	{
 		glEnable(GL_BLEND);
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    	glDisable(GL_CULL_FACE);   // see both sides of the quad
-    	glDepthMask(GL_FALSE);     // don't write depth so particles don't kill each other
-		for (auto &particle : particle_vector) {
+		glDisable(GL_CULL_FACE); // see both sides of the quad
+		glDepthMask(GL_FALSE);	 // don't write depth so particles don't kill each other
+		for (auto &particle : particle_vector)
+		{
 			particle->setCameraPos(cams[activeCam]->getX(), cams[activeCam]->getY(), cams[activeCam]->getZ());
 			particle->render(renderer, mu);
 		}
-		glDepthMask(GL_TRUE);      // restore
+		glDepthMask(GL_TRUE); // restore
 		glEnable(GL_CULL_FACE);
 		glDisable(GL_BLEND);
 
 		int dead_num_particles = 0;
-		for (int i = 0; i < MAX_PARTICLES; i++){
-			if (particle_vector[i]->curr_life <= 0.0f) dead_num_particles++;
+		for (int i = 0; i < MAX_PARTICLES; i++)
+		{
+			if (particle_vector[i]->curr_life <= 0.0f)
+				dead_num_particles++;
 		}
-		if (dead_num_particles == MAX_PARTICLES) {
+		if (dead_num_particles == MAX_PARTICLES)
+		{
 			GLOBAL.fireworksOn = false;
 			reset_particles();
 			printf("All particles dead\n");
@@ -401,6 +424,45 @@ void renderSim(void)
 		std::vector<TextCommand> texts;
 		float size = 0.3f;
 		float Ypos = 0.f, Yoff = 80.f;
+
+		// --- HUD: battery and score ---
+		texts.push_back(TextCommand{
+			("Battery: " + std::to_string((int)drone->getBatteryLevel()) + "%").c_str(),
+			{720.f, 0.0f}, // screen coords (pixels)
+			size,
+			{0.9f, 0.9f, 0.0f, 1.0f} // yellow
+		});
+
+		texts.push_back(TextCommand{
+			("Score: " + std::to_string((int)drone->getScore())).c_str(),
+			{720.f, Yoff}, // below battery
+			size,
+			{0.0f, 0.9f, 0.9f, 1.0f} // cyan
+		});
+
+		if (GLOBAL.paused)
+		{
+			texts.push_back(TextCommand{
+				"PAUSED",
+				{GLOBAL.WinX / 2.0f, GLOBAL.WinY / 2.0f},
+				1.0f,
+				{0.9f, 0.1f, 0.1f, 1.0f} // red
+			});
+		}
+
+		if (GLOBAL.paused == false)
+		{
+			if (drone->isDisabled())
+			{
+				texts.push_back(TextCommand{
+					"Game Over! No battery!",
+					{GLOBAL.WinX / 2.0f - 360.f, GLOBAL.WinY / 2.0f},
+					1.0f,
+					{0.9f, 0.1f, 0.1f, 1.0f} // red
+				});
+			}
+		}
+
 		if (GLOBAL.showKeybinds)
 		{
 			// push_back the keybind gui
@@ -543,6 +605,144 @@ void renderSim(void)
 	glutSwapBuffers();
 }
 
+// Place package randomly on a building from the given quadrant
+void placePackageOnBuilding(int quadrantIndex)
+{
+	if (quadrantIndex >= (int)cityQuadrants.size() || cityQuadrants[quadrantIndex].empty() || !package)
+		return;
+
+	const auto &buildings = cityQuadrants[quadrantIndex];
+	SceneObject *building = buildings[rand() % buildings.size()];
+	auto pos = building->getPosition();
+	auto scale = building->getScale();
+
+	// Place package on top of building (centered)
+	float packageSize = 1.0f;
+	float packageX, packageZ, packageY;
+
+	// Handle different building types based on quadrant
+	int buildingType = quadrantIndex; // 0=cube, 1=cone, 2=cylinder, 3=window
+
+	if (buildingType == 2) // Cylinder quadrant
+	{
+		packageX = pos[0] - packageSize * 0.5f;		// Center on building (cylinders are center-positioned)
+		packageZ = pos[2] - packageSize * 0.5f;		// Center on building (cylinders are center-positioned)
+		packageY = pos[1] + scale[1] * 0.5f + 0.1f; // Top of cylinder (pos[1] is center, so add half height)
+	}
+	else if (buildingType == 1) // Cone quadrant
+	{
+		packageX = pos[0] - packageSize * 0.5f; // Center on building (cones are center-positioned)
+		packageZ = pos[2] - packageSize * 0.5f; // Center on building (cones are center-positioned)
+		packageY = pos[1] + scale[1] + 0.1f;	// Top of cone
+	}
+	else // Cube (0) and Window (3) quadrants
+	{
+		packageX = pos[0] + scale[0] * 0.5f - packageSize * 0.5f; // Center on building
+		packageZ = pos[2] + scale[2] * 0.5f - packageSize * 0.5f; // Center on building
+		packageY = pos[1] + scale[1] + 0.1f;					  // Top of building
+	}
+
+	package->reset(building, packageX, packageY, packageZ);
+	package->updateCollider();
+
+	// std::cout << "Package placed on building at (" << packageX << ", " << packageY << ", " << packageZ << ")\n";
+}
+
+// Mark a random building as the delivery destination (with distinct color)
+void setDeliveryBuilding(int quadrantIndex)
+{
+	if (quadrantIndex >= (int)cityQuadrants.size() || cityQuadrants[quadrantIndex].empty())
+		return;
+
+	const auto &buildings = cityQuadrants[quadrantIndex];
+	SceneObject *deliveryBuilding = buildings[rand() % buildings.size()];
+
+	// Store original position and scale for collision box calculation
+	auto pos = deliveryBuilding->getPosition();
+	auto scale = deliveryBuilding->getScale();
+
+	// Determine building type based on quadrant
+	int buildingType = quadrantIndex; // 0=cube, 1=cone, 2=cylinder, 3=window
+
+	package->setDestination(deliveryBuilding, destinationMeshID);
+
+	if (buildingType == 2) // Cylinder quadrant
+	{
+		float cubeHeight = scale[1]; // Keep the same height as the cylinder
+
+		float newX = pos[0] - scale[0] * 0.5f; // Convert from center to corner
+		float newY = 0.0f;					   // Ground level
+		float newZ = pos[2] - scale[2] * 0.5f; // Convert from center to corner
+		deliveryBuilding->setPosition(newX, newY, newZ);
+
+		deliveryBuilding->getCollider()->setBox(
+			newX,			 // minX = corner position
+			0.0f,			 // minY = ground level
+			newZ,			 // minZ = corner position
+			newX + scale[0], // maxX = corner + width
+			cubeHeight,		 // maxY = full height from ground
+			newZ + scale[2]	 // maxZ = corner + depth
+		);
+	}
+	else if (buildingType == 1) // Cone quadrant
+	{
+		float newX = pos[0] - scale[0] * 0.5f; // Convert from center to corner
+		float newY = pos[1];				   // Keep ground level
+		float newZ = pos[2] - scale[2] * 0.5f; // Convert from center to corner
+		deliveryBuilding->setPosition(newX, newY, newZ);
+
+		deliveryBuilding->getCollider()->setBox(
+			newX,			   // minX = corner position
+			pos[1],			   // minY = ground level
+			newZ,			   // minZ = corner position
+			newX + scale[0],   // maxX = corner + width
+			pos[1] + scale[1], // maxY = ground + height
+			newZ + scale[2]	   // maxZ = corner + depth
+		);
+	}
+	else // Cube (0) and Window (3) quadrants
+	{
+		deliveryBuilding->getCollider()->setBox(
+			pos[0],			   // minX = corner position
+			pos[1],			   // minY = ground level
+			pos[2],			   // minZ = corner position
+			pos[0] + scale[0], // maxX = corner + width
+			pos[1] + scale[1], // maxY = ground + height
+			pos[2] + scale[2]  // maxZ = corner + depth
+		);
+	}
+
+	// std::cout << "Delivery building marked with yellow glow!\n";
+}
+
+// Reset the delivery mission (called after successful delivery)
+void resetDelivery()
+{
+	if (!package || cityQuadrants.empty())
+		return;
+
+	// Reset previous destination building to normal color if needed
+	if (destination)
+	{
+		// For simplicity, just leave it yellow - you could track original mesh per building
+		// std::cout << "Previous destination remains marked\n";
+	}
+
+	// Pick random quadrants for package and destination
+	int pickupQuadrant = rand() % cityQuadrants.size();
+	int deliveryQuadrant;
+	do
+	{
+		deliveryQuadrant = rand() % cityQuadrants.size();
+	} while (deliveryQuadrant == pickupQuadrant && cityQuadrants.size() > 1);
+
+	// Place package and set destination
+	placePackageOnBuilding(pickupQuadrant);
+	setDeliveryBuilding(deliveryQuadrant);
+
+	// std::cout << "New delivery mission started!\n";
+}
+
 // ------------------------------------------------------------
 //
 // Events from the Keyboard
@@ -563,10 +763,11 @@ void processKeys(unsigned char key, int xx, int yy)
 		glutLeaveMainLoop();
 		break;
 
-	//TEMPORARY KEYBING FOR PARTICLES
-	//TODO: REMOVE WHEN CONDITION FOR WINNING ADDED
+	// TEMPORARY KEYBING FOR PARTICLES
+	// TODO: REMOVE WHEN CONDITION FOR WINNING ADDED
 	case 'e':
-		if (!GLOBAL.fireworksOn) {
+		if (!GLOBAL.fireworksOn)
+		{
 			GLOBAL.fireworksOn = true;
 			printf("Fireworks started!\n");
 		}
@@ -606,6 +807,22 @@ void processKeys(unsigned char key, int xx, int yy)
 
 	case 'i':
 		GLOBAL.showKeybinds = !GLOBAL.showKeybinds;
+		break;
+
+	case 'p': // Pause the game
+		GLOBAL.paused = !GLOBAL.paused;
+		break;
+
+	case 'r': // Restart the game (Reset drone position and new package and delivery building)
+		if (GLOBAL.paused == false && drone->isDisabled())
+		{
+			drone->setPosition(0.0f, 5.0f, 0.0f);
+			drone->setScale(1.6f, 2.f, 1.4f);
+			drone->getCollider()->setBox(-2.24f, 5.0f, -2.52f, 2.24f, 6.2f, 2.52f);
+			drone->setBatteryLevel(Drone::MAX_BATTERY);
+			drone->enable();
+			resetDelivery();
+		}
 		break;
 
 	case '1':
@@ -729,153 +946,197 @@ void mouseWheel(int wheel, int direction, int x, int y)
 //
 // Scene building with basic geometry
 //
-
-// Build a simple city with buildings primitives
-void buildCity(int quadID, int cubeID, int coneID, int cylinderID)
+void buildCityWithPackages(
+	int quadID, int cubeID, int coneID, int cylinderID, int torusID,
+	const std::vector<int> &grassMeshIDs, int packageID, int destinationID,
+	const std::vector<int> &treeMeshID1, const std::vector<int> &treeMeshID2, const std::vector<int> &treeMeshID3)
 {
-	// Scene objects
-	SceneObject *floor = new SceneObject(std::vector<int>{quadID}, TexMode::TEXTURE_FLOOR);
-	floor->setRotation(0.0f, -90.0f, 0.0f);
-	floor->setScale(2000.0f, 2000.0f, 10.0f);
-	sceneObjects.push_back(floor);
+	const float floorSize = 300.0f;
+	const float cityRadius = 75.0f;
+	const int torusCount = 20;
+	const float PI2 = 2.0f * PI_F;
 
-	SceneObject *tower_1 = new SceneObject(std::vector<int>{cubeID}, TexMode::TEXTURE_STONE);
-	tower_1->setScale(2.0f, 10.0f, 2.0f);
-	tower_1->setPosition(10.0f, 0.f, 5.f);
-	sceneObjects.push_back(tower_1);
-
-	SceneObject *tower_2 = new SceneObject(std::vector<int>{cubeID}, TexMode::TEXTURE_STONE);
-	tower_2->setScale(2.0f, 10.0f, 2.0f);
-	tower_2->setPosition(6.0f, 0.f, 5.f);
-	sceneObjects.push_back(tower_2);
-
-	SceneObject *tower_rot_1 = new SceneObject(std::vector<int>{cubeID}, TexMode::TEXTURE_STONE);
-	tower_rot_1->setRotation(30.0f, 0.0f, 0.0f);
-	tower_rot_1->setScale(2.0f, 6.0f, 2.0f);
-	tower_rot_1->setPosition(12.0f, 0.f, 13.f);
-	sceneObjects.push_back(tower_rot_1);
-
-	SceneObject *tower_rot_2 = new SceneObject(std::vector<int>{cubeID}, TexMode::TEXTURE_STONE);
-	tower_rot_2->setRotation(30.0f, 0.0f, 0.0f);
-	tower_rot_2->setScale(2.0f, 10.0f, 2.0f);
-	tower_rot_2->setPosition(10.0f, 0.0f, 13.0f);
-	sceneObjects.push_back(tower_rot_2);
-
-	SceneObject *tower_rot_3 = new SceneObject(std::vector<int>{cubeID}, TexMode::TEXTURE_STONE);
-	tower_rot_3->setRotation(30.0f, 0.0f, 0.0f);
-	tower_rot_3->setScale(2.0f, 10.0f, 2.0f);
-	tower_rot_3->setPosition(8.0f, 0.0f, 13.0f);
-	sceneObjects.push_back(tower_rot_3);
-
-	SceneObject *tower_rot_4 = new SceneObject(std::vector<int>{cubeID}, TexMode::TEXTURE_STONE);
-	tower_rot_4->setRotation(30.0f, 0.0f, 0.0f);
-	tower_rot_4->setScale(2.0f, 6.0f, 2.0f);
-	tower_rot_4->setPosition(6.0f, 0.0f, 13.0f);
-	sceneObjects.push_back(tower_rot_4);
-
-	SceneObject *cyl_tower_1 = new SceneObject(std::vector<int>{cylinderID}, TexMode::TEXTURE_STONE);
-	cyl_tower_1->setScale(1.4f, 8.0f, 1.4f);
-	cyl_tower_1->setPosition(-5.0f, 4.f, 12.f);
-	sceneObjects.push_back(cyl_tower_1);
-
-	SceneObject *cyl_tower_2 = new SceneObject(std::vector<int>{cylinderID}, TexMode::TEXTURE_STONE);
-	cyl_tower_2->setScale(2.0f, 3.0f, 2.0f);
-	cyl_tower_2->setPosition(.0f, 1.5f, 12.f);
-	sceneObjects.push_back(cyl_tower_2);
-
-	SceneObject *cyl_tower_3 = new SceneObject(std::vector<int>{cylinderID}, TexMode::TEXTURE_STONE);
-	cyl_tower_3->setScale(1.0f, 12.0f, 1.0f);
-	cyl_tower_3->setPosition(-3.0f, 6.0f, 3.f);
-	sceneObjects.push_back(cyl_tower_3);
-
-	SceneObject *cyl_tower_4 = new SceneObject(std::vector<int>{cylinderID}, TexMode::TEXTURE_STONE);
-	cyl_tower_4->setScale(2.0f, 10.0f, 1.5f);
-	cyl_tower_4->setPosition(-12.0f, 5.0f, 10.f);
-	sceneObjects.push_back(cyl_tower_4);
-
-	SceneObject *cyl_tower_5 = new SceneObject(std::vector<int>{cylinderID}, TexMode::TEXTURE_STONE);
-	cyl_tower_5->setScale(2.0f, 10.0f, 1.5f);
-	cyl_tower_5->setPosition(-12.0f, 5.0f, 6.5f);
-	sceneObjects.push_back(cyl_tower_5);
-
-	SceneObject *cyl_tower_6 = new SceneObject(std::vector<int>{cylinderID}, TexMode::TEXTURE_STONE);
-	cyl_tower_6->setScale(2.0f, 10.0f, 1.5f);
-	cyl_tower_6->setPosition(-12.0f, 5.0f, 3.4f);
-	sceneObjects.push_back(cyl_tower_6);
-
-	SceneObject *piramid_1 = new SceneObject(std::vector<int>{coneID}, TexMode::TEXTURE_STONE);
-	piramid_1->setScale(2.5f, 5.0f, 2.5f);
-	piramid_1->setPosition(7.5f, 0.0f, -11.25f);
-	sceneObjects.push_back(piramid_1);
-
-	SceneObject *piramid_2 = new SceneObject(std::vector<int>{coneID}, TexMode::TEXTURE_STONE);
-	piramid_2->setScale(2.5f, 5.0f, 2.5f);
-	piramid_2->setPosition(11.25f, 0.0f, -7.5f);
-	sceneObjects.push_back(piramid_2);
-
-	SceneObject *piramid_3 = new SceneObject(std::vector<int>{coneID}, TexMode::TEXTURE_STONE);
-	piramid_3->setScale(2.5f, 5.0f, 2.5f);
-	piramid_3->setPosition(7.5f, 0.0f, -3.75f);
-	sceneObjects.push_back(piramid_3);
-
-	SceneObject *piramid_4 = new SceneObject(std::vector<int>{coneID}, TexMode::TEXTURE_STONE);
-	piramid_4->setScale(2.5f, 5.0f, 2.5f);
-	piramid_4->setPosition(3.75f, 0.0f, -7.5f);
-	sceneObjects.push_back(piramid_4);
-
-	SceneObject *window_1 = new SceneObject(std::vector<int>{cubeID}, TexMode::TEXTURE_WINDOW);
-	window_1->setPosition(-10.f, 0.f, -10.f);
-	window_1->setScale(3.f, 10.f, 3.f);
-	transparentObjects.push_back(window_1);
-	collisionSystem.addCollider(window_1->getCollider());
-
-	SceneObject *window_2 = new SceneObject(std::vector<int>{cubeID}, TexMode::TEXTURE_WINDOW);
-	window_2->setPosition(-10.f, 0.f, -6.f);
-	window_2->setScale(3.f, 10.f, 3.f);
-	transparentObjects.push_back(window_2);
-	collisionSystem.addCollider(window_2->getCollider());
-
-	// --------------------------------------------------------------------
-	// Collider registration for city buildings (AABB approximations)
-	// Ignore rotation of buildings for simplicity
-
-	// Lambda function to reduce code repetition
-	auto addBox = [&](SceneObject *obj,
-					  float minX, float minY, float minZ,
-					  float maxX, float maxY, float maxZ)
+	auto addBox = [&](SceneObject *obj, float minX, float minY, float minZ, float maxX, float maxY, float maxZ)
 	{
 		obj->getCollider()->setBox(minX, minY, minZ, maxX, maxY, maxZ);
 		collisionSystem.addCollider(obj->getCollider());
 	};
 
+	// --------------------------------------------------------------------
 	// Floor
-	addBox(floor, -2000.0f, -0.1f, -1000.0f, 1000.0f, 0.0f, 2000.0f);
+	SceneObject *floor = new SceneObject(std::vector<int>{quadID}, TexMode::TEXTURE_FLOOR);
+	floor->setRotation(0.0f, -90.0f, 0.0f);
+	floor->setScale(floorSize, floorSize, 10.0f);
+	sceneObjects.push_back(floor);
+	addBox(floor, -floorSize, -0.1f, -floorSize, floorSize, 0.0f, floorSize);
 
-	// Cube based buildings (scale.x/z span full width, centered at position)
-	addBox(tower_1, 10.0f, 0.0f, 5.0f, 10.0f + 2.0f, 10.0f, 5.0f + 2.0f);
-	addBox(tower_2, 6.0f, 0.0f, 5.0f, 6.0f + 2.0f, 10.0f, 5.0f + 2.0f);
+	// --------------------------------------------------------------------
+	// Circular torus ring
+	for (int i = 0; i < torusCount; ++i)
+	{
+		float angle = i * (PI2 / torusCount);
+		float x = std::cos(angle) * cityRadius;
+		float z = std::sin(angle) * cityRadius;
 
-	addBox(tower_rot_1, 12.0f, 0.0f, 13.0f - 2.0f * std::sin(float(PI_F) / 6.0f), 12.0f + 2.0f * (std::sin(float(PI_F) / 6.0f) + std::cos(float(PI_F) / 6.0f)), 6.0f, 13.0f + 2.0f * std::cos(float(PI_F) / 6.0f));
-	addBox(tower_rot_2, 10.0f, 0.0f, 13.0f - 2.0f * std::sin(float(PI_F) / 6.0f), 10.0f + 2.0f * (std::sin(float(PI_F) / 6.0f) + std::cos(float(PI_F) / 6.0f)), 10.0f, 13.0f + 2.0f * std::cos(float(PI_F) / 6.0f));
-	addBox(tower_rot_3, 8.0f, 0.0f, 13.0f - 2.0f * std::sin(float(PI_F) / 6.0f), 8.0f + 2.0f * (std::sin(float(PI_F) / 6.0f) + std::cos(float(PI_F) / 6.0f)), 10.0f, 13.0f + 2.0f * std::cos(float(PI_F) / 6.0f));
-	addBox(tower_rot_4, 6.0f, 0.0f, 13.0f - 2.0f * std::sin(float(PI_F) / 6.0f), 6.0f + 2.0f * (std::sin(float(PI_F) / 6.0f) + std::cos(float(PI_F) / 6.0f)), 6.0f, 13.0f + 2.0f * std::cos(float(PI_F) / 6.0f));
+		SceneObject *ring = new SceneObject(std::vector<int>{torusID}, TexMode::TEXTURE_STONE);
+		ring->setPosition(x, 0.0f, z);
+		ring->setRotation(90.0f, 0.0f, 0.0f);
+		ring->setScale(8.0f, 8.0f, 8.0f);
+		sceneObjects.push_back(ring);
+	}
 
-	// Cylinders (approximated as boxes)
-	addBox(cyl_tower_1, -5.0f - 1.1f, 0.0f, 12.0f - 1.1f, -5.0f + 1.1f, 8.0f, 12.0f + 1.1f);
-	addBox(cyl_tower_2, 0.0f - 1.5f, 0.0f, 12.0f - 1.5f, 0.0f + 1.5f, 3.0f, 12.0f + 1.5f);
-	addBox(cyl_tower_3, -3.0f - 0.75f, 0.0f, 3.0f - 0.75f, -3.0f + 0.75f, 12.0f, 3.0f + 0.75f);
-	addBox(cyl_tower_4, -12.0f - 1.5f, 0.0f, 10.0f - 0.75f, -12.0f + 1.5f, 10.0f, 10.0f + 0.75f);
-	addBox(cyl_tower_5, -12.0f - 1.5f, 0.0f, 6.5f - 1.f, -12.0f + 1.5f, 10.0f, 6.5f + 1.f);
-	addBox(cyl_tower_6, -12.0f - 1.5f, 0.0f, 3.4f - 1.f, -12.0f + 1.5f, 10.0f, 3.4f + 1.f);
+	// --------------------------------------------------------------------
+	// Grid placement helper - simplified
+	auto placeGridBuildings = [&](float startAngleDeg, float endAngleDeg, int rows, int cols, float spacing, auto builderFn) -> std::vector<SceneObject *>
+	{
+		float angleMid = (startAngleDeg + endAngleDeg) / 2.0f * PI_F / 180.0f;
+		float quadrantCenterX = std::cos(angleMid) * cityRadius * 0.5f;
+		float quadrantCenterZ = std::sin(angleMid) * cityRadius * 0.5f;
 
-	// Cones (centered, base on ground)
-	addBox(piramid_1, 7.5f - 1.25f, 0.0f, -11.25f - 1.25f, 7.5f + 1.25f, 5.0f, -11.25f + 1.25f);
-	addBox(piramid_2, 11.25f - 1.25f, 0.0f, -7.5f - 1.25f, 11.25f + 1.25f, 5.0f, -7.5f + 1.25f);
-	addBox(piramid_3, 7.5f - 1.25f, 0.0f, -3.75f - 1.25f, 7.5f + 1.25f, 5.0f, -3.75f + 1.25f);
-	addBox(piramid_4, 3.75f - 1.25f, 0.0f, -7.5f - 1.25f, 3.75f + 1.25f, 5.0f, -7.5f + 1.25f);
+		float startX = quadrantCenterX - (cols - 1) * spacing * 0.5f;
+		float startZ = quadrantCenterZ - (rows - 1) * spacing * 0.5f;
 
-	addBox(window_1, -10.f, 0.f, -10.f, -10.f + 3.0f, 10.f, -10.f + 3.0f);
-	addBox(window_2, -10.f, 0.f, -6.f, -10.f + 3.0f, 10.f, -6.f + 3.0f);
+		std::vector<SceneObject *> quadrantBuildings;
+
+		// Place all buildings
+		for (int r = 0; r < rows; ++r)
+		{
+			for (int c = 0; c < cols; ++c)
+			{
+				float x = startX + c * spacing;
+				float z = startZ + r * spacing;
+				SceneObject *obj = builderFn(x, z, r * cols + c);
+				quadrantBuildings.push_back(obj);
+			}
+		}
+
+		return quadrantBuildings;
+	};
+
+	// --------------------------------------------------------------------
+	// Quadrant builders
+	auto cubeBuilder = [&](float x, float z, int i)
+	{
+		SceneObject *tower = new SceneObject(std::vector<int>{cubeID}, TexMode::TEXTURE_STONE);
+		tower->setScale(2.0f, 6.0f + (i % 5), 2.0f);
+		tower->setPosition(x, 0.0f, z);
+		sceneObjects.push_back(tower);
+		addBox(tower, x, 0.0f, z, x + 2.0f, 6.0f + (i % 5), z + 2.0f);
+		return tower;
+	};
+
+	auto coneBuilder = [&](float x, float z, int i)
+	{
+		SceneObject *pyramid = new SceneObject(std::vector<int>{coneID}, TexMode::TEXTURE_STONE);
+		pyramid->setScale(2.5f, 5.0f + (i % 3), 2.5f);
+		pyramid->setPosition(x, 0.0f, z);
+		sceneObjects.push_back(pyramid);
+		addBox(pyramid, x - 1.25f, 0.0f, z - 1.25f, x + 1.25f, 5.0f + (i % 3), z + 1.25f);
+		return pyramid;
+	};
+
+	auto cylinderBuilder = [&](float x, float z, int i)
+	{
+		SceneObject *cyl = new SceneObject(std::vector<int>{cylinderID}, TexMode::TEXTURE_STONE);
+		cyl->setScale(1.5f, 8.0f + (i % 5), 1.5f);
+		auto scale = cyl->getScale();
+		cyl->setPosition(x, scale[1] * 0.5f, z);
+		sceneObjects.push_back(cyl);
+		addBox(cyl, x - 1.5f, 0.0f, z - 1.5f, x + 1.5f, scale[1], z + 1.5f);
+		return cyl;
+	};
+
+	auto windowBuilder = [&](float x, float z, int i)
+	{
+		SceneObject *window = new SceneObject(std::vector<int>{cubeID}, TexMode::TEXTURE_WINDOW);
+		window->setScale(3.0f, 10.0f + (i % 3), 3.0f);
+		window->setPosition(x, 0.0f, z);
+		transparentObjects.push_back(window);
+		addBox(window, x, 0.0f, z, x + 3.0f, 10.0f + (i % 3), z + 3.0f);
+		return window;
+	};
+
+	// --------------------------------------------------------------------
+	// Place quadrants and store building lists for delivery
+	cityQuadrants.clear();
+	cityQuadrants.push_back(placeGridBuildings(0.0f, 90.0f, 4, 5, 5.0f, cubeBuilder));
+	cityQuadrants.push_back(placeGridBuildings(90.0f, 180.0f, 4, 5, 5.0f, coneBuilder));
+	cityQuadrants.push_back(placeGridBuildings(180.0f, 270.0f, 4, 5, 5.0f, cylinderBuilder));
+	cityQuadrants.push_back(placeGridBuildings(270.0f, 360.0f, 4, 5, 5.0f, windowBuilder));
+
+	// Store mesh IDs for later use
+	destinationMeshID = destinationID;
+
+	// Create the package object
+	package = new Package({packageID}, TexMode::TEXTURE_LIGHTWOOD);
+	package->setScale(1.0f, 1.0f, 1.0f);
+	sceneObjects.push_back(package);
+
+	// Set up delivery callback - triggers when package is delivered
+	package->onDelivered = []()
+	{
+		// std::cout << "Package delivered! Resetting mission...\n";
+		resetDelivery();
+	};
+
+	// Initialize first delivery mission
+	int pickupQuadrant = rand() % cityQuadrants.size();
+	int deliveryQuadrant = (pickupQuadrant + 1 + rand() % 3) % cityQuadrants.size(); // Different quadrant
+
+	placePackageOnBuilding(pickupQuadrant);
+	setDeliveryBuilding(deliveryQuadrant);
+
+	collisionSystem.addCollider(package->getCollider());
+
+	// --------------------------------------------------------------------
+	// Grass outside the torus ring
+	const int grassCount = 500;
+	for (int i = 0; i < grassCount; ++i)
+	{
+		SceneObject *grass = new SceneObject(grassMeshIDs, TexMode::TEXTURE_BBGRASS);
+		const float goldRatio = PI_F * (3 - std::sqrt(5.0f));
+		const float radius = cityRadius + 10.0f + std::sqrt(i / (float)grassCount) * 50.0f;
+		const float angle = i * goldRatio;
+
+		grass->setPosition(std::cos(angle) * radius, 0.0f, std::sin(angle) * radius);
+		grass->setScale(2.f, 1.5f, 2.f);
+		grass->setRotation(10.f * i, 0.0f, 0.0f);
+		sceneObjects.push_back(grass);
+	}
+
+	std::uniform_real_distribution<float> pos{-10.f, 10.0f};
+	std::uniform_real_distribution<float> col{-2.f, 2.0f};
+	// tree billboards
+	const int treeCount = 2000;
+	const float maxRadius = 300.f;
+	const float minRadius = 200.f;
+	const float goldRatio = PI_F * (3 - std::sqrt(5));
+	for (int i = 1; i < treeCount; i++)
+	{
+		SceneObject *tree;
+		if (i % 3 == 0)
+		{
+			tree = new SceneObject(treeMeshID1, TexMode::TEXTURE_BBTREE);
+		}
+		if (i % 3 == 1)
+		{
+			tree = new SceneObject(treeMeshID2, TexMode::TEXTURE_BBTREE);
+		}
+		if (i % 3 == 2)
+		{
+			tree = new SceneObject(treeMeshID3, TexMode::TEXTURE_BBTREE);
+		}
+		const float t = std::sqrt(i / (float)treeCount);
+		const float radius = std::sqrt(t * (maxRadius * maxRadius - minRadius * minRadius) + minRadius * minRadius);
+		const float angle = i * goldRatio;
+
+		float randX = pos(gen);
+		float randZ = pos(gen);
+
+		tree->setPosition(std::cos(angle) * radius + randX, 0.f, 30 + std::sin(angle) * radius + randZ);
+		tree->setScale(4.f, 10.f, 4.f);
+		billboardObjects.push_back(tree);
+	}
 }
 
 void buildScene()
@@ -904,6 +1165,7 @@ void buildScene()
 	renderer.TexObjArray.texture2D_Loader(FILEPATH.Stone_Tex);
 	renderer.TexObjArray.texture2D_Loader(FILEPATH.Floor_Tex);
 	renderer.TexObjArray.texture2D_Loader(FILEPATH.Window_Tex);
+	renderer.TexObjArray.texture2D_Loader(FILEPATH.BBGrass_Tex, false);
 	renderer.TexObjArray.texture2D_Loader(FILEPATH.BBTree_Tex, false);
 	renderer.TexObjArray.texture2D_Loader(FILEPATH.Lightwood_Tex);
 	renderer.TexObjArray.texture2D_Loader(FILEPATH.Particle_Tex);
@@ -911,7 +1173,6 @@ void buildScene()
 	renderer.TexObjArray.textureCubeMap_Loader(FILEPATH.Skybox_Cubemap_Day);
 	GLOBAL.cubemap_nightID = renderer.TexObjArray.getNumTextureObjects();
 	renderer.TexObjArray.textureCubeMap_Loader(FILEPATH.Skybox_Cubemap_Night);
-
 
 	// Scene geometry with triangle meshes
 	MyMesh amesh;
@@ -924,6 +1185,8 @@ void buildScene()
 	float shininess = 100.0f;
 	int texcount = 0;
 
+	// Scene objects
+
 	// create geometry and VAO of the cube
 	amesh = createCube();
 	memcpy(amesh.mat.ambient, amb1, 4 * sizeof(float));
@@ -934,84 +1197,6 @@ void buildScene()
 	amesh.mat.texCount = texcount;
 	int cubeID = renderer.addMesh(amesh);
 
-	// Load grass model from file
-	std::vector<MyMesh> treeMesh = createFromFile(FILEPATH.Tree_OBJ);
-	std::vector<int> treeMeshID1;
-	for (size_t i = 0; i < treeMesh.size(); i++)
-	{
-		float amb[] = {10.f, 10.f, 10.f, 10.f};
-		// set material properties
-		memcpy(treeMesh[i].mat.ambient, amb, 4 * sizeof(float));
-		memcpy(treeMesh[i].mat.diffuse, diff1, 4 * sizeof(float));
-		memcpy(treeMesh[i].mat.specular, blk, 4 * sizeof(float));
-		memcpy(treeMesh[i].mat.emissive, blk, 4 * sizeof(float));
-		int meshID = renderer.addMesh(treeMesh[i]);
-		treeMeshID1.push_back(meshID);
-	}
-	std::vector<int> treeMeshID2;
-	for (size_t i = 0; i < treeMesh.size(); i++)
-	{
-		float amb[] = {12.f, 10.f, 10.f, 10.f};
-		memcpy(treeMesh[i].mat.ambient, amb, 4 * sizeof(float));
-		treeMeshID2.push_back(renderer.addMesh(treeMesh[i]));
-	}
-	std::vector<int> treeMeshID3;
-	for (size_t i = 0; i < treeMesh.size(); i++)
-	{
-		float amb[] = {10.f, 8.f, 10.f, 10.f};
-		memcpy(treeMesh[i].mat.ambient, amb, 4 * sizeof(float));
-		treeMeshID3.push_back(renderer.addMesh(treeMesh[i]));
-	}
-
-	std::mt19937 gen{std::random_device{}()}; // random engine
-	std::uniform_real_distribution<float> pos{-10.f, 10.0f};
-	std::uniform_real_distribution<float> col{-2.f, 2.0f};
-	// tree billboards
-	const int treeCount = 2000;
-	const float maxRadius = 300.f;
-	const float minRadius = 200.f;
-	const float goldRatio = PI_F * (3 - std::sqrt(5));
-	for (int i = 1; i < treeCount; i++)
-	{
-		SceneObject *tree;
-		if (i % 3 == 0) {
-			tree = new SceneObject(treeMeshID1, TexMode::TEXTURE_BBTREE);
-		}
-		if (i % 3 == 1) {
-			tree = new SceneObject(treeMeshID2, TexMode::TEXTURE_BBTREE);
-		}
-		if (i % 3 == 2) {
-			tree = new SceneObject(treeMeshID3, TexMode::TEXTURE_BBTREE);
-		}
-		const float t = std::sqrt(i / (float)treeCount);
-		const float radius = std::sqrt(t * (maxRadius*maxRadius - minRadius*minRadius) + minRadius*minRadius);
-		const float angle = i * goldRatio;
-
-		float randX = pos(gen);
-		float randZ = pos(gen);
-
-		tree->setPosition(std::cos(angle) * radius + randX, 0.f, 30 + std::sin(angle) * radius + randZ);
-		tree->setScale(4.f, 10.f, 4.f);
-		billboardObjects.push_back(tree);
-	}
-
-	amesh = createTorus(1.f, 10.f, 20, 20);
-	memcpy(amesh.mat.ambient, amb1, 4 * sizeof(float));
-	memcpy(amesh.mat.diffuse, diff1, 4 * sizeof(float));
-	memcpy(amesh.mat.specular, spec, 4 * sizeof(float));
-	memcpy(amesh.mat.emissive, blk, 4 * sizeof(float));
-	amesh.mat.shininess = shininess * 2;
-	int donutID = renderer.addMesh(amesh);
-	for (int i = 1; i < 10; i++)
-	{
-		SceneObject *torus = new SceneObject(std::vector<int>{donutID}, TexMode::TEXTURE_STONE);
-		torus->setPosition(50.0f * i, 0.0f, -1.f * 2.0f * i * i);
-		torus->setRotation(10.f * i, 0.0f, 0.0f);
-		sceneObjects.push_back(torus);
-	}
-
-	// Scene objects
-
 	// create geometry and VAO of the floor quad
 	amesh = createQuad(1.0f, 1.0f);
 	memcpy(amesh.mat.ambient, amb1, 4 * sizeof(float));
@@ -1021,28 +1206,6 @@ void buildScene()
 	amesh.mat.shininess = 1.f;
 	amesh.mat.texCount = texcount;
 	int quadID = renderer.addMesh(amesh);
-
-	// Load drone model from file
-	std::vector<MyMesh> droneMeshs = createFromFile(FILEPATH.Drone_OBJ);
-	std::vector<int> droneMeshIDs;
-	for (size_t i = 0; i < droneMeshs.size(); i++)
-	{
-		// set material properties
-		memcpy(droneMeshs[i].mat.ambient, amb1, 4 * sizeof(float));
-		memcpy(droneMeshs[i].mat.diffuse, diff1, 4 * sizeof(float));
-		memcpy(droneMeshs[i].mat.specular, spec1, 4 * sizeof(float));
-		memcpy(droneMeshs[i].mat.emissive, blk, 4 * sizeof(float));
-		droneMeshs[i].mat.shininess = shininess;
-		droneMeshs[i].mat.texCount = texcount;
-		int meshID = renderer.addMesh(droneMeshs[i]);
-		droneMeshIDs.push_back(meshID);
-	}
-	// Drone
-	drone = new Drone(cams[2], droneMeshIDs, TexMode::TEXTURE_LIGHTWOOD);
-	drone->setPosition(0.0f, 5.0f, 0.0f);
-	drone->setScale(1.6f, 2.f, 1.4f);
-	sceneObjects.push_back(drone);
-	collisionSystem.addCollider(drone->getCollider());
 
 	// create geometry and VAO of the cone
 	amesh = createCone(1.0f, 1.0f, 5);
@@ -1073,9 +1236,99 @@ void buildScene()
 	amesh.mat.texCount = texcount;
 	int torusID = renderer.addMesh(amesh);
 
-	buildCity(quadID, cubeID, coneID, cylinderID);
+	amesh = createCube();
+	memcpy(amesh.mat.ambient, amb1, 4 * sizeof(float));
+	memcpy(amesh.mat.diffuse, diff1, 4 * sizeof(float));
+	memcpy(amesh.mat.specular, spec, 4 * sizeof(float));
+	float yellow[] = {1.f, 1.f, 0.f, 1.f};
+	memcpy(amesh.mat.emissive, yellow, 4 * sizeof(float));
+	amesh.mat.shininess = 10.0f;
+	amesh.mat.texCount = texcount;
+	int destinationID = renderer.addMesh(amesh);
 
-	
+	amesh = createCube();
+	memcpy(amesh.mat.ambient, amb1, 4 * sizeof(float));
+	memcpy(amesh.mat.diffuse, diff1, 4 * sizeof(float));
+	memcpy(amesh.mat.specular, spec, 4 * sizeof(float));
+	float red[] = {1.f, 0.f, 0.f, 1.f};
+	memcpy(amesh.mat.emissive, red, 4 * sizeof(float));
+	amesh.mat.shininess = 10.0f;
+	amesh.mat.texCount = texcount;
+	int PackageId = renderer.addMesh(amesh);
+
+	// Load drone model from file
+	std::vector<MyMesh> droneMeshs = createFromFile(FILEPATH.Drone_OBJ);
+	std::vector<int> droneMeshIDs;
+	for (size_t i = 0; i < droneMeshs.size(); i++)
+	{
+		// set material properties
+		memcpy(droneMeshs[i].mat.ambient, amb1, 4 * sizeof(float));
+		memcpy(droneMeshs[i].mat.diffuse, diff1, 4 * sizeof(float));
+		memcpy(droneMeshs[i].mat.specular, spec1, 4 * sizeof(float));
+		memcpy(droneMeshs[i].mat.emissive, blk, 4 * sizeof(float));
+		droneMeshs[i].mat.shininess = shininess;
+		droneMeshs[i].mat.texCount = texcount;
+		int meshID = renderer.addMesh(droneMeshs[i]);
+		droneMeshIDs.push_back(meshID);
+	}
+
+	// Load grass model from file
+	std::vector<MyMesh> grassMesh = createFromFile(FILEPATH.Grass_OBJ);
+	std::vector<int> grassMeshIDs;
+	for (size_t i = 0; i < grassMesh.size(); i++)
+	{
+		float amb[] = {10.f, 10.f, 10.f, 10.f};
+		// set material properties
+		memcpy(grassMesh[i].mat.ambient, amb, 4 * sizeof(float));
+		memcpy(grassMesh[i].mat.diffuse, diff1, 4 * sizeof(float));
+		memcpy(grassMesh[i].mat.specular, blk, 4 * sizeof(float));
+		memcpy(grassMesh[i].mat.emissive, blk, 4 * sizeof(float));
+		int meshID = renderer.addMesh(grassMesh[i]);
+		grassMeshIDs.push_back(meshID);
+	}
+
+	// Load tree model from file
+	std::vector<MyMesh> treeMesh = createFromFile(FILEPATH.Tree_OBJ);
+	std::vector<int> treeMeshID1;
+	for (size_t i = 0; i < treeMesh.size(); i++)
+	{
+		float amb[] = {10.f, 10.f, 10.f, 10.f};
+		// set material properties
+		memcpy(treeMesh[i].mat.ambient, amb, 4 * sizeof(float));
+		memcpy(treeMesh[i].mat.diffuse, diff1, 4 * sizeof(float));
+		memcpy(treeMesh[i].mat.specular, blk, 4 * sizeof(float));
+		memcpy(treeMesh[i].mat.emissive, blk, 4 * sizeof(float));
+		int meshID = renderer.addMesh(treeMesh[i]);
+		treeMeshID1.push_back(meshID);
+	}
+	std::vector<int> treeMeshID2;
+	for (size_t i = 0; i < treeMesh.size(); i++)
+	{
+		float amb[] = {12.f, 10.f, 10.f, 10.f};
+		memcpy(treeMesh[i].mat.ambient, amb, 4 * sizeof(float));
+		treeMeshID2.push_back(renderer.addMesh(treeMesh[i]));
+	}
+	std::vector<int> treeMeshID3;
+	for (size_t i = 0; i < treeMesh.size(); i++)
+	{
+		float amb[] = {10.f, 8.f, 10.f, 10.f};
+		memcpy(treeMesh[i].mat.ambient, amb, 4 * sizeof(float));
+		treeMeshID3.push_back(renderer.addMesh(treeMesh[i]));
+	}
+
+	// Build the city
+	buildCityWithPackages(
+		quadID, cubeID, coneID, cylinderID, torusID,
+		grassMeshIDs, PackageId, destinationID, treeMeshID1, treeMeshID2, treeMeshID3);
+
+	// Drone
+	drone = new Drone(cams[2], droneMeshIDs, TexMode::TEXTURE_LIGHTWOOD);
+	drone->setPosition(0.0f, 5.0f, 0.0f);
+	drone->setScale(1.6f, 2.f, 1.4f);
+	drone->getCollider()->setBox(-2.24f, 5.0f, -2.52f, 2.24f, 6.2f, 2.52f);
+	sceneObjects.push_back(drone);
+	collisionSystem.addCollider(drone->getCollider());
+
 	// create geometry and VAO of the quad for particles
 	amesh = createQuad(1, 1);
 	memcpy(amesh.mat.ambient, amb1, 4 * sizeof(float));
@@ -1084,7 +1337,7 @@ void buildScene()
 	memcpy(amesh.mat.emissive, blk, 4 * sizeof(float));
 	amesh.mat.texCount = texcount;
 	int particleQuadID = renderer.addMesh(amesh);
-	
+
 	// Fireworks particles
 	buildParticles(particleQuadID);
 
@@ -1196,6 +1449,7 @@ int main(int argc, char **argv)
 	glutInitWindowPosition(100, 100);
 	glutInitWindowSize(GLOBAL.WinX, GLOBAL.WinY);
 	GLOBAL.WindowHandle = glutCreateWindow(GLOBAL.WinTitle);
+	GLOBAL.lastTime = glutGet(GLUT_ELAPSED_TIME);
 
 	//  Callback Registration
 	glutDisplayFunc(renderSim);

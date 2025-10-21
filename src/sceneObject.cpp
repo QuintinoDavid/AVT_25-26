@@ -12,7 +12,8 @@ void SceneObject::update(float) {}
 
 void SceneObject::render(Renderer &renderer, gmu &mu)
 {
-	if (!active) return;
+	if (!active)
+		return;
 
 	mu.pushMatrix(gmu::MODEL);
 	mu.translate(gmu::MODEL, pos[0], pos[1], pos[2]);
@@ -46,6 +47,21 @@ void SceneObject::onCollision(Collider *other)
 }
 
 Collider *SceneObject::getCollider() { return &collider; }
+
+float *SceneObject::getPosition()
+{
+	return pos;
+}
+
+float *SceneObject::getScale()
+{
+	return scale;
+}
+
+void SceneObject::setMeshes(const std::vector<int> &meshes)
+{
+	meshID = meshes;
+}
 
 void SceneObject::setPosition(float x, float y, float z)
 {

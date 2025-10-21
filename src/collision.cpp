@@ -1,3 +1,4 @@
+#include <algorithm>
 #include "collision.h"
 
 // --- Collider ---
@@ -18,6 +19,12 @@ const Collider::AABB &Collider::getBox() const { return collisionBox; }
 ICollidable *Collider::getOwner() const { return owner; }
 
 // --- CollisionSystem ---
+CollisionSystem &CollisionSystem::getInstance()
+{
+	static CollisionSystem instance;
+	return instance;
+}
+
 bool CollisionSystem::intersects(const Collider::AABB &a, const Collider::AABB &b)
 {
 	return (a.min[0] <= b.max[0] && a.max[0] >= b.min[0] &&
@@ -28,6 +35,15 @@ bool CollisionSystem::intersects(const Collider::AABB &a, const Collider::AABB &
 void CollisionSystem::setDebugCubeMesh(int meshID) { debugCubeMeshID = meshID; }
 
 void CollisionSystem::addCollider(Collider *c) { colliders.push_back(c); }
+
+void CollisionSystem::removeCollider(Collider *c)
+{
+	auto it = std::remove(colliders.begin(), colliders.end(), c);
+	if (it != colliders.end())
+	{
+		colliders.erase(it, colliders.end()); // erase the "removed" range
+	}
+}
 
 void CollisionSystem::checkCollisions()
 {

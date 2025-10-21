@@ -39,11 +39,13 @@ class CollisionSystem
 private:
 	int debugCubeMeshID = 2;
 	std::vector<Collider *> colliders;
-	bool intersects(const Collider::AABB &a, const Collider::AABB &b);
 
 public:
+	static CollisionSystem &getInstance();
+	bool intersects(const Collider::AABB &a, const Collider::AABB &b);
 	void setDebugCubeMesh(int meshID);
 	void addCollider(Collider *c);
+	void removeCollider(Collider *c);
 	void checkCollisions();
 	void showDebug(Renderer &renderer, gmu &mu);
 };

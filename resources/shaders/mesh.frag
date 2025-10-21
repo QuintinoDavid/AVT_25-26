@@ -53,6 +53,7 @@ uniform sampler2D texmap_stone;
 uniform sampler2D texmap_grass;
 uniform sampler2D texmap_window;
 uniform sampler2D texmap_bbgrass;
+uniform sampler2D texmap_bbtree;
 uniform sampler2D texmap_lightwood;
 uniform sampler2D texmap_particle;
 
@@ -169,10 +170,16 @@ void main()
         vec4 texel = texture(texmap_bbgrass, DataIn.texCoord);
         if (texel.a < 0.1f) discard;
         colorOut = vec4(texel.rgb / texel.a, 1.f) * lightTotal;
-    }  else if (texMode == 5) {
+    }else if (texMode == 5) {
+        // billboard tree texture
+        vec4 texel = texture(texmap_bbtree, DataIn.texCoord);
+        if (texel.a < 0.1f) discard;
+        colorOut = vec4(texel.rgb / texel.a, 1.f) * lightTotal;
+    }  
+    else if (texMode == 6) {
         // lightwood texture
         colorOut = texture(texmap_lightwood, DataIn.texCoord) * lightTotal;
-    }  else if (texMode == 6) {
+    }  else if (texMode == 7) {
         // particle texture
         vec4 texel = texture(texmap_particle, DataIn.texCoord);
         if (texel.a < 0.1f) discard; 
