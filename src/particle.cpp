@@ -37,7 +37,7 @@ private:
             vx += ax * deltaTime;
             vy += ay * deltaTime;
             vz += az * deltaTime;   
-            curr_life -= fade;
+            curr_life -= fade * deltaTime;
         }
     }
 

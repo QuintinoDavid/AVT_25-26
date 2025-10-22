@@ -249,7 +249,7 @@ void buildParticles(int particleQuadID)
 		phi = frand() * PI_F;
 		theta = 2.0 * frand() * PI_F;
 
-		Particle *particle = new Particle({particleQuadID}, TexMode::TEXTURE_PARTICLE, 1.0f, 0.007f,
+		Particle *particle = new Particle({particleQuadID}, TexMode::TEXTURE_PARTICLE, 1.0f, 0.3f,
 										  0.0f, 10.0f, 0.0f,
 										  v * cos(theta) * sin(phi),
 										  v * cos(phi),
@@ -1304,7 +1304,7 @@ void buildCityWithPackages(
 	// Set up delivery callback - triggers when package is delivered
 	package->onDelivered = []()
 	{
-		// std::cout << "Package delivered! Resetting mission...\n";
+			// std::cout << "Package delivered! Resetting mission...\n";
 		resetDelivery();
 		reset_particles();
 		GLOBAL.fireworksOn = true;
@@ -1387,7 +1387,7 @@ void buildScene()
 
 	// Top Perspective Camera
 	cams[1] = new Camera();
-	cams[1]->setPosition(0.0f, 30.0f, 0.0f);
+	cams[1]->setPosition(0.0f, 50.0f, 0.0f);
 	cams[1]->setTarget(0.0f, 0.0f, 0.0f);
 	cams[1]->setUp(0.0f, 0.0f, -1.0f);
 	cams[1]->setProjectionType(ProjectionType::Perspective);
