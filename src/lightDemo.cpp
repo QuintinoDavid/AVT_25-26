@@ -599,7 +599,6 @@ void renderSim(void)
 
 	//Dark the color stored in color buffer
 	glDisable(GL_DEPTH_TEST);
-	glBlendFunc(GL_DST_COLOR, GL_ZERO);
 	glStencilOp(GL_KEEP, GL_KEEP, GL_ZERO);
 
 	// render shadows

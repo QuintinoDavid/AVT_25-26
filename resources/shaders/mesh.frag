@@ -158,7 +158,7 @@ void main()
 
     if (texMode == 0) {
         // no texture
-		colorOut = vec4(vec3(0.2), 0.6);
+		colorOut = vec4(vec3(0.0), 0.5);
     } else if (texMode == 1) {
         // tiled grass
         float tilingFactor1 = 11.f;
