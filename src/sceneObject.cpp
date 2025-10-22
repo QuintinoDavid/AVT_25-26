@@ -16,11 +16,23 @@ void SceneObject::render(Renderer &renderer, gmu &mu)
 		return;
 
 	mu.pushMatrix(gmu::MODEL);
-	mu.translate(gmu::MODEL, pos[0], pos[1], pos[2]);
+	if (renderer.renderInverted()) {
+		mu.translate(gmu::MODEL, pos[0], -pos[1], pos[2]);
+	}
+	else {
+		mu.translate(gmu::MODEL, pos[0], pos[1], pos[2]);
+	}
+
+
 	mu.rotate(gmu::MODEL, yaw, 0.0f, 1.0f, 0.0f);
 	mu.rotate(gmu::MODEL, pitch, 1.0f, 0.0f, 0.0f);
 	mu.rotate(gmu::MODEL, roll, 0.0f, 0.0f, 1.0f);
-	mu.scale(gmu::MODEL, scale[0], scale[1], scale[2]);
+	if (renderer.renderInverted()) {
+		mu.scale(gmu::MODEL, scale[0], -scale[1], scale[2]);
+	}
+	else {
+		mu.scale(gmu::MODEL, scale[0], scale[1], scale[2]);
+	}
 
 	mu.computeDerivedMatrix(gmu::PROJ_VIEW_MODEL);
 	mu.computeNormalMatrix3x3();

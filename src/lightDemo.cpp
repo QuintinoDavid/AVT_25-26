@@ -121,6 +121,7 @@ gmu mu;
 Renderer renderer;
 
 Drone *drone;
+SceneObject *floorObject;
 std::vector<Light> sceneLights;
 std::vector<SceneObject *> sceneObjects;
 std::vector<SceneObject *> transparentObjects;
@@ -270,6 +271,27 @@ void reset_particles(void)
 // Render stufff
 //
 
+void drawObjects(void)
+{
+	for (auto& obj : sceneObjects)
+		obj->render(renderer, mu);
+
+	for (auto& obj : billboardObjects)
+	{
+		float dirX = cams[activeCam]->getX() - obj->pos[0];
+		float dirZ = cams[activeCam]->getZ() - obj->pos[2];
+		float yaw = atan2(dirX, dirZ) * (180.0f / PI_F) + 180.f;
+		obj->setRotation(yaw, 0.f, 0.f);
+		obj->render(renderer, mu);
+	}
+
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	for (auto obj : transparentObjects)
+		obj->render(renderer, mu);
+	glDisable(GL_BLEND);
+}
+
 void renderSim(void)
 {
 	GLOBAL.FrameCount++;
@@ -287,7 +309,7 @@ void renderSim(void)
 		mu.loadIdentity(gmu::VIEW);
 		mu.loadIdentity(gmu::MODEL);
 
-		glStencilFunc(GL_NEVER, 0x1, 0x1);
+		glStencilFunc(GL_NEVER, 0x2, 0x3);
 		glStencilOp(GL_REPLACE, GL_KEEP, GL_KEEP);
 		glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
 		glDepthMask(GL_FALSE);
@@ -302,10 +324,9 @@ void renderSim(void)
 	}
 
 	// ===== STEP 2: RENDER REAR VIEW (where stencil == 1) =====
-	// ===== STEP 2: RENDER REAR VIEW (where stencil == 1) =====
 	if (stencilQuad && activeCam == 2)
 	{
-		glStencilFunc(GL_EQUAL, 0x1, 0x1);
+		glStencilFunc(GL_EQUAL, 0x2, 0x3);
 		glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
 
 		// Convert quad position/scale from pixels to viewport
@@ -367,7 +388,7 @@ void renderSim(void)
 
 		// Setup lights
 		for (auto &light : sceneLights)
-			light.render(renderer, mu);
+			light.setup(renderer, mu);
 
 		// Render opaque objects
 		for (auto &obj : sceneObjects)
@@ -382,6 +403,8 @@ void renderSim(void)
 			obj->setRotation(yaw, 0.f, 0.f);
 			obj->render(renderer, mu);
 		}
+
+		floorObject->render(renderer, mu);
 
 		// Render skybox centered on rear camera
 		mu.pushMatrix(gmu::MODEL);
@@ -434,8 +457,7 @@ void renderSim(void)
 	}
 
 	// ===== STEP 3: RENDER MAIN VIEW (where stencil != 1) =====
-	// Configure stencil to render where stencil != 1
-	glStencilFunc(GL_NOTEQUAL, 0x1, 0x1);
+	glStencilFunc(GL_NOTEQUAL, 0x2, 0x3);
 	glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
 
 	// use the required GLSL program to draw the meshes with illumination
@@ -491,29 +513,36 @@ void renderSim(void)
 	}
 	renderer.setFogColor(fogColor);
 
+	auto cmp = [&](SceneObject* a, SceneObject* b)
+		{
+			float camX = cams[activeCam]->getX();
+			float camY = cams[activeCam]->getY();
+			float camZ = cams[activeCam]->getZ();
+
+			float lenA_X = (a->pos[0] - camX);
+			float lenA_Y = (a->pos[1] - camY);
+			float lenA_Z = (a->pos[2] - camZ);
+			float lenA = (lenA_X * lenA_X) + (lenA_Y * lenA_Y) + (lenA_Z * lenA_Z);
+
+			float lenB_X = (b->pos[0] - camX);
+			float lenB_Y = (b->pos[1] - camY);
+			float lenB_Z = (b->pos[2] - camZ);
+			float lenB = (lenB_X * lenB_X) + (lenB_Y * lenB_Y) + (lenB_Z * lenB_Z);
+
+			return (lenA > lenB);
+	};
+	std::sort(particle_vector.begin(), particle_vector.end(), cmp);
+	std::sort(transparentObjects.begin(), transparentObjects.end(), cmp);
+
 	/*  RENDER QUEUE
+	  0) render skybox
 	  1) setup the lights
 	  2) render opaque objects
 	  2) render billboard objects
-	  3) render skybox
+	  3) render floor
 	  4) render particles (if any)
 	  5) render transparent objects
 	*/
-
-	for (auto &light : sceneLights)
-		light.render(renderer, mu);
-
-	for (auto &obj : sceneObjects)
-		obj->render(renderer, mu);
-
-	for (auto &obj : billboardObjects)
-	{
-		float dirX = cams[activeCam]->getX() - obj->pos[0];
-		float dirZ = cams[activeCam]->getZ() - obj->pos[2];
-		float yaw = atan2(dirX, dirZ) * (180.0f / PI_F) + 180.f;
-		obj->setRotation(yaw, 0.f, 0.f);
-		obj->render(renderer, mu);
-	}
 
 	// Render skybox
 	mu.pushMatrix(gmu::MODEL);
@@ -533,29 +562,51 @@ void renderSim(void)
 	mu.popMatrix(gmu::MODEL);
 	renderer.activateRenderMeshesShaderProg();
 
-	auto cmp = [&](SceneObject *a, SceneObject *b)
-	{
-		float camX = cams[activeCam]->getX();
-		float camY = cams[activeCam]->getY();
-		float camZ = cams[activeCam]->getZ();
+	// Escrever 1 no stencil buffer onde se for desenhar a reflexão e a sombra
+	glEnable(GL_STENCIL_TEST);
+	glStencilFunc(GL_LESS, 0x1, 0x3);
+	glStencilOp(GL_REPLACE, GL_KEEP, GL_KEEP);
 
-		float lenA_X = (a->pos[0] - camX);
-		float lenA_Y = (a->pos[1] - camY);
-		float lenA_Z = (a->pos[2] - camZ);
-		float lenA = (lenA_X * lenA_X) + (lenA_Y * lenA_Y) + (lenA_Z * lenA_Z);
+	// Fill stencil buffer with Ground shape; never rendered into color buffer
+	floorObject->render(renderer, mu);
 
-		float lenB_X = (b->pos[0] - camX);
-		float lenB_Y = (b->pos[1] - camY);
-		float lenB_Z = (b->pos[2] - camZ);
-		float lenB = (lenB_X * lenB_X) + (lenB_Y * lenB_Y) + (lenB_Z * lenB_Z);
+	// Render  where  stencil buffer is 1
+	glStencilFunc(GL_EQUAL, 0x1, 0x3);
+	glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
+	glEnable(GL_DEPTH_TEST);
 
-		return (lenA > lenB);
-	};
+	renderer.invert = true;
+	for (auto& light : sceneLights) {
+		light.invertY();
+		light.setup(renderer, mu);
+	}
+
+	glCullFace(GL_FRONT);
+	drawObjects();
+	glCullFace(GL_BACK);
+
+	renderer.invert = false;
+	renderer.resetLights();
+	for (auto& light : sceneLights) {
+		light.invertY();
+		light.setup(renderer, mu);
+	}
+
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	floorObject->render(renderer, mu);
+	glDisable(GL_BLEND);
+	glEnable(GL_DEPTH_TEST);
+
+	
+	glStencilFunc(GL_GREATER, 0x2, 0x3);
+	glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
+
+	drawObjects();
 
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-	std::sort(particle_vector.begin(), particle_vector.end(), cmp);
 	if (GLOBAL.fireworksOn)
 	{
 		glDisable(GL_CULL_FACE); // see both sides of the quad
@@ -580,7 +631,6 @@ void renderSim(void)
 		}
 	}
 
-	std::sort(transparentObjects.begin(), transparentObjects.end(), cmp);
 	for (auto obj : transparentObjects)
 		obj->render(renderer, mu);
 	glDisable(GL_BLEND);
@@ -1149,11 +1199,11 @@ void buildCityWithPackages(
 
 	// --------------------------------------------------------------------
 	// Floor
-	SceneObject *floor = new SceneObject(std::vector<int>{quadID}, TexMode::TEXTURE_FLOOR);
-	floor->setRotation(0.0f, -90.0f, 0.0f);
-	floor->setScale(floorSize, floorSize, 10.0f);
-	sceneObjects.push_back(floor);
-	addBox(floor, -floorSize, -0.1f, -floorSize, floorSize, 0.0f, floorSize);
+	floorObject = new SceneObject(std::vector<int>{quadID}, TexMode::TEXTURE_FLOOR);
+	floorObject->setPosition(0.0f, 0.1f, 0.0f);
+	floorObject->setRotation(0.0f, -90.0f, 0.0f);
+	floorObject->setScale(floorSize, floorSize, 10.0f);
+	addBox(floorObject, -floorSize, -0.1f, -floorSize, floorSize, 0.0f, floorSize);
 
 	// --------------------------------------------------------------------
 	// Circular torus ring
@@ -1164,9 +1214,9 @@ void buildCityWithPackages(
 		float z = std::sin(angle) * cityRadius;
 
 		SceneObject *ring = new SceneObject(std::vector<int>{torusID}, TexMode::TEXTURE_STONE);
-		ring->setPosition(x, 0.0f, z);
+		ring->setPosition(x, 2.0f, z);
 		ring->setRotation(90.0f, 0.0f, 0.0f);
-		ring->setScale(8.0f, 8.0f, 8.0f);
+		ring->setScale(8.0f, 4.0f, 8.0f);
 		sceneObjects.push_back(ring);
 	}
 
@@ -1348,7 +1398,7 @@ void buildScene()
 
 	// Drone camera
 	cams[2] = new Camera();
-	cams[2]->setPosition(0.0f, 10.0f, 10.0f);
+	cams[2]->setPosition(0.0f, 4.0f, 10.0f);
 	cams[2]->setUp(0.0f, 1.0f, 0.0f);
 	cams[2]->setProjectionType(ProjectionType::Perspective);
 
@@ -1373,6 +1423,7 @@ void buildScene()
 	float diff1[] = {1.f, 1.f, 1.f, 1.f};
 	float spec[] = {0.8f, 0.8f, 0.8f, 1.f};
 	float spec1[] = {0.3f, 0.3f, 0.3f, 1.f};
+	float spec2[] = {0.8f, 0.8f, 0.8f, 0.5f };
 	float blk[] = {0.f, 0.f, 0.f, 1.f};
 	float shininess = 100.0f;
 	int texcount = 0;
@@ -1393,7 +1444,7 @@ void buildScene()
 	amesh = createQuad(1.0f, 1.0f);
 	memcpy(amesh.mat.ambient, amb1, 4 * sizeof(float));
 	memcpy(amesh.mat.diffuse, diff1, 4 * sizeof(float));
-	memcpy(amesh.mat.specular, spec, 4 * sizeof(float));
+	memcpy(amesh.mat.specular, spec2, 4 * sizeof(float));
 	memcpy(amesh.mat.emissive, blk, 4 * sizeof(float));
 	amesh.mat.shininess = 1.f;
 	amesh.mat.texCount = texcount;

@@ -117,7 +117,7 @@ public:
         return *this;
     }
 
-    void render(Renderer &renderer, gmu &mu)
+    void setup(Renderer &renderer, gmu &mu)
     {
         if (!active || debug) return;
 
@@ -158,6 +158,11 @@ public:
     }
 
     SceneObject* getObject() { return object; }
+
+    void invertY() {
+        position[1] = -1 * position[1];
+        direction[1] = -1 * direction[1];
+    }
 
     Light& setDebug() { debug = !debug; return *this; }
     bool isDebug() { return debug; }

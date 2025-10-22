@@ -96,6 +96,9 @@ public:
 	/// Object of class Texture that manage an array of Texture Objects
 	Texture TexObjArray;
 
+	bool invert = false;
+	bool renderInverted() { return invert; }
+
 private:
 	// Render meshes GLSL program
 	GLuint program;

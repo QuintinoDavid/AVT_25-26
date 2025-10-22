@@ -166,7 +166,7 @@ void main()
 
         vec4 texel1 = texture(texmap_grass, DataIn.texCoord * tilingFactor1);
         vec4 texel2 = texture(texmap_grass, DataIn.texCoord * tilingFactor2);
-        colorOut = mix(texel1, texel2, 0.5f) * lightTotal;
+        colorOut = mix(texel1, texel2, 0.5f) * vec4(lightTotal.rgb, 0.9);//lightTotal;
     } else if (texMode == 2) {
         // texel only, use stone.tga
         colorOut = texture(texmap_stone, DataIn.texCoord) * lightTotal;
