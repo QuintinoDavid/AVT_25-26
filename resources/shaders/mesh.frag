@@ -63,6 +63,7 @@ uniform sampler2D texmap_hxgn;
 uniform sampler2D texmap_ring;
 uniform sampler2D texmap_sun;
 
+uniform samplerCube skybox;
 uniform int hasNormalMap;
 uniform sampler2D texmap_normal;
 
@@ -227,6 +228,10 @@ void main()
         vec4 texel = texture(texmap_sun, DataIn.texCoord);
         if (texel.a < 0.1f) discard;
         colorOut = vec4(texel.rgb, texel.a);
+    }
+    else if (texMode == 13) {
+        vec3 reflected = reflect(normalize(DataIn.position), normalize(normal));
+        colorOut = texture(skybox, reflected);
     }
 
     if (fogColor != vec4(0) && texMode != 0 && texMode < 8) {

@@ -1346,7 +1346,7 @@ void buildCityWithPackages(
 		float x = std::cos(angle) * cityRadius;
 		float z = std::sin(angle) * cityRadius;
 
-		SceneObject *ring = new SceneObject(std::vector<int>{torusID}, TexMode::TEXTURE_STONE);
+		SceneObject* ring = new SceneObject(std::vector<int>{torusID}, 13);//TexMode::TEXTURE_STONE);
 		ring->setPosition(x, 2.0f, z);
 		ring->setRotation(90.0f, 0.0f, 0.0f);
 		ring->setScale(8.0f, 4.0f, 8.0f);

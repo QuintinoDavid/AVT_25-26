@@ -430,6 +430,10 @@ void Renderer::activateSkyboxShaderProg(float *projview, unsigned int cubemap, f
 {
     // GLSL program to draw the skybox
     glDepthFunc(GL_LEQUAL);
+    glUseProgram(program);
+    glActiveTexture(GL_TEXTURE0 + cubemap);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, cubemap);
+    glUniform1i(glGetUniformLocation(program, "skybox"), cubemap);
     glUseProgram(skyboxProgram);
     glUniformMatrix4fv(skyboxprojview_loc, 1, GL_FALSE, projview);
 
