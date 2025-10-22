@@ -57,6 +57,11 @@ uniform sampler2D texmap_bbgrass;
 uniform sampler2D texmap_bbtree;
 uniform sampler2D texmap_lightwood;
 uniform sampler2D texmap_particle;
+uniform sampler2D texmap_crcl;
+uniform sampler2D texmap_flar;
+uniform sampler2D texmap_hxgn;
+uniform sampler2D texmap_ring;
+uniform sampler2D texmap_sun;
 
 uniform int hasNormalMap;
 uniform sampler2D texmap_normal;
@@ -193,8 +198,38 @@ void main()
         if (texel.a < 0.1f) discard; 
         colorOut = texel;           
     }
+    else if (texMode == 8) {
+        // crcl texture (flare - additive, no lighting)
+        vec4 texel = texture(texmap_crcl, DataIn.texCoord);
+        if (texel.a < 0.1f) discard;
+        colorOut = vec4(texel.rgb, texel.a);
+    }
+    else if (texMode == 9) {
+        // flar texture (flare - additive, no lighting)
+        vec4 texel = texture(texmap_flar, DataIn.texCoord);
+        if (texel.a < 0.1f) discard;
+        colorOut = vec4(texel.rgb, texel.a);
+    }
+    else if (texMode == 10) {
+        // hxgn texture (flare - additive, no lighting)
+        vec4 texel = texture(texmap_hxgn, DataIn.texCoord);
+        if (texel.a < 0.1f) discard;
+        colorOut = vec4(texel.rgb, texel.a);
+    }
+    else if (texMode == 11) {
+        // ring texture (flare - additive, no lighting)
+        vec4 texel = texture(texmap_ring, DataIn.texCoord);
+        if (texel.a < 0.1f) discard;
+        colorOut = vec4(texel.rgb, texel.a);
+    }
+    else if (texMode == 12) {
+        // sun texture (flare - additive, no lighting)
+        vec4 texel = texture(texmap_sun, DataIn.texCoord);
+        if (texel.a < 0.1f) discard;
+        colorOut = vec4(texel.rgb, texel.a);
+    }
 
-    if (fogColor != vec4(0) && texMode != 0) {
+    if (fogColor != vec4(0) && texMode != 0 && texMode < 8) {
         colorOut = mix(fogColor, colorOut, CalcFogFactor());
     }
 }

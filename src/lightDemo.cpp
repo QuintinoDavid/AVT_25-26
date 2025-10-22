@@ -44,6 +44,7 @@
 #include "package.h"
 #include "camera.h"
 #include "collision.h"
+#include "flare.h"
 #include "particle.cpp"
 
 #ifndef RESOURCE_BASE
@@ -55,6 +56,11 @@
 
 #define MAX_PARTICLES 1500
 #define frand() ((float)rand() / RAND_MAX)
+
+inline int clampi(const int x, const int min, const int max)
+{
+	return (x < min ? min : (x > max ? max : x));
+}
 
 struct
 {
@@ -70,6 +76,13 @@ struct
 	const char *Lightwood_Tex = ASSET_FOLDER "lightwood.tga";
 	const char *Particle_Tex = ASSET_FOLDER "particle.tga";
 	const char *Normalmap_Tex = ASSET_FOLDER "grassNormal.png";
+	const char *CRLC_Tex = ASSET_FOLDER "crcl.tga";
+	const char *FLAR_Tex = ASSET_FOLDER "flar.tga";
+	const char *HXGN_Tex = ASSET_FOLDER "hxgn.tga";
+	const char *RING_Tex = ASSET_FOLDER "ring.tga";
+	const char *SUN_Tex = ASSET_FOLDER "sun.tga";
+
+	const char *Flare_Tex = ASSET_FOLDER "flare.txt";
 
 	const char *Skybox_Cubemap_Day[6] = {
 		ASSET_FOLDER "skybox/day_right.png", ASSET_FOLDER "skybox/day_left.png",
@@ -135,6 +148,13 @@ std::vector<std::vector<SceneObject *>> cityQuadrants;
 int destinationMeshID = -1;
 // Random engine
 std::mt19937 gen{std::random_device{}()}; // random engine
+
+// Flare
+FLARE_DEF lensFlare;
+GLuint FlareTextureArray[5];
+float lightPos[4] = {1000.0f, 1000.0f, 0.0f, 1.0f}; // position of point light in World coordinates
+int flareQuadID;
+int offsetId = 0;
 
 Camera *cams[3];
 int activeCam = 0;
@@ -274,10 +294,10 @@ void reset_particles(void)
 
 void drawObjects(void)
 {
-	for (auto& obj : sceneObjects)
+	for (auto &obj : sceneObjects)
 		obj->render(renderer, mu);
 
-	for (auto& obj : billboardObjects)
+	for (auto &obj : billboardObjects)
 	{
 		float dirX = cams[activeCam]->getX() - obj->pos[0];
 		float dirZ = cams[activeCam]->getZ() - obj->pos[2];
@@ -290,6 +310,76 @@ void drawObjects(void)
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	for (auto obj : transparentObjects)
 		obj->render(renderer, mu);
+	glDisable(GL_BLEND);
+}
+
+void renderFlare(FLARE_DEF *flare, int lx, int ly, int *m_viewport, int flareQuadID)
+{
+	int dx, dy, px, py, cx, cy;
+	float maxflaredist, flaredist, flaremaxsize, flarescale, scaleDistance;
+	int width, height;
+
+	glDisable(GL_DEPTH_TEST);
+	glDisable(GL_CULL_FACE);
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE);
+
+	int screenMaxCoordX = m_viewport[0] + m_viewport[2] - 1;
+	int screenMaxCoordY = m_viewport[1] + m_viewport[3] - 1;
+
+	// Viewport center
+	cx = m_viewport[0] + (int)(0.5f * (float)m_viewport[2]) - 1;
+	cy = m_viewport[1] + (int)(0.5f * (float)m_viewport[3]) - 1;
+
+	// Compute distance from center
+	maxflaredist = sqrt(cx * cx + cy * cy);
+	flaredist = sqrt((lx - cx) * (lx - cx) + (ly - cy) * (ly - cy));
+	scaleDistance = (maxflaredist - flaredist) / maxflaredist;
+	flaremaxsize = (int)(m_viewport[2] * flare->fMaxSize);
+	flarescale = (int)(m_viewport[2] * flare->fScale);
+
+	// Destination is opposite side of center from source
+	dx = clampi(cx + (cx - lx), m_viewport[0], screenMaxCoordX);
+	dy = clampi(cy + (cy - ly), m_viewport[1], screenMaxCoordY);
+
+	renderer.activateRenderMeshesShaderProg();
+
+	for (int i = 0; i < flare->nPieces; ++i)
+	{
+		// Interpolate position along line
+		px = (int)((1.0f - flare->element[i].fDistance) * lx + flare->element[i].fDistance * dx);
+		py = (int)((1.0f - flare->element[i].fDistance) * ly + flare->element[i].fDistance * dy);
+		px = clampi(px, m_viewport[0], screenMaxCoordX);
+		py = clampi(py, m_viewport[1], screenMaxCoordY);
+
+		width = (int)(scaleDistance * flarescale * flare->element[i].fSize);
+		if (width > flaremaxsize)
+			width = flaremaxsize;
+		height = (int)((float)m_viewport[3] / (float)m_viewport[2] * (float)width);
+
+		float diffuse[4];
+		memcpy(diffuse, flare->element[i].matDiffuse, 4 * sizeof(float));
+		diffuse[3] *= scaleDistance;
+
+		if (width > 1)
+		{
+			// Setup transformation for this flare element
+			mu.pushMatrix(gmu::MODEL);
+			mu.translate(gmu::MODEL, (float)(px - width * 0.5f), (float)(py - height * 0.5f), 0.0f);
+			mu.scale(gmu::MODEL, (float)width, (float)height, 1.0f);
+
+			// Create and render flare quad
+			SceneObject flareObj({flareQuadID}, flare->element[i].textureId + offsetId);
+			flareObj.setPosition(0, 0, 0); // Position is handled by MODEL matrix
+			flareObj.setScale(1, 1, 1);	   // Scale is handled by MODEL matrix
+			flareObj.render(renderer, mu);
+
+			mu.popMatrix(gmu::MODEL);
+		}
+	}
+
+	glEnable(GL_DEPTH_TEST);
+	glEnable(GL_CULL_FACE);
 	glDisable(GL_BLEND);
 }
 
@@ -466,14 +556,19 @@ void renderSim(void)
 	renderer.resetLights();
 
 	// Associar os Texture Units aos Objects Texture
-	renderer.setTexUnit(0, 0); // Stone
-	renderer.setTexUnit(1, 1); // Floor grass
-	renderer.setTexUnit(2, 2); // Window
-	renderer.setTexUnit(3, 3); // Billboard grass
-	renderer.setTexUnit(4, 4); // Billboard tree
-	renderer.setTexUnit(5, 5); // Lightwood
-	renderer.setTexUnit(6, 6); // Particle
-	renderer.setTexUnit(7, 7); // Normalmap
+	renderer.setTexUnit(0, 0);	 // Stone
+	renderer.setTexUnit(1, 1);	 // Floor grass
+	renderer.setTexUnit(2, 2);	 // Window
+	renderer.setTexUnit(3, 3);	 // Billboard grass
+	renderer.setTexUnit(4, 4);	 // Billboard tree
+	renderer.setTexUnit(5, 5);	 // Lightwood
+	renderer.setTexUnit(6, 6);	 // Particle
+	renderer.setTexUnit(7, 7);	 // Normalmap
+	renderer.setTexUnit(8, 8);	 // Crcl
+	renderer.setTexUnit(9, 9);	 // Flar
+	renderer.setTexUnit(10, 10); // hxgn
+	renderer.setTexUnit(11, 11); // ring
+	renderer.setTexUnit(12, 12); // sun
 
 	// load identity matrices
 	mu.loadIdentity(gmu::VIEW);
@@ -514,23 +609,23 @@ void renderSim(void)
 	}
 	renderer.setFogColor(fogColor);
 
-	auto cmp = [&](SceneObject* a, SceneObject* b)
-		{
-			float camX = cams[activeCam]->getX();
-			float camY = cams[activeCam]->getY();
-			float camZ = cams[activeCam]->getZ();
+	auto cmp = [&](SceneObject *a, SceneObject *b)
+	{
+		float camX = cams[activeCam]->getX();
+		float camY = cams[activeCam]->getY();
+		float camZ = cams[activeCam]->getZ();
 
-			float lenA_X = (a->pos[0] - camX);
-			float lenA_Y = (a->pos[1] - camY);
-			float lenA_Z = (a->pos[2] - camZ);
-			float lenA = (lenA_X * lenA_X) + (lenA_Y * lenA_Y) + (lenA_Z * lenA_Z);
+		float lenA_X = (a->pos[0] - camX);
+		float lenA_Y = (a->pos[1] - camY);
+		float lenA_Z = (a->pos[2] - camZ);
+		float lenA = (lenA_X * lenA_X) + (lenA_Y * lenA_Y) + (lenA_Z * lenA_Z);
 
-			float lenB_X = (b->pos[0] - camX);
-			float lenB_Y = (b->pos[1] - camY);
-			float lenB_Z = (b->pos[2] - camZ);
-			float lenB = (lenB_X * lenB_X) + (lenB_Y * lenB_Y) + (lenB_Z * lenB_Z);
+		float lenB_X = (b->pos[0] - camX);
+		float lenB_Y = (b->pos[1] - camY);
+		float lenB_Z = (b->pos[2] - camZ);
+		float lenB = (lenB_X * lenB_X) + (lenB_Y * lenB_Y) + (lenB_Z * lenB_Z);
 
-			return (lenA > lenB);
+		return (lenA > lenB);
 	};
 	std::sort(particle_vector.begin(), particle_vector.end(), cmp);
 	std::sort(transparentObjects.begin(), transparentObjects.end(), cmp);
@@ -577,19 +672,21 @@ void renderSim(void)
 	glEnable(GL_DEPTH_TEST);
 
 	renderer.invert = true;
-	for (auto& light : sceneLights) {
+	for (auto &light : sceneLights)
+	{
 		light.invertY();
 		light.setup(renderer, mu);
 	}
 
 	glCullFace(GL_FRONT);
-	//render reflections
+	// render reflections
 	drawObjects();
 	glCullFace(GL_BACK);
 
 	renderer.invert = false;
 	renderer.resetLights();
-	for (auto& light : sceneLights) {
+	for (auto &light : sceneLights)
+	{
 		light.invertY();
 		light.setup(renderer, mu);
 	}
@@ -598,7 +695,7 @@ void renderSim(void)
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	floorObject->render(renderer, mu);
 
-	//Dark the color stored in color buffer
+	// Dark the color stored in color buffer
 	glDisable(GL_DEPTH_TEST);
 	glStencilOp(GL_KEEP, GL_KEEP, GL_ZERO);
 
@@ -639,6 +736,37 @@ void renderSim(void)
 			GLOBAL.fireworksOn = false;
 			printf("All particles dead\n");
 		}
+	}
+
+	// Flare
+	if (activeCam == 2)
+	{
+		float lightScreenPos[3];
+		int flarePos[2];
+		int m_viewport[4];
+		glGetIntegerv(GL_VIEWPORT, m_viewport);
+
+		mu.pushMatrix(gmu::MODEL);
+		mu.loadIdentity(gmu::MODEL);
+		mu.computeDerivedMatrix(gmu::PROJ_VIEW_MODEL); // pvm to be applied to lightPost. pvm is used in project function
+
+		if (!mu.project(lightPos, lightScreenPos, m_viewport))
+			printf("Error in getting projected light in screen\n"); // Calculate the window Coordinates of the light position: the projected position of light on viewport
+		flarePos[0] = clampi((int)lightScreenPos[0], m_viewport[0], m_viewport[0] + m_viewport[2] - 1);
+		flarePos[1] = clampi((int)lightScreenPos[1], m_viewport[1], m_viewport[1] + m_viewport[3] - 1);
+
+		mu.popMatrix(gmu::MODEL);
+		// viewer looking down at  negative z direction
+		mu.pushMatrix(gmu::PROJECTION);
+		mu.loadIdentity(gmu::PROJECTION);
+		mu.pushMatrix(gmu::VIEW);
+		mu.loadIdentity(gmu::VIEW);
+		mu.ortho(m_viewport[0], m_viewport[0] + m_viewport[2] - 1, m_viewport[1], m_viewport[1] + m_viewport[3] - 1, -1, 1);
+
+		renderFlare(&lensFlare, flarePos[0], flarePos[1], m_viewport, flareQuadID);
+
+		mu.popMatrix(gmu::PROJECTION);
+		mu.popMatrix(gmu::VIEW);
 	}
 
 	for (auto obj : transparentObjects)
@@ -1304,7 +1432,7 @@ void buildCityWithPackages(
 	// Set up delivery callback - triggers when package is delivered
 	package->onDelivered = []()
 	{
-			// std::cout << "Package delivered! Resetting mission...\n";
+		// std::cout << "Package delivered! Resetting mission...\n";
 		resetDelivery();
 		reset_particles();
 		GLOBAL.fireworksOn = true;
@@ -1407,6 +1535,16 @@ void buildScene()
 	renderer.TexObjArray.texture2D_Loader(FILEPATH.Lightwood_Tex);
 	renderer.TexObjArray.texture2D_Loader(FILEPATH.Particle_Tex);
 	renderer.TexObjArray.texture2D_Loader(FILEPATH.Normalmap_Tex);
+
+	// Flare
+	offsetId = renderer.TexObjArray.getNumTextureObjects();
+	renderer.TexObjArray.texture2D_Loader(FILEPATH.CRLC_Tex, false);
+	renderer.TexObjArray.texture2D_Loader(FILEPATH.FLAR_Tex, false);
+	renderer.TexObjArray.texture2D_Loader(FILEPATH.HXGN_Tex, false);
+	renderer.TexObjArray.texture2D_Loader(FILEPATH.RING_Tex, false);
+	renderer.TexObjArray.texture2D_Loader(FILEPATH.SUN_Tex, false);
+	loadFlareFile(&lensFlare, FILEPATH.Flare_Tex);
+
 	GLOBAL.cubemap_dayID = renderer.TexObjArray.getNumTextureObjects();
 	renderer.TexObjArray.textureCubeMap_Loader(FILEPATH.Skybox_Cubemap_Day);
 	GLOBAL.cubemap_nightID = renderer.TexObjArray.getNumTextureObjects();
@@ -1419,12 +1557,20 @@ void buildScene()
 	float diff1[] = {1.f, 1.f, 1.f, 1.f};
 	float spec[] = {0.8f, 0.8f, 0.8f, 1.f};
 	float spec1[] = {0.3f, 0.3f, 0.3f, 1.f};
-	float spec2[] = {0.8f, 0.8f, 0.8f, 0.5f };
+	float spec2[] = {0.8f, 0.8f, 0.8f, 0.5f};
 	float blk[] = {0.f, 0.f, 0.f, 1.f};
 	float shininess = 100.0f;
 	int texcount = 0;
 
 	// Scene objects
+
+	// create geometry and VAO of the flare quad
+	amesh = createQuad(1, 1);
+	memcpy(amesh.mat.ambient, amb1, 4 * sizeof(float));
+	memcpy(amesh.mat.diffuse, diff1, 4 * sizeof(float));
+	memcpy(amesh.mat.specular, spec1, 4 * sizeof(float));
+	memcpy(amesh.mat.emissive, blk, 4 * sizeof(float));
+	flareQuadID = renderer.addMesh(amesh);
 
 	// create geometry and VAO of the cube
 	amesh = createCube();
