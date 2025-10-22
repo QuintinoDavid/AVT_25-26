@@ -428,31 +428,36 @@ void renderSim(void)
 
 		glViewport(vpX, vpY, vpWidth, vpHeight);
 
-		// Setup rear-view camera (LOOKING BACKWARD!)
+		// Setup rear-view camera (better third-person behind-drone camera)
 		mu.loadIdentity(gmu::VIEW);
 		mu.loadIdentity(gmu::MODEL);
 
-		float droneYaw = ((drone->yaw) * PI_F / 180.0f) + PI_F; // Convert to radians
-		float distanceBehind = 5.0f;							// Camera distance behind drone
+		// convert yaw and build forward vector
+		float yawRad = drone->yaw * PI_F / 180.0f;
+		float fx = sinf(yawRad);
+		float fz = cosf(yawRad);
 
-		// Camera position: BEHIND the drone
-		float camX = drone->pos[0] - distanceBehind * sin(droneYaw);
-		float camY = drone->pos[1]; // Slightly above drone
-		float camZ = drone->pos[2] - distanceBehind * cos(droneYaw);
+		// choose sensible distances for a mirror view
+		float distanceBehind = 8.0f; // camera sits 8 units behind drone
+		float lookBehind = 12.0f;	 // how far the camera looks behind the drone
+		float heightOffset = 0.0f;	 // lift camera above drone
 
-		// Camera target: FURTHER behind the drone (looking backward!)
-		float targetX = drone->pos[0] - (distanceBehind + 10.0f) * sin(droneYaw);
+		// camera position: behind and up
+		float camX = drone->pos[0] - fx * distanceBehind;
+		float camY = drone->pos[1] + heightOffset;
+		float camZ = drone->pos[2] - fz * distanceBehind;
+
+		// camera target: a point behind the drone (so mirror looks backward)
+		float targetX = drone->pos[0] - fx * (distanceBehind + lookBehind);
 		float targetY = drone->pos[1];
-		float targetZ = drone->pos[2] - (distanceBehind + 10.0f) * cos(droneYaw);
+		float targetZ = drone->pos[2] - fz * (distanceBehind + lookBehind);
 
-		mu.lookAt(camX, camY, camZ,
-				  targetX, targetY, targetZ,
-				  0.0f, 1.0f, 0.0f);
+		mu.lookAt(camX, camY, camZ, targetX, targetY, targetZ, 0.0f, 1.0f, 0.0f);
 
-		// Setup perspective projection with correct aspect ratio
+		// perspective — use small near plane and moderate far plane
 		mu.loadIdentity(gmu::PROJECTION);
 		float ratio = (float)vpWidth / (float)vpHeight;
-		mu.perspective(53.13f, ratio, 0.1f, 800.0f);
+		mu.perspective(53.13f, ratio, 0.1f, 1000.0f);
 
 		// Set fog for rear-view
 		float fogColor[] = {0.f, 0.f, 0.f, 0.f};
@@ -658,15 +663,15 @@ void renderSim(void)
 	mu.popMatrix(gmu::MODEL);
 	renderer.activateRenderMeshesShaderProg();
 
-	// Escrever 1 no stencil buffer onde se for desenhar a reflexão e a sombra
 	glEnable(GL_STENCIL_TEST);
-	glStencilFunc(GL_LESS, 0x1, 0x3);
+	glStencilFunc(GL_NOTEQUAL, 0x2, 0x2);
 	glStencilOp(GL_REPLACE, GL_KEEP, GL_KEEP);
 
-	// Fill stencil buffer with Ground shape; never rendered into color buffer
-	floorObject->render(renderer, mu);
+	if (!(stencilQuad))
+	{
+		floorObject->render(renderer, mu);
+	}
 
-	// Render  where  stencil buffer is 1
 	glStencilFunc(GL_EQUAL, 0x1, 0x3);
 	glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
 	glEnable(GL_DEPTH_TEST);
@@ -693,6 +698,12 @@ void renderSim(void)
 
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+	if (stencilQuad)
+	{
+		glStencilFunc(GL_NOTEQUAL, 0x2, 0x3);
+	}
+
 	floorObject->render(renderer, mu);
 
 	// Dark the color stored in color buffer
