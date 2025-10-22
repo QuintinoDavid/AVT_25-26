@@ -52,8 +52,12 @@ void SceneObject::render(Renderer &renderer, gmu &mu)
 		dataMesh data;
 		data.meshID = mID;
 		data.texMode = texMode;
-		if (renderer.renderShadow())
+		if (renderer.renderShadow() && texMode != 5) {
 			data.texMode = 0;
+		}
+		else if (renderer.renderShadow()) {
+			data.texMode = 14; // billboard shadow
+		}
 		data.vm = mu.get(gmu::VIEW_MODEL);
 		data.pvm = mu.get(gmu::PROJ_VIEW_MODEL);
 		data.normal = mu.getNormalMatrix();

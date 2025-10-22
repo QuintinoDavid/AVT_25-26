@@ -233,6 +233,11 @@ void main()
         vec3 reflected = reflect(normalize(DataIn.position), normalize(normal));
         colorOut = texture(skybox, reflected);
     }
+    else if (texMode == 14) {
+        vec4 texel = texture(texmap_bbtree, DataIn.texCoord);
+        if (texel.a < 0.1f) discard;
+		colorOut = vec4(vec3(0.0), 0.5);
+    }
 
     if (fogColor != vec4(0) && texMode != 0 && texMode < 8) {
         colorOut = mix(fogColor, colorOut, CalcFogFactor());
