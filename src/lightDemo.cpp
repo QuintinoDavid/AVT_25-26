@@ -433,7 +433,7 @@ void renderSim(void)
 		mu.loadIdentity(gmu::MODEL);
 
 		// convert yaw and build forward vector
-		float yawRad = drone->yaw * PI_F / 180.0f;
+		float yawRad = drone->yaw * PI_F / 180.0f + PI_F;
 		float fx = sinf(yawRad);
 		float fz = cosf(yawRad);
 
