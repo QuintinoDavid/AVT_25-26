@@ -97,7 +97,7 @@ struct
 	int WinX = 1024, WinY = 695;
 	unsigned int FrameCount = 0;
 	const char *WinTitle = "AVT Project 2025 G13";
-
+	int numMovers = 15;
 	// Mouse Tracking Variables
 	int startX = 0, startY = 0, tracking = 0;
 	float mouseSensitivity = 0.3f;
@@ -264,6 +264,7 @@ void reset_particles(void)
 	for (int i = 0; i < MAX_PARTICLES; i++)
 	{
 		particle_vector[i]->reset();
+		particle_vector[i]->setPosition(drone->pos[0], drone->pos[1] + 5.0f, drone->pos[2]);
 	}
 }
 
@@ -636,7 +637,6 @@ void renderSim(void)
 		if (dead_num_particles == MAX_PARTICLES)
 		{
 			GLOBAL.fireworksOn = false;
-			reset_particles();
 			printf("All particles dead\n");
 		}
 	}
@@ -805,12 +805,6 @@ void renderSim(void)
 					size,
 					{.9f, 0.9f, 0.9f, 1.f}});
 			}
-			Ypos += Yoff;
-			texts.push_back(TextCommand{
-				"Press 'e' to show fireworks",
-				{0.f, Ypos},
-				size,
-				{.9f, 0.9f, 0.9f, 1.f}});
 		}
 		else
 		{
@@ -1005,16 +999,6 @@ void processKeys(unsigned char key, int xx, int yy)
 
 	case 27:
 		glutLeaveMainLoop();
-		break;
-
-	// TEMPORARY KEYBING FOR PARTICLES
-	// TODO: REMOVE WHEN CONDITION FOR WINNING ADDED
-	case 'e':
-		if (!GLOBAL.fireworksOn)
-		{
-			GLOBAL.fireworksOn = true;
-			printf("Fireworks started!\n");
-		}
 		break;
 
 	case 'n': // toggle directional light
@@ -1322,6 +1306,8 @@ void buildCityWithPackages(
 	{
 		// std::cout << "Package delivered! Resetting mission...\n";
 		resetDelivery();
+		reset_particles();
+		GLOBAL.fireworksOn = true;
 	};
 
 	// Initialize first delivery mission
@@ -1624,7 +1610,7 @@ void buildScene()
 	std::uniform_real_distribution<float> position{-100.f, 100.0f};
 	std::uniform_real_distribution<float> size{0.5f, 2.0f};
 	float spawningRadius = 50.f;
-	for (int i = 0; i < 10; i++)
+	for (int i = 0; i < GLOBAL.numMovers; i++)
 	{
 		AutoMover *mover = new AutoMover({torusID}, TexMode::TEXTURE_LIGHTWOOD, spawningRadius, velocity(gen));
 		mover->setPosition(position(gen), 5.0f, position(gen));
