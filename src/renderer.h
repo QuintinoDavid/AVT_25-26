@@ -98,6 +98,8 @@ public:
 
 	bool invert = false;
 	bool renderInverted() { return invert; }
+	bool shadow = false;
+	bool renderShadow() { return shadow; }
 
 private:
 	// Render meshes GLSL program

@@ -158,7 +158,7 @@ void main()
 
     if (texMode == 0) {
         // no texture
-        colorOut = lightTotal;
+		colorOut = vec4(vec3(0.2), 0.6);
     } else if (texMode == 1) {
         // tiled grass
         float tilingFactor1 = 11.f;
@@ -194,7 +194,7 @@ void main()
         colorOut = texel;           
     }
 
-    if (fogColor != vec4(0)) {
+    if (fogColor != vec4(0) && texMode != 0) {
         colorOut = mix(fogColor, colorOut, CalcFogFactor());
     }
 }

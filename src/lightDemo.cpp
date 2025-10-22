@@ -582,6 +582,7 @@ void renderSim(void)
 	}
 
 	glCullFace(GL_FRONT);
+	//render reflections
 	drawObjects();
 	glCullFace(GL_BACK);
 
@@ -595,13 +596,23 @@ void renderSim(void)
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	floorObject->render(renderer, mu);
+
+	//Dark the color stored in color buffer
+	glDisable(GL_DEPTH_TEST);
+	glBlendFunc(GL_DST_COLOR, GL_ZERO);
+	glStencilOp(GL_KEEP, GL_KEEP, GL_ZERO);
+
+	// render shadows
+	renderer.shadow = true;
+	drawObjects();
+	renderer.shadow = false;
 	glDisable(GL_BLEND);
 	glEnable(GL_DEPTH_TEST);
 
-	
 	glStencilFunc(GL_GREATER, 0x2, 0x3);
 	glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
 
+	// render real objects
 	drawObjects();
 
 	glEnable(GL_BLEND);

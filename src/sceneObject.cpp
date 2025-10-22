@@ -19,6 +19,16 @@ void SceneObject::render(Renderer &renderer, gmu &mu)
 	if (renderer.renderInverted()) {
 		mu.translate(gmu::MODEL, pos[0], -pos[1], pos[2]);
 	}
+	else if (renderer.renderShadow())
+	{
+		float mat[16];
+		float floor[4] = { 0,1,0,0 };
+		float sunPos[4] = { 1000,1000,0.1,0 };
+
+		mu.shadow_matrix(mat, floor, sunPos);
+		mu.multMatrix(gmu::MODEL, mat);
+		mu.translate(gmu::MODEL, pos[0], pos[1], pos[2]);
+	}
 	else {
 		mu.translate(gmu::MODEL, pos[0], pos[1], pos[2]);
 	}
@@ -42,6 +52,8 @@ void SceneObject::render(Renderer &renderer, gmu &mu)
 		dataMesh data;
 		data.meshID = mID;
 		data.texMode = texMode;
+		if (renderer.renderShadow())
+			data.texMode = 0;
 		data.vm = mu.get(gmu::VIEW_MODEL);
 		data.pvm = mu.get(gmu::PROJ_VIEW_MODEL);
 		data.normal = mu.getNormalMatrix();
